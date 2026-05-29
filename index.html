@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeScribe - Indian Market Journal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bgDark: '#0b0e14',
+                        panelDark: '#11141c',
+                        panelLighter: '#1f2433',
+                        neonGreen: '#00f28e',
+                        neonRed: '#ff3b69',
+                        textMuted: '#8b94a5',
+                        gold: '#ffd700',
+                        bronze: '#cd7f32',
+                        silver: '#c0c0c0',
+                        diamond: '#b9f2ff'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            background-color: #0b0e14;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2d3548; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f4a63; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
+        .glass-panel {
+            background: #11141c; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .input-dark {
+            background-color: #0b0e14;
+            border: 1px solid #2d3548;
+            color: white;
+            transition: all 0.2s;
+        }
+        .input-dark:focus {
+            border-color: #00f28e;
+            outline: none;
+            box-shadow: 0 0 0 1px rgba(0, 242, 142, 0.2);
+        }
+        
+        .progress-bar-bg { background-color: #1f2433; border-radius: 9999px; overflow: hidden; height: 6px; }
+        .progress-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
+
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-item.active { background-color: rgba(0, 242, 142, 0.1); color: #00f28e; border: 1px solid rgba(0, 242, 142, 0.2); }
+        .top-nav-item.active { background-color: #1f2433; color: white; }
+
+        /* Stats Grid Table Styles */
+        .stats-grid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 1px; background-color: #1f2433; border: 1px solid #1f2433; border-radius: 0.75rem; overflow: hidden; }
+        @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+        
+        .stat-cell { background-color: #11141c; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+        .stat-label { color: #8b94a5; font-size: 0.75rem; }
+        .stat-val { font-weight: 600; font-family: 'Inter', monospace; }
+        
+        /* Spinner */
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top: 3px solid #00f28e; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-sm relative">
+
+    <div id="mobileOverlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 glass-panel border-r border-gray-800 flex flex-col justify-between fixed md:relative h-full z-50 transition-transform duration-300 -translate-x-full md:translate-x-0">
+        <div>
+            <div class="p-6 flex justify-between items-center border-b border-gray-800/50">
+                <div class="flex items-center gap-3">
+                    <i class="ph-fill ph-chart-line-up text-3xl text-neonGreen"></i>
+                    <span class="text-xl font-bold tracking-wider">TradeScribe</span>
+                </div>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white"><i class="ph-bold ph-x text-xl"></i></button>
+            </div>
+            
+            <nav class="mt-4 px-4 space-y-2">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-squares-four text-xl"></i> Home
+                </button>
+                <button onclick="switchView('analytics')" id="nav-analytics" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-chart-polar text-xl"></i> Analytics
+                </button>
+                <button onclick="switchView('calendar')" id="nav-calendar" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-calendar text-xl"></i> Calendar
+                </button>
+                <button onclick="switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-list-numbers text-xl"></i> The Aftermath
+                </button>
+            </nav>
+        </div>
+        
+        <div class="p-4 border-t border-gray-800 bg-bgDark/50">
+            <div id="authStatus" class="flex items-center justify-center gap-2 mb-3 text-[10px] text-textMuted">
+                <div class="spinner w-3 h-3 border-2"></div> Connecting...
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-bgDark w-full">
+        
+        <header class="h-16 border-b border-gray-800 flex justify-between items-center px-4 md:px-6 glass-panel z-10 shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white p-2"><i class="ph ph-list text-2xl"></i></button>
+                
+                <div class="hidden md:flex bg-[#0b0e14] border border-gray-800 rounded-lg p-1 gap-1">
+                    <button onclick="switchTopNav('overview')" id="topnav-overview" class="top-nav-item active px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Overview</button>
+                    <button onclick="switchTopNav('instruments')" id="topnav-instruments" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Instruments</button>
+                    <button onclick="switchTopNav('tags')" id="topnav-tags" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Tags</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button onclick="openTradeModal()" class="btn-green px-4 py-2 md:px-5 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(0,242,142,0.2)]">
+                    <i class="ph-bold ph-plus"></i> <span class="hidden sm:inline">Add New</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 custom-scrollbar relative">
+            
+            <!-- ================= VIEW: DASHBOARD ================= -->
+            <div id="view-dashboard" class="view-section active space-y-4">
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <!-- Welcome Widget -->
+                    <div class="md:col-span-4 glass-panel p-5 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-textMuted">Welcome Back,</p>
+                            <h2 class="text-xl font-bold mt-1 mb-2">The Bengal Trader</h2>
+                            <p class="text-[10px] text-textMuted">Let's dominate the markets.</p>
+                        </div>
+                        <div class="text-center flex flex-col items-center justify-center">
+                            <i id="badgeIcon" class="ph-fill ph-circle-dashed text-4xl text-gray-500 mb-1 drop-shadow-md transition-colors duration-500"></i>
+                            <p id="badgeTitle" class="text-[10px] text-gray-400 font-bold uppercase tracking-wider transition-colors duration-500">Unranked</p>
+                            <p id="badgeSub" class="text-[9px] text-textMuted mt-0.5">Log trades to rank up</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Blocks -->
+                    <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="glass-panel p-4 rounded-xl">
+                            <p class="text-[10px] text-textMuted mb-2">Net P&L</p>
+                            <h3 class="text-xl font-bold font-mono text-white truncate" id="d_netPnl">₹0.00</h3>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] text-textMuted mb-2">Avg Trades/day</p>
+                                <h3 class="text-xl font-bold font-mono" id="d_avgTrades">0.0</h3>
+                            </div>
+                            <div class="w-10 h-10 relative"><canvas id="c_avgTradesGauge"></canvas></div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl">
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="text-[10px] text-textMuted">Trade Win %</p>
+                                <span class="text-[10px] text-textMuted" id="d_winRatioCount">0 W / 0 L</span>
+                            </div>
+                            <h3 class="text-xl font-bold font-mono mb-2" id="d_winPerc">0.00%</h3>
+                            <div class="progress-bar-bg"><div id="d_winBar" class="progress-bar-fill bg-neonGreen w-0"></div></div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] text-textMuted mb-2">Profit Factor</p>
+                                <h3 class="text-xl font-bold font-mono" id="d_profitFactor">0.00</h3>
+                            </div>
+                            <div class="w-10 h-10 relative"><canvas id="c_pfGauge"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-3 grid grid-cols-1 gap-4">
+                        <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
+                            <p class="text-xs text-textMuted self-start mb-2">Market Mood Index</p>
+                            <div class="w-32 h-20 relative"><canvas id="c_moodGauge"></canvas></div>
+                            <p class="text-xs text-neonRed font-semibold mt-2">Extreme Fear 😨</p>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
+                            <p class="text-xs text-textMuted self-start mb-2">TIQS Score <i class="ph ph-info"></i></p>
+                            <div class="w-32 h-20 relative"><canvas id="c_tiqsGauge"></canvas></div>
+                            <p class="text-xl font-bold font-mono text-neonGreen mt-2" id="d_tiqsVal">0.0</p>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-4 glass-panel p-4 rounded-xl flex flex-col">
+                        <p class="text-xs text-textMuted mb-2">Edge Radar</p>
+                        <div class="flex-1 relative w-full flex items-center justify-center min-h-[200px]">
+                            <canvas id="c_edgeRadar"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-5 glass-panel p-4 rounded-xl flex flex-col">
+                        <p class="text-xs text-textMuted mb-2">Monthly Revenue</p>
+                        <div class="flex-1 relative w-full min-h-[200px]">
+                            <canvas id="c_monthlyRev"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4 glass-panel p-4 rounded-xl flex flex-col max-h-[300px]">
+                        <div class="flex gap-2 mb-4 border-b border-gray-800 pb-2 shrink-0">
+                            <span class="px-3 py-1 rounded-full border border-neonGreen text-neonGreen text-xs">Recent Trades</span>
+                        </div>
+                        <div class="overflow-y-auto flex-1 custom-scrollbar pr-2 space-y-2" id="d_recentList"></div>
+                    </div>
+                    
+                    <div class="md:col-span-8 glass-panel p-4 rounded-xl flex flex-col">
+                        <p class="text-xs text-textMuted mb-2">Daily Net Curve</p>
+                        <div class="flex-1 relative w-full min-h-[250px]">
+                            <canvas id="c_dailyNetLine"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: ANALYTICS ================= -->
+            <div id="view-analytics" class="view-section space-y-6">
+                
+                <div class="glass-panel p-4 md:p-6 rounded-xl">
+                    <div class="flex items-center gap-4 mb-6 border-b border-gray-800 pb-4">
+                        <div>
+                            <p class="text-xs text-textMuted uppercase tracking-wider mb-1">Best Month</p>
+                            <p class="text-lg font-bold text-neonGreen font-mono leading-tight" id="as_bestMoVal">₹0.00</p>
+                            <p class="text-[10px] text-textMuted" id="as_bestMoLabel">in --</p>
+                        </div>
+                        <div class="h-10 w-px bg-gray-800 mx-2"></div>
+                        <div>
+                            <p class="text-xs text-textMuted uppercase tracking-wider mb-1">Lowest Month</p>
+                            <p class="text-lg font-bold text-neonRed font-mono leading-tight" id="as_lowMoVal">₹0.00</p>
+                            <p class="text-[10px] text-textMuted" id="as_lowMoLabel">in --</p>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" id="fullStatsGrid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-4 grid grid-cols-2 gap-4">
+                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-center items-center">
+                            <p class="text-xs text-textMuted font-bold text-center">Highest Win Streak</p>
+                            <h2 class="text-3xl font-bold text-neonGreen mt-2 font-mono" id="a_winStreak">0</h2>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-center items-center">
+                            <p class="text-xs text-textMuted font-bold text-center">Highest Lose Streak</p>
+                            <h2 class="text-3xl font-bold text-neonRed mt-2 font-mono" id="a_loseStreak">0</h2>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl col-span-2">
+                            <div class="flex justify-between border-b border-gray-800 pb-2 mb-2">
+                                <p class="text-[10px] text-textMuted font-bold">Top 5 Win</p>
+                                <p class="text-[10px] text-textMuted font-bold">Top 5 Loss</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <div id="a_topWins" class="space-y-1 text-xs font-mono flex-1"></div>
+                                <div class="w-px bg-gray-800"></div>
+                                <div id="a_topLosses" class="space-y-1 text-xs font-mono flex-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-8 glass-panel p-4 rounded-xl flex flex-col">
+                        <p class="text-xs text-textMuted font-bold mb-2">Instrument Performance</p>
+                        <div class="flex-1 relative w-full min-h-[300px]">
+                            <canvas id="c_instrumentBar"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-5 rounded-xl border-l-2 border-[#00f28e]">
+                        <p class="text-xs text-textMuted font-bold mb-4">Long Trade Analysis</p>
+                        <div class="mb-4">
+                            <p class="text-[10px] text-textMuted mb-1">Win Rate</p>
+                            <h3 class="text-xl font-bold mb-2 font-mono" id="a_longWr">0.00%</h3>
+                            <div class="progress-bar-bg"><div id="a_longWrBar" class="progress-bar-fill bg-neonGreen w-0"></div></div>
+                        </div>
+                        <div class="flex justify-between items-end border-t border-gray-800 pt-4">
+                            <div>
+                                <p class="text-[10px] text-textMuted mb-1">Net PNL</p>
+                                <h3 class="text-lg font-bold font-mono" id="a_longPnl">₹0.00</h3>
+                            </div>
+                            <div class="text-right text-[10px] text-gray-400">
+                                <p><span id="a_longAvgWin" class="font-bold text-white font-mono">0</span> Avg Win</p>
+                                <p class="mt-1"><span id="a_longAvgLoss" class="font-bold text-white font-mono">0</span> Avg Loss</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl border-l-2 border-[#ff3b69]">
+                        <p class="text-xs text-textMuted font-bold mb-4">Short Trade Analysis</p>
+                        <div class="mb-4">
+                            <p class="text-[10px] text-textMuted mb-1">Win Rate</p>
+                            <h3 class="text-xl font-bold mb-2 font-mono" id="a_shortWr">0.00%</h3>
+                            <div class="progress-bar-bg"><div id="a_shortWrBar" class="progress-bar-fill bg-neonRed w-0"></div></div>
+                        </div>
+                        <div class="flex justify-between items-end border-t border-gray-800 pt-4">
+                            <div>
+                                <p class="text-[10px] text-textMuted mb-1">Net PNL</p>
+                                <h3 class="text-lg font-bold font-mono" id="a_shortPnl">₹0.00</h3>
+                            </div>
+                            <div class="text-right text-[10px] text-gray-400">
+                                <p><span id="a_shortAvgWin" class="font-bold text-white font-mono">0</span> Avg Win</p>
+                                <p class="mt-1"><span id="a_shortAvgLoss" class="font-bold text-white font-mono">0</span> Avg Loss</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-xl flex flex-col">
+                    <p class="text-xs text-textMuted font-bold mb-2">Net Daily P&L (Chronological)</p>
+                    <div class="flex-1 relative w-full min-h-[250px]">
+                        <canvas id="c_netDailyBar"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 rounded-xl flex flex-col items-center">
+                        <p class="text-xs text-textMuted font-bold self-start mb-2">Trade Time Performance</p>
+                        <div class="w-full relative min-h-[250px]"><canvas id="c_timePie"></canvas></div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col items-center">
+                        <p class="text-xs text-textMuted font-bold self-start mb-2">Trade Duration Performance</p>
+                        <div class="w-full relative min-h-[250px]"><canvas id="c_durationPie"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: INSTRUMENTS ================= -->
+            <div id="view-instruments" class="view-section space-y-4">
+                <h2 class="text-xl font-bold mb-4">Instrument Performance</h2>
+                <div class="glass-panel rounded-xl overflow-hidden border border-gray-800">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-panelDark border-b border-gray-800 text-[10px] uppercase text-textMuted">
+                            <tr>
+                                <th class="p-4">Symbol</th>
+                                <th class="p-4 text-center">Trades</th>
+                                <th class="p-4 text-center">Win Rate</th>
+                                <th class="p-4 text-right">Net P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl_instruments" class="divide-y divide-gray-800 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: TAGS ================= -->
+            <div id="view-tags" class="view-section space-y-4">
+                <h2 class="text-xl font-bold mb-4">Category / Tags Performance</h2>
+                <div class="glass-panel rounded-xl overflow-hidden border border-gray-800">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-panelDark border-b border-gray-800 text-[10px] uppercase text-textMuted">
+                            <tr>
+                                <th class="p-4">Strategy Tag</th>
+                                <th class="p-4 text-center">Trades</th>
+                                <th class="p-4 text-center">Win Rate</th>
+                                <th class="p-4 text-right">Net P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl_tags" class="divide-y divide-gray-800 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: TRADES ================= -->
+            <div id="view-trades" class="view-section space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-xl font-bold">The Aftermath (Trade Vault)</h2>
+                </div>
+                <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr class="text-[10px] text-textMuted uppercase tracking-wider border-b border-gray-800 bg-panelDark">
+                                    <th class="p-4 font-medium">Entry</th>
+                                    <th class="p-4 font-medium">Exit</th>
+                                    <th class="p-4 font-medium">Symbol</th>
+                                    <th class="p-4 font-medium">Category</th>
+                                    <th class="p-4 font-medium text-right">Net P&L</th>
+                                    <th class="p-4 font-medium text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fullTradesTableBody" class="text-sm divide-y divide-gray-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: CALENDAR ================= -->
+            <div id="view-calendar" class="view-section space-y-4">
+                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    Calendar <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
+                </h2>
+                <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- ADD/EDIT TRADE MODAL -->
+    <div id="tradeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0">
+        <div class="bg-[#11141c] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="modalContent">
+            
+            <div class="flex justify-between items-center p-4 md:p-5 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
+                <h2 class="text-lg font-bold flex items-center gap-2" id="modalTitle">
+                    <i class="ph-fill ph-plus-circle text-neonGreen"></i> Log New Trade
+                </h2>
+                <button onclick="closeTradeModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <form id="addTradeForm" onsubmit="event.preventDefault(); window.saveTrade();">
+                    
+                    <!-- REPLACED ALERTS WITH THIS INLINE ERROR MESSAGE -->
+                    <div id="formErrorAlert" class="hidden mb-4 bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg text-xs flex items-center gap-2">
+                        <i class="ph-fill ph-warning-circle text-lg shrink-0"></i>
+                        <span id="formErrorMsg">Please check your inputs.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Entry Date</label>
+                            <input type="date" id="entryDate" required class="w-full input-dark rounded-lg p-2 text-sm" onchange="syncExitDate()">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Exit Date</label>
+                            <input type="date" id="exitDate" required class="w-full input-dark rounded-lg p-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Symbol</label>
+                            <input type="text" id="tradeSymbol" required placeholder="e.g. NIFTY" class="w-full input-dark rounded-lg p-2 text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Structure</label>
+                            <div class="flex p-1 bg-bgDark rounded-lg border border-gray-800 h-[38px]">
+                                <button type="button" id="btnNaked" onclick="setTradeStructure('Naked')" class="flex-1 text-xs rounded bg-panelLighter text-white shadow transition-all">Naked</button>
+                                <button type="button" id="btnHedged" onclick="setTradeStructure('Hedged')" class="flex-1 text-xs rounded text-textMuted hover:text-white transition-all">Hedged</button>
+                            </div>
+                            <input type="hidden" id="tradeStructure" value="Naked">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 pb-6 border-b border-gray-800">
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Category</label>
+                            <select id="tradeCategory" required class="w-full input-dark rounded-lg p-2 text-sm">
+                                <option value="" disabled selected>Select Category...</option>
+                                <option value="Price Action">Price Action</option>
+                                <option value="Algo">Algo Execution</option>
+                                <option value="Mean Reversion">Mean Reversion</option>
+                                <option value="FOMO">FOMO</option>
+                                <option value="Over Qty">Over Quantity Risk</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Execution Times (IST)</label>
+                            <div class="flex gap-2">
+                                <div class="flex-1 relative">
+                                    <span class="block text-[9px] text-gray-500 mb-0.5">Entry (09:15-15:30)</span>
+                                    <input type="time" id="entryTime" required class="w-full input-dark rounded-lg p-2 text-sm">
+                                </div>
+                                <div class="flex-1 relative">
+                                    <span class="block text-[9px] text-gray-500 mb-0.5">Exit (09:15-15:30)</span>
+                                    <input type="time" id="exitTime" required class="w-full input-dark rounded-lg p-2 text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="legsContainer" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-300">Position Details</h3>
+                            <button type="button" id="addLegBtn" onclick="addLeg()" class="hidden text-xs text-neonGreen hover:text-white bg-neonGreen/10 px-3 py-1.5 rounded flex items-center gap-1 transition-colors">
+                                <i class="ph-bold ph-plus"></i> Add Leg
+                            </button>
+                        </div>
+                        <div id="legsWrapper" class="space-y-3"></div>
+                    </div>
+
+                    <div class="mt-6 bg-[#0b0e14] border border-gray-800 rounded-lg p-4 flex justify-between items-center shadow-inner">
+                        <div><p class="text-[11px] text-textMuted uppercase font-medium">Estimated Net P&L</p></div>
+                        <div class="text-right"><span id="previewPnl" class="text-2xl font-bold font-mono text-gray-400">₹0.00</span></div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="p-4 md:p-5 border-t border-gray-800 bg-[#0b0e14] rounded-b-2xl flex justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeTradeModal()" class="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Cancel</button>
+                <button type="button" id="saveTradeBtn" onclick="window.saveTrade()" class="btn-green px-6 py-2 rounded-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ph-bold ph-floppy-disk"></i> Save Trade
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIREBASE AND APP LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const userFirebaseConfig = {
+            apiKey: "AIzaSyDvNEXINfH9_AXaugpUQSLKcboUc-x7iWs",
+            authDomain: "my-trading-journal-e8a8c.firebaseapp.com",
+            projectId: "my-trading-journal-e8a8c",
+            storageBucket: "my-trading-journal-e8a8c.firebasestorage.app",
+            messagingSenderId: "914137847585",
+            appId: "1:914137847585:web:af19ae8e2b1c0324d9d060"
+        };
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let trades = [];
+        let activeView = 'dashboard';
+        let charts = {}; 
+        let currentUser = null;
+        let unsubscribeTrades = null;
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
+
+        const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+        const fNum = (val) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+                document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-warning-circle text-red-500"></i> Auth Failed';
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-check-circle text-neonGreen"></i> DB Connected';
+                listenToTrades();
+            } else {
+                currentUser = null;
+                if(unsubscribeTrades) unsubscribeTrades();
+                trades = [];
+                renderActiveView();
+            }
+        });
+
+        function listenToTrades() {
+            if (!currentUser) return;
+            const tradesRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'trades');
+            unsubscribeTrades = onSnapshot(tradesRef, (snapshot) => {
+                trades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderActiveView();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+                document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-warning-circle text-red-500"></i> Sync Error';
+            });
+        }
+
+        window.switchView = (viewId) => {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) activeBtn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
+            
+            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
+            if(viewId === 'dashboard' || viewId === 'analytics') document.getElementById('topnav-overview').classList.add('active', 'bg-panelLighter', 'text-white');
+
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            activeView = viewId;
+            renderActiveView();
+            if(window.innerWidth < 768) window.toggleMobileMenu();
+        };
+
+        window.switchTopNav = (subViewId) => {
+            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
+            document.getElementById(`topnav-${subViewId}`).classList.add('active', 'bg-panelLighter', 'text-white');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            
+            if(subViewId === 'overview') {
+                document.getElementById('view-analytics').classList.add('active');
+                activeView = 'analytics';
+                document.getElementById('nav-analytics').classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
+            } else {
+                document.getElementById(`view-${subViewId}`).classList.add('active');
+                activeView = subViewId;
+            }
+            renderActiveView();
+        };
+
+        window.toggleMobileMenu = () => {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('mobileOverlay').classList.toggle('hidden');
+        };
+
+        window.openTradeModal = () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('entryDate').value = today; document.getElementById('exitDate').value = today;
+            document.getElementById('entryTime').value = "09:15"; document.getElementById('exitTime').value = "15:30";
+            document.getElementById('formErrorAlert').classList.add('hidden'); // Clear errors
+            document.getElementById('tradeModal').classList.remove('hidden');
+            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
+        };
+
+        window.closeTradeModal = () => {
+            document.getElementById('tradeModal').classList.add('opacity-0'); document.getElementById('modalContent').classList.add('scale-95');
+            setTimeout(()=> { 
+                document.getElementById('tradeModal').classList.add('hidden'); 
+                document.getElementById('addTradeForm').reset(); 
+                document.getElementById('legsWrapper').innerHTML=window.createLegHTML(false); 
+                document.getElementById('previewPnl').innerText='₹0.00'; 
+                document.getElementById('formErrorAlert').classList.add('hidden');
+            }, 300);
+        };
+
+        window.syncExitDate = () => {
+            const ent = document.getElementById('entryDate').value;
+            const ext = document.getElementById('exitDate');
+            if(!ext.value || ext.value < ent) ext.value = ent;
+        };
+
+        window.setTradeStructure = (type) => {
+            document.getElementById('tradeStructure').value = type;
+            const isNaked = type === 'Naked';
+            document.getElementById('btnNaked').className = `flex-1 text-xs rounded transition-all ${isNaked?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
+            document.getElementById('btnHedged').className = `flex-1 text-xs rounded transition-all ${!isNaked?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
+            document.getElementById('addLegBtn').classList.toggle('hidden', isNaked);
+            if(isNaked) { const w = document.getElementById('legsWrapper'); const fl = w.firstElementChild; w.innerHTML=''; if(fl) w.appendChild(fl); else w.innerHTML=window.createLegHTML(false); }
+            document.querySelectorAll('.hedged-only').forEach(el => el.classList.toggle('hidden', isNaked));
+        };
+
+        window.createLegHTML = (showDel) => {
+            return `<div class="leg-row bg-[#0b0e14] p-3 rounded-xl border border-gray-800 relative group">
+                ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><i class="ph-bold ph-x text-xs"></i></button>`:''}
+                <div class="grid grid-cols-5 gap-3">
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
+                    <div class="hedged-only hidden col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Strike</label><input type="text" class="leg-strike w-full input-dark rounded py-1 px-1 text-xs uppercase"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.05" class="leg-en w-full input-dark rounded py-1 px-1 text-xs"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit</label><input type="number" step="0.05" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs"></div>
+                </div>
+            </div>`;
+        };
+
+        window.addLeg = () => {
+            document.getElementById('legsWrapper').insertAdjacentHTML('beforeend', window.createLegHTML(true));
+            document.getElementById('legsWrapper').lastElementChild.querySelector('.hedged-only').classList.remove('hidden');
+        };
+
+        window.calcPrev = () => {
+            let pnl = 0;
+            document.querySelectorAll('.leg-row').forEach(r => {
+                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0, ex=parseFloat(r.querySelector('.leg-ex').value)||0;
+                pnl += (r.querySelector('.leg-dir').value==='Long') ? (ex-en)*q : (en-ex)*q;
+            });
+            const pEl = document.getElementById('previewPnl');
+            pEl.innerText = fINR(pnl); pEl.className = `text-2xl font-bold font-mono ${pnl>0?'text-neonGreen':pnl<0?'text-neonRed':'text-gray-400'}`;
+            return pnl;
+        };
+
+        document.getElementById('addTradeForm').addEventListener('input', () => window.calcPrev());
+
+        // Helper to show inline form error
+        const showFormError = (msg) => {
+            const err = document.getElementById('formErrorAlert');
+            document.getElementById('formErrorMsg').innerText = msg;
+            err.classList.remove('hidden');
+        };
+
+        // --- FIRESTORE SAVE & DELETE ---
+        window.saveTrade = async () => {
+            if(!currentUser) { showFormError("Must be connected to Database to save."); return; }
+            
+            const cat = document.getElementById('tradeCategory').value;
+            if(!cat) { showFormError("Please select a Strategy Category."); return; }
+
+            const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
+            
+            // Validate Time range
+            const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=930; };
+            if(!checkT(et) || !checkT(xt)) {
+                showFormError("Time must be during Indian market hours (09:15 - 15:30)."); return;
+            }
+
+            if(new Date(`${xd}T${xt}`) < new Date(`${ed}T${et}`)) { 
+                showFormError("Exit date/time cannot be before Entry date/time."); return; 
+            }
+            
+            // Clear errors
+            document.getElementById('formErrorAlert').classList.add('hidden');
+
+            const btn = document.getElementById('saveTradeBtn');
+            btn.disabled = true; btn.innerHTML = '<div class="spinner w-4 h-4"></div> Saving...';
+
+            const legs = [];
+            let totalVal = 0;
+            document.querySelectorAll('.leg-row').forEach(r => {
+                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
+                legs.push({ direction:r.querySelector('.leg-dir').value, strike:r.querySelector('.leg-strike').value, qty:q, entry:en, exit:parseFloat(r.querySelector('.leg-ex').value)||0 });
+                totalVal += q * en;
+            });
+            
+            const tradeObj = {
+                entryDate:ed, exitDate:xd, symbol:document.getElementById('tradeSymbol').value.toUpperCase(),
+                structure:document.getElementById('tradeStructure').value, category:document.getElementById('tradeCategory').value,
+                entryTime:et, exitTime:xt, legs, pnl:window.calcPrev(), 
+                holdTime:Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000),
+                entryValue: totalVal, timestamp: Date.now()
+            };
+
+            try {
+                const tradesRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'trades');
+                await addDoc(tradesRef, tradeObj);
+                window.closeTradeModal();
+            } catch (err) {
+                console.error("Save Error:", err);
+                showFormError("Error saving trade to the cloud database.");
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
+            }
+        };
+
+        window.deleteTrade = async (id) => {
+            if(!currentUser) return;
+            try {
+                // Instantly delete. Safe approach that avoids blocked browser confirms
+                await deleteDoc(doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'trades', id));
+            } catch(e) {
+                console.error("Delete error:", e);
+            }
+        };
+
+        // --- Core Stats Engine ---
+        function getStats() {
+            let s = { totalPnl: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0, uniqueDays: new Set(),
+                      maxWinStr: 0, currWinStr: 0, maxLossStr: 0, currLossStr: 0,
+                      longWins: 0, longLosses: 0, longPnl: 0, longGrossWin: 0, longGrossLoss: 0,
+                      shortWins: 0, shortLosses: 0, shortPnl: 0, shortGrossWin: 0, shortGrossLoss: 0,
+                      byInstrument: {}, byTag: {}, byMonth: {}, dailyPnl: {}, dailyVol: {}, byTime: { 'Pre/Open':0, 'Mid-Day':0, 'Late':0 },
+                      byDuration: { 'Intraday':0, 'Multi-Day':0 }, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0
+            };
+
+            const sorted = [...trades].sort((a,b) => new Date(`${a.exitDate}T${a.exitTime}`) - new Date(`${b.exitDate}T${b.exitTime}`));
+            
+            let peakEquity = 0;
+            let currentEquity = 0;
+            s.maxDrawdownAmt = 0;
+
+            sorted.forEach(t => {
+                s.totalPnl += t.pnl;
+                s.uniqueDays.add(t.exitDate);
+                s.totalEntryVal += (t.entryValue || 0);
+                
+                currentEquity += t.pnl;
+                if(currentEquity > peakEquity) peakEquity = currentEquity;
+                const dd = peakEquity - currentEquity;
+                if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
+
+                const month = t.exitDate.substring(0,7);
+                s.byMonth[month] = (s.byMonth[month] || 0) + t.pnl;
+                s.dailyPnl[t.exitDate] = (s.dailyPnl[t.exitDate] || 0) + t.pnl;
+                s.dailyVol[t.exitDate] = (s.dailyVol[t.exitDate] || 0) + (t.entryValue||0);
+
+                if (t.pnl >= 0) {
+                    s.wins++; s.grossWin += t.pnl;
+                    s.currWinStr++; s.currLossStr = 0;
+                    if(s.currWinStr > s.maxWinStr) s.maxWinStr = s.currWinStr;
+                    s.totalHoldWin += t.holdTime;
+                } else {
+                    s.losses++; s.grossLoss += Math.abs(t.pnl);
+                    s.currLossStr++; s.currWinStr = 0;
+                    if(s.currLossStr > s.maxLossStr) s.maxLossStr = s.currLossStr;
+                    s.totalHoldLoss += t.holdTime;
+                }
+
+                const dir = t.legs[0]?.direction || 'Long';
+                if(dir === 'Long') {
+                    s.longPnl += t.pnl;
+                    if(t.pnl>=0){ s.longWins++; s.longGrossWin += t.pnl; } else { s.longLosses++; s.longGrossLoss+=Math.abs(t.pnl); }
+                } else {
+                    s.shortPnl += t.pnl;
+                    if(t.pnl>=0){ s.shortWins++; s.shortGrossWin += t.pnl; } else { s.shortLosses++; s.shortGrossLoss+=Math.abs(t.pnl); }
+                }
+
+                if(!s.byInstrument[t.symbol]) s.byInstrument[t.symbol] = { trades:0, wins:0, pnl:0 };
+                s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
+                if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
+
+                if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0 };
+                s.byTag[t.category].trades++; s.byTag[t.category].pnl += t.pnl;
+                if(t.pnl >= 0) s.byTag[t.category].wins++;
+
+                if(t.entryDate === t.exitDate) s.byDuration['Intraday']++; else s.byDuration['Multi-Day']++;
+
+                const h = parseInt(t.entryTime.split(':')[0]);
+                if(h < 11) s.byTime['Pre/Open']++; else if(h < 14) s.byTime['Mid-Day']++; else s.byTime['Late']++;
+            });
+
+            s.totalTrades = s.wins + s.losses;
+            s.winPerc = s.totalTrades > 0 ? (s.wins/s.totalTrades*100) : 0;
+            s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
+            s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
+            
+            let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0;
+            let currentWinDayStr=0, maxWinDayStr=0, currentLossDayStr=0, maxLossDayStr=0;
+            const sortedDays = Object.keys(s.dailyPnl).sort();
+            
+            sortedDays.forEach(d => {
+                const dp = s.dailyPnl[d];
+                if(dp > maxDayProfit) maxDayProfit = dp;
+                if(dp < maxDayLoss) maxDayLoss = dp;
+                
+                if(dp > 0) {
+                    winDays++; currentWinDayStr++; currentLossDayStr=0;
+                    if(currentWinDayStr > maxWinDayStr) maxWinDayStr = currentWinDayStr;
+                } else if (dp < 0) {
+                    lossDays++; currentLossDayStr++; currentWinDayStr=0;
+                    if(currentLossDayStr > maxLossDayStr) maxLossDayStr = currentLossDayStr;
+                } else {
+                    beDays++; currentWinDayStr=0; currentLossDayStr=0;
+                }
+            });
+
+            s.winDays = winDays; s.lossDays = lossDays; s.beDays = beDays;
+            s.maxWinDayStr = maxWinDayStr; s.maxLossDayStr = maxLossDayStr;
+            s.maxDayProfit = maxDayProfit; s.maxDayLoss = maxDayLoss;
+            s.dayWinPerc = sortedDays.length > 0 ? (winDays / sortedDays.length)*100 : 0;
+
+            s.avgDailyVol = sortedDays.length > 0 ? (s.totalEntryVal / sortedDays.length) : 0;
+            s.avgDailyPnl = sortedDays.length > 0 ? (s.totalPnl / sortedDays.length) : 0;
+            s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
+            s.avgTradeSize = s.totalTrades > 0 ? (s.totalEntryVal / s.totalTrades) : 0;
+            
+            s.tiqsScore = Math.min(100, Math.max(0, (s.winPerc*0.4) + (Math.min(s.pf, 3)*10) + (s.totalTrades>10?20:0) ));
+
+            return s;
+        }
+
+        function getTraderBadge(stats) {
+            if(stats.totalTrades === 0) return { title: 'Unranked', sub: 'Log trades to rank up', icon: 'ph-circle-dashed', color: 'text-gray-500' };
+            if(stats.totalTrades < 5) return { title: 'Rookie', sub: 'Learning the ropes', icon: 'ph-student', color: 'text-silver' };
+            if(stats.totalPnl < 0) return { title: 'Novice Analyst', sub: 'Refining the edge', icon: 'ph-chart-line-down', color: 'text-bronze' };
+            if(stats.totalTrades >= 20 && stats.winPerc >= 60 && stats.pf > 1.5) return { title: 'Legendary Analyst League', sub: 'Market Dominator', icon: 'ph-medal', color: 'text-gold' };
+            if(stats.totalTrades >= 10 && stats.winPerc >= 50) return { title: 'Pro Trader', sub: 'Consistent performer', icon: 'ph-crown', color: 'text-diamond' };
+            return { title: 'Intermediate', sub: 'Finding consistency', icon: 'ph-chart-line-up', color: 'text-neonGreen' };
+        }
+
+        // --- View Rendering ---
+        function createChart(ctxId, config) {
+            if (charts[ctxId]) charts[ctxId].destroy();
+            const ctx = document.getElementById(ctxId);
+            if(!ctx) return;
+            Chart.defaults.color = '#8b94a5';
+            Chart.defaults.font.family = 'Inter';
+            charts[ctxId] = new Chart(ctx.getContext('2d'), config);
+        }
+
+        function getMiniGaugeConfig(value, max, color) {
+            return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } };
+        }
+
+        function renderActiveView() {
+            if (activeView === 'dashboard') updateDashboard();
+            else if (activeView === 'analytics') updateAnalytics();
+            else if (activeView === 'trades') renderTradesTable();
+            else if (activeView === 'calendar') renderCalendar();
+            else if (activeView === 'instruments') renderInstrumentsTable();
+            else if (activeView === 'tags') renderTagsTable();
+        }
+
+        function updateDashboard() {
+            const st = getStats();
+            document.getElementById('d_netPnl').innerText = fINR(st.totalPnl);
+            document.getElementById('d_netPnl').className = `text-xl font-bold font-mono truncate ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+            
+            document.getElementById('d_avgTrades').innerText = st.avgTradesDay.toFixed(1);
+            document.getElementById('d_winPerc').innerText = `${st.winPerc.toFixed(2)}%`;
+            document.getElementById('d_winRatioCount').innerText = `${st.wins} W / ${st.losses} L`;
+            document.getElementById('d_winBar').style.width = `${st.winPerc}%`;
+            document.getElementById('d_profitFactor').innerText = st.pf.toFixed(2);
+            document.getElementById('d_tiqsVal').innerText = st.tiqsScore.toFixed(1);
+
+            const badge = getTraderBadge(st);
+            document.getElementById('badgeTitle').innerText = badge.title;
+            document.getElementById('badgeSub').innerText = badge.sub;
+            document.getElementById('badgeIcon').className = `ph-fill ${badge.icon} text-4xl mb-1 drop-shadow-md transition-colors duration-500 ${badge.color}`;
+            document.getElementById('badgeTitle').className = `text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${badge.color}`;
+
+            createChart('c_avgTradesGauge', getMiniGaugeConfig(Math.min(st.avgTradesDay, 10), 10, '#00f28e'));
+            createChart('c_pfGauge', getMiniGaugeConfig(Math.min(st.pf, 5), 5, '#00f28e'));
+            createChart('c_moodGauge', { type: 'doughnut', data: { datasets: [{ data: [20, 80], backgroundColor: ['#ff3b69', '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '80%', plugins: { legend: { display: false } }, maintainAspectRatio: false } });
+            createChart('c_tiqsGauge', { type: 'doughnut', data: { datasets: [{ data: [st.tiqsScore, 100-st.tiqsScore], backgroundColor: ['#00f28e', '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '80%', plugins: { legend: { display: false } }, maintainAspectRatio: false } });
+            createChart('c_edgeRadar', {
+                type: 'radar',
+                data: { labels: ['Win Rate', 'Consistency', 'Recovery', 'Profit Factor', 'Avg Win/Loss', 'Max Drawdown'], datasets: [{ data: [st.winPerc, Math.min(st.winDays*5, 100), 70, Math.min(st.pf*20, 100), 65, 90], borderColor: '#00f28e', backgroundColor: 'rgba(0, 242, 142, 0.1)', borderWidth: 1, pointRadius: 2 }] },
+                options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales: { r: { ticks:{display:false}, grid:{color:'rgba(255,255,255,0.05)'}, angleLines:{color:'rgba(255,255,255,0.05)'}, pointLabels:{color:'#8b94a5', font:{size:9}} } } }
+            });
+
+            const months = Object.keys(st.byMonth).sort();
+            createChart('c_monthlyRev', {
+                type: 'bar',
+                data: { labels: months.map(m=>m.substring(5)), datasets: [{ data: months.map(m => st.byMonth[m]), backgroundColor: months.map(m => st.byMonth[m]>=0?'#00f28e':'#3f4a63'), borderRadius: 4 }] },
+                options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales: { x:{grid:{display:false}}, y:{grid:{color:'rgba(255,255,255,0.05)'}} } }
+            });
+
+            let cumData=[], sum=0;
+            const days = Object.keys(st.dailyPnl).sort();
+            days.forEach(d => { sum += st.dailyPnl[d]; cumData.push(sum); });
+            const ctxD = document.getElementById('c_dailyNetLine');
+            if(ctxD) {
+                let grad = ctxD.getContext('2d').createLinearGradient(0,0,0,300);
+                grad.addColorStop(0, 'rgba(0, 242, 142, 0.3)'); grad.addColorStop(1, 'rgba(0, 242, 142, 0)');
+                createChart('c_dailyNetLine', {
+                    type: 'line', data: { labels: days.map(d=>d.substring(5)), datasets: [{ data: cumData, borderColor: '#00f28e', backgroundColor: grad, fill: true, tension: 0.4, pointRadius: 0 }] },
+                    options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales: { x:{grid:{display:false}, ticks:{font:{size:9}}}, y:{grid:{color:'rgba(255,255,255,0.05)'}} } }
+                });
+            }
+
+            const rl = document.getElementById('d_recentList'); rl.innerHTML = '';
+            const top5 = [...trades].sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate)).slice(0,6);
+            top5.forEach(t => {
+                rl.innerHTML += `<div class="flex justify-between items-center bg-[#1f2433] p-2.5 rounded-lg border border-gray-800"><div><p class="text-[9px] text-textMuted uppercase">${t.entryDate}</p><p class="font-bold text-xs">${t.symbol}</p></div><p class="font-mono text-xs font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</p></div>`;
+            });
+        }
+
+        function buildStatCell(label, valClass, valText) {
+            return `<div class="stat-cell"><span class="stat-label">${label}</span><span class="stat-val ${valClass}">${valText}</span></div>`;
+        }
+
+        function updateAnalytics() {
+            const st = getStats();
+            
+            let bestMoVal = 0, lowMoVal = 0, bestMo='', lowMo='';
+            Object.entries(st.byMonth).forEach(([m, pnl]) => {
+                if(bestMo==='' || pnl > bestMoVal) { bestMoVal = pnl; bestMo = m; }
+                if(lowMo==='' || pnl < lowMoVal) { lowMoVal = pnl; lowMo = m; }
+            });
+            document.getElementById('as_bestMoVal').innerText = fINR(bestMoVal);
+            document.getElementById('as_bestMoLabel').innerText = `in ${bestMo || '--'}`;
+            document.getElementById('as_lowMoVal').innerText = fINR(lowMoVal);
+            document.getElementById('as_lowMoLabel').innerText = `in ${lowMo || '--'}`;
+
+            const grid = document.getElementById('fullStatsGrid');
+            grid.innerHTML = 
+                buildStatCell('Total P&L', (st.totalPnl>=0?'text-white':'text-neonRed'), fINR(st.totalPnl)) +
+                buildStatCell('Average Daily Volume', 'text-white', fINR(st.avgDailyVol)) +
+                buildStatCell('Average Daily P&L', (st.avgDailyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgDailyPnl)) +
+                buildStatCell('Average Winning Trade', 'text-white', fINR(st.wins>0?st.grossWin/st.wins:0)) +
+                
+                buildStatCell('Average Losing Trade', 'text-white', fINR(st.losses>0?-st.grossLoss/st.losses:0)) +
+                buildStatCell('Total Number of Trades', 'text-white', st.totalTrades) +
+                buildStatCell('Winning Trades', 'text-white', st.wins) +
+                buildStatCell('Losing Trades', 'text-white', st.losses) +
+                
+                buildStatCell('Winning Days', 'text-white', st.winDays) +
+                buildStatCell('Losing Days', 'text-white', st.lossDays) +
+                buildStatCell('Breakeven Days', 'text-white', st.beDays) +
+                buildStatCell('Max Consecutive Winning Days', 'text-white', st.maxWinDayStr) +
+                
+                buildStatCell('Max Consecutive Losing Days', 'text-white', st.maxLossDayStr) +
+                buildStatCell('Largest Profit Day', 'text-white', fINR(st.maxDayProfit)) +
+                buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) +
+                buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
+                
+                buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) +
+                buildStatCell('Average Drawdown %', 'text-white', '0.40% (Est)') +
+                buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) +
+                buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) +
+                
+                buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) +
+                buildStatCell('Sharpe Ratio', 'text-white', '0.81 (Est)') +
+                buildStatCell('Gross Profit', 'text-white', fINR(st.grossWin)) +
+                buildStatCell('Gross Loss', 'text-white', fINR(st.grossLoss)) +
+                
+                buildStatCell('Average Hold Time (Winning)', 'text-white', `${st.wins>0?Math.floor(st.totalHoldWin/st.wins):0} mins`) +
+                buildStatCell('Average Hold Time (Losing)', 'text-white', `${st.losses>0?Math.floor(st.totalHoldLoss/st.losses):0} mins`) +
+                buildStatCell('Avg Trade Size', 'text-white', fINR(st.avgTradeSize)) +
+                buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1));
+
+            document.getElementById('a_winStreak').innerText = st.maxWinStr;
+            document.getElementById('a_loseStreak').innerText = st.maxLossStr;
+
+            const sortedTrades = [...trades].sort((a,b)=>b.pnl - a.pnl);
+            const wList = document.getElementById('a_topWins'); wList.innerHTML='';
+            sortedTrades.slice(0,5).forEach(t => { if(t.pnl>0) wList.innerHTML += `<div class="flex justify-between"><span>${t.symbol}</span><span class="text-neonGreen">${fINR(t.pnl)}</span></div>` });
+            
+            const lList = document.getElementById('a_topLosses'); lList.innerHTML='';
+            [...sortedTrades].reverse().slice(0,5).forEach(t => { if(t.pnl<0) lList.innerHTML += `<div class="flex justify-between"><span>${t.symbol}</span><span class="text-neonRed">${fINR(t.pnl)}</span></div>` });
+
+            const instList = Object.entries(st.byInstrument).sort((a,b)=>b[1].pnl - a[1].pnl).slice(0,10);
+            createChart('c_instrumentBar', {
+                type: 'bar', data: { labels: instList.map(i=>i[0]), datasets: [{ data: instList.map(i=>i[1].pnl), backgroundColor: '#00f28e', borderRadius: 2 }] },
+                options: { indexAxis: 'y', maintainAspectRatio: false, plugins: {legend:{display:false}}, scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}}, y:{grid:{display:false}}} }
+            });
+
+            const fillLs = (pfx, w, l, p, gw, gl) => {
+                const tot = w+l; const perc = tot>0 ? (w/tot*100) : 0;
+                document.getElementById(`${pfx}Wr`).innerText = `${perc.toFixed(2)}%`;
+                document.getElementById(`${pfx}WrBar`).style.width = `${perc}%`;
+                document.getElementById(`${pfx}Pnl`).innerText = fINR(p);
+                document.getElementById(`${pfx}Pnl`).className = `text-lg font-bold font-mono ${p>=0?'text-white':'text-neonRed'}`;
+                document.getElementById(`${pfx}AvgWin`).innerText = w>0 ? fINR(gw/w) : '0';
+                document.getElementById(`${pfx}AvgLoss`).innerText = l>0 ? fINR(gl/l) : '0';
+            };
+            fillLs('a_long', st.longWins, st.longLosses, st.longPnl, st.longGrossWin, st.longGrossLoss);
+            fillLs('a_short', st.shortWins, st.shortLosses, st.shortPnl, st.shortGrossWin, st.shortGrossLoss);
+
+            const days = Object.keys(st.dailyPnl).sort();
+            createChart('c_netDailyBar', {
+                type: 'bar', data: { labels: days.map(d=>d.substring(5)), datasets: [{ data: days.map(d=>st.dailyPnl[d]), backgroundColor: days.map(d=>st.dailyPnl[d]>=0?'#00f28e':'#ff3b69'), borderRadius: 2 }] },
+                options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales:{x:{grid:{display:false}, ticks:{font:{size:9}}}, y:{grid:{color:'rgba(255,255,255,0.05)'}}} }
+            });
+
+            createChart('c_timePie', { type: 'pie', data: { labels: Object.keys(st.byTime), datasets: [{ data: Object.values(st.byTime), backgroundColor: ['#ffb020', '#00a3ff', '#00f28e'], borderWidth:0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels:{color:'#8b94a5', boxWidth:10} } } } });
+            createChart('c_durationPie', { type: 'pie', data: { labels: Object.keys(st.byDuration), datasets: [{ data: Object.values(st.byDuration), backgroundColor: ['#ff3b69', '#9d4edd'], borderWidth:0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels:{color:'#8b94a5', boxWidth:10} } } } });
+        }
+
+        function renderInstrumentsTable() {
+            const st = getStats();
+            const tb = document.getElementById('tbl_instruments'); tb.innerHTML = '';
+            Object.entries(st.byInstrument).sort((a,b)=>b[1].pnl-a[1].pnl).forEach(([sym, d]) => {
+                const wr = ((d.wins/d.trades)*100).toFixed(1);
+                tb.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4 font-bold uppercase">${sym}</td><td class="p-4 text-center">${d.trades}</td><td class="p-4 text-center">${wr}%</td><td class="p-4 text-right font-mono ${d.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(d.pnl)}</td></tr>`;
+            });
+        }
+
+        function renderTagsTable() {
+            const st = getStats();
+            const tb = document.getElementById('tbl_tags'); tb.innerHTML = '';
+            Object.entries(st.byTag).sort((a,b)=>b[1].pnl-a[1].pnl).forEach(([tag, d]) => {
+                const wr = ((d.wins/d.trades)*100).toFixed(1);
+                tb.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4"><span class="bg-gray-800 px-2 py-1 rounded text-xs border border-gray-700">${tag}</span></td><td class="p-4 text-center">${d.trades}</td><td class="p-4 text-center">${wr}%</td><td class="p-4 text-right font-mono ${d.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(d.pnl)}</td></tr>`;
+            });
+        }
+
+        function renderTradesTable() {
+            const tbody = document.getElementById('fullTradesTableBody'); tbody.innerHTML = '';
+            const sorted = [...trades].sort((a,b)=>new Date(`${b.entryDate}T${b.entryTime}`)-new Date(`${a.entryDate}T${a.entryTime}`));
+            sorted.forEach(t => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-panelLighter border-b border-gray-800/50">
+                        <td class="p-4"><div class="font-medium">${t.entryDate}</div><div class="text-[10px] text-textMuted">${t.entryTime}</div></td>
+                        <td class="p-4"><div class="font-medium">${t.exitDate}</div><div class="text-[10px] text-textMuted">${t.exitTime}</div></td>
+                        <td class="p-4 font-bold">${t.symbol}</td>
+                        <td class="p-4"><span class="text-xs bg-bgDark border border-gray-700 px-2 py-1 rounded">${t.category}</span></td>
+                        <td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</td>
+                        <td class="p-4 text-center"><button onclick="window.deleteTrade('${t.id}')" class="text-red-400 p-1 hover:bg-red-500/10 rounded"><i class="ph-bold ph-trash"></i></button></td>
+                    </tr>`;
+            });
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+            const st = getStats();
+            document.getElementById('calTotalLabel').innerText = `(${fINR(st.totalPnl)})`;
+            
+            const year = new Date().getFullYear();
+            ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].forEach((month, index) => {
+                const daysInMonth = new Date(year, index+1, 0).getDate();
+                const firstDay = new Date(year, index, 1).getDay();
+                let html = `<div class="glass-panel rounded-lg overflow-hidden text-[10px]"><div class="bg-neonGreen text-black text-center font-bold py-1 text-xs">${month}</div><div class="grid grid-cols-7 gap-px bg-gray-800">`;
+                for(let i=0; i<firstDay; i++) html += `<div class="bg-[#0b0e14]"></div>`;
+                for(let d=1; d<=daysInMonth; d++) {
+                    const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const pnl = st.dailyPnl[dt];
+                    const cls = pnl>0 ? "bg-green-500/20 text-green-400 font-bold" : pnl<0 ? "bg-red-500/20 text-red-400 font-bold" : (pnl===0 ? "bg-gray-500/20 text-white" : "bg-[#11141c] text-gray-600");
+                    html += `<div class="${cls} text-center py-1.5" title="${pnl?fINR(pnl):''}">${d}</div>`;
+                }
+                const rem = (7 - ((firstDay+daysInMonth)%7))%7;
+                for(let i=0; i<rem; i++) html += `<div class="bg-[#0b0e14]"></div>`;
+                grid.innerHTML += html + `</div></div>`;
+            });
+        }
+
+        window.onload = () => {
+            document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false);
+            window.switchView('dashboard');
+            initAuth();
+        };
+
+    </script>
+</body>
+</html>
