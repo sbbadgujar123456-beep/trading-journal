@@ -1471,21 +1471,25 @@
             // Calculate aggregate PnLs for hierarchical headers
             const yearPnl = {};
             const monthPnl = {};
+            const dayPnl = {};
             sorted.forEach(t => {
                 const yr = t.entryDate.substring(0,4);
                 const mo = t.entryDate.substring(0,7);
                 yearPnl[yr] = (yearPnl[yr] || 0) + t.pnl;
                 monthPnl[mo] = (monthPnl[mo] || 0) + t.pnl;
+                dayPnl[t.entryDate] = (dayPnl[t.entryDate] || 0) + t.pnl;
             });
 
             let currentYear = '';
             let currentMonth = '';
+            let currentDay = '';
 
             sorted.forEach((t, index) => {
                 const yr = t.entryDate.substring(0,4);
                 const mo = t.entryDate.substring(0,7);
                 const dObj = new Date(t.entryDate);
                 const moName = dObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+                const dayName = dObj.toLocaleDateString('default', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
                 // YEAR SEPARATION
                 if(yr !== currentYear) {
@@ -1534,16 +1538,37 @@
                     `;
                 }
 
+                // DAY SEPARATION
+                if(t.entryDate !== currentDay) {
+                    currentDay = t.entryDate;
+                    const dpnl = dayPnl[currentDay];
+                    tbody.innerHTML += `
+                        <tr class="bg-[#151822]/60 border-y border-gray-800/50">
+                            <td colspan="6" class="px-5 py-2">
+                                <div class="flex justify-between items-center pl-3 border-l-[3px] border-gray-600/40">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="ph-bold ph-calendar-blank text-gray-500"></i> ${dayName}
+                                    </span>
+                                    <span class="font-mono text-[10px] font-bold ${dpnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}">
+                                        <span class="text-gray-500 font-sans font-normal tracking-wide mr-2">DAILY NET:</span>${dpnl >= 0 ? '+' : ''}${fINR(dpnl)}
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
                 // INDIVIDUAL TRADE ROWS
                 tbody.innerHTML += `
                     <tr class="hover:bg-panelLighter border-b border-gray-800/50 transition-colors">
-                        <td class="p-4">
-                            <div class="font-medium text-gray-200">${t.entryDate}</div>
-                            <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1"><i class="ph-bold ph-clock"></i> ${t.entryTime}</div>
+                        <td class="p-4 pl-6">
+                            <div class="font-medium text-gray-400 text-[11px]">${t.entryDate}</div>
+                            <div class="text-xs text-gray-200 mt-0.5 flex items-center gap-1 font-mono"><i class="ph-bold ph-clock text-gray-500"></i> ${t.entryTime}</div>
                         </td>
                         <td class="p-4">
-                            <div class="font-medium text-gray-200">${t.exitDate}</div>
-                            <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1" title="${t.holdTime} total mins"><i class="ph-bold ph-hourglass-high"></i> ${formatHoldTime(t.holdTime)}</div>
+                            <div class="font-medium text-gray-400 text-[11px]">${t.exitDate}</div>
+                            <div class="text-xs text-gray-200 mt-0.5 flex items-center gap-1 font-mono" title="${t.holdTime} total mins"><i class="ph-bold ph-hourglass-high text-gray-500"></i> ${t.exitTime}</div>
+                            <div class="text-[9px] text-gray-500 mt-1 uppercase font-bold tracking-wide">${formatHoldTime(t.holdTime)}</div>
                         </td>
                         <td class="p-4 font-bold text-white">${t.symbol}</td>
                         <td class="p-4"><span class="text-[11px] bg-bgDark border border-gray-700 text-gray-300 px-2 py-1.5 rounded shadow-sm">${t.category}</span></td>
