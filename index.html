@@ -187,13 +187,19 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-3 grid grid-cols-1 gap-4">
-                        <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
-                            <p class="text-xs text-textMuted self-start mb-2">Market Mood Index</p>
-                            <div class="w-32 h-20 relative"><canvas id="c_moodGauge"></canvas></div>
-                            <p class="text-xs text-neonRed font-semibold mt-2">Extreme Fear 😨</p>
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-center">
+                            <div class="mb-3">
+                                <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Avg P&L / Day</p>
+                                <h3 class="text-2xl font-bold font-mono text-white" id="d_avgDailyPnl">₹0.00</h3>
+                            </div>
+                            <div class="h-px w-full bg-gray-800 my-2"></div>
+                            <div class="mt-2">
+                                <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Avg P&L / Month</p>
+                                <h3 class="text-2xl font-bold font-mono text-white" id="d_avgMonthlyPnl">₹0.00</h3>
+                            </div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
-                            <p class="text-xs text-textMuted self-start mb-2">Trading Score</p>
+                            <p class="text-xs text-textMuted self-start mb-2">TIQS Score <i class="ph ph-info"></i></p>
                             <div class="w-32 h-20 relative"><canvas id="c_tiqsGauge"></canvas></div>
                             <p class="text-xl font-bold font-mono text-neonGreen mt-2" id="d_tiqsVal">0.0</p>
                         </div>
@@ -385,9 +391,9 @@
                         <input type="text" id="searchTrade" placeholder="Search Symbol..." class="input-dark rounded-lg px-3 py-1.5 text-sm w-full md:w-48" onkeyup="renderTradesTable()">
                         <select id="filterCategory" class="input-dark rounded-lg px-3 py-1.5 text-sm appearance-none" onchange="renderTradesTable()">
                             <option value="All">All Categories</option>
-                            <option value="Price Action">Long from OverSold</option>
-                            <option value="Algo">Short from Overbought</option>
-                            <option value="Mean Reversion">Zen Credit</option>
+                            <option value="Price Action">Price Action</option>
+                            <option value="Algo">Algo</option>
+                            <option value="Mean Reversion">Mean Reversion</option>
                             <option value="FOMO">FOMO</option>
                             <option value="Over Qty">Over Qty</option>
                         </select>
@@ -425,7 +431,7 @@
     </main>
 
     <!-- ADD/EDIT TRADE MODAL -->
-    <div id="tradeModal" class="fixed inset-0 modal-overlay z-40 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0">
+    <div id="tradeModal" class="fixed inset-0 modal-overlay z-40 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0" onclick="if(event.target === this) closeTradeModal()">
         <div class="bg-[#11141c] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="modalContent">
             
             <div class="flex justify-between items-center p-4 md:p-5 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
@@ -521,7 +527,7 @@
     </div>
 
     <!-- CUSTOM DATE/TIME PICKER MODAL -->
-    <div id="dtPickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4">
+    <div id="dtPickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) closeDateTimePicker()">
         <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[500px]" id="dtPickerContent">
             
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0">
@@ -573,8 +579,8 @@
     </div>
 
     <!-- DAILY TRADES MODAL -->
-    <div id="dailyTradesModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4">
-        <div class="bg-panelDark w-full max-w-2xl max-h-[80vh] rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="dailyTradesModalContent">
+    <div id="dailyTradesModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) closeDailyTradesModal()">
+        <div class="bg-panelDark w-full max-w-2xl max-h-[85vh] rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="dailyTradesModalContent">
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
                 <h2 class="text-lg font-bold flex items-center gap-2">
                     <i class="ph-fill ph-calendar-blank text-neonGreen"></i> Trades on <span id="dtm_dateLabel" class="text-neonGreen font-mono"></span>
@@ -586,20 +592,33 @@
             <div class="p-4 overflow-y-auto flex-1 custom-scrollbar space-y-3" id="dtm_tradesList">
                 <!-- Populated by JS -->
             </div>
-            <div class="p-4 border-t border-gray-800 bg-[#0b0e14] rounded-b-2xl flex justify-between items-center">
-                <span class="text-xs text-textMuted">Daily Net:</span>
-                <span id="dtm_dailyNet" class="text-lg font-bold font-mono">₹0.00</span>
+            <div class="p-5 border-t border-gray-800 bg-[#11141c] rounded-b-2xl flex flex-col gap-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">Gross Return (from trades):</span>
+                    <span id="dtm_grossPnl" class="font-bold font-mono">₹0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400 flex items-center gap-1">Broker Net Return: <i class="ph-fill ph-pencil-simple text-blue-400" title="Manually enter your actual day's Net P&L from your broker"></i></span>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="dtm_manualNet" class="input-dark rounded px-2 py-1.5 w-28 text-right text-sm font-mono" placeholder="₹" oninput="window.calcDailyCharges()">
+                        <button onclick="window.saveDailyNet()" class="bg-neonGreen/20 border border-neonGreen/30 text-neonGreen hover:bg-neonGreen hover:text-black px-3 py-1.5 rounded transition-colors text-xs font-bold shadow-sm">Save</button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-sm border-t border-gray-800 pt-3">
+                    <span class="text-gray-400">Est. Charges & Taxes:</span>
+                    <span id="dtm_charges" class="font-bold font-mono text-neonRed">₹0.00</span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- LEAGUE DETAILS MODAL -->
-    <div id="leagueModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0">
+    <div id="leagueModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0" onclick="if(event.target === this) closeLeagueModal()">
         <div class="bg-[#11141c] w-full max-w-md rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="leagueModalContent">
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
                 <h2 class="text-lg font-bold">Current League</h2>
                 <div class="flex gap-2">
-                    
+                    <button class="bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1"><i class="ph-bold ph-share-network"></i> Share</button>
                     <button onclick="closeLeagueModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
                         <i class="ph-bold ph-x text-lg"></i>
                     </button>
@@ -643,7 +662,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const userFirebaseConfig = {
             apiKey: "AIzaSyDvNEXINfH9_AXaugpUQSLKcboUc-x7iWs",
@@ -664,6 +683,8 @@
         let charts = {}; 
         let currentUser = null;
         let unsubscribeTrades = null;
+        let unsubscribeDailyStats = null;
+        let dailyStats = {}; // To store manual daily net entries
         
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
 
@@ -707,10 +728,13 @@
                 currentUser = user;
                 document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> DB Synced';
                 listenToTrades();
+                listenToDailyStats();
             } else {
                 currentUser = null;
                 if(unsubscribeTrades) unsubscribeTrades();
+                if(unsubscribeDailyStats) unsubscribeDailyStats();
                 trades = [];
+                dailyStats = {};
                 renderActiveView();
             }
         });
@@ -724,6 +748,18 @@
             }, (error) => {
                 console.error("Firestore Listen Error:", error);
                 document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-warning-circle text-red-500"></i> Sync Error';
+            });
+        }
+
+        function listenToDailyStats() {
+            if (!currentUser) return;
+            const dsRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats');
+            unsubscribeDailyStats = onSnapshot(dsRef, (snapshot) => {
+                dailyStats = {};
+                snapshot.docs.forEach(doc => {
+                    dailyStats[doc.id] = doc.data().netPnl;
+                });
+                renderActiveView();
             });
         }
 
@@ -1088,7 +1124,7 @@
 
         function getTraderLeague(pointsStr) {
             const p = parseFloat(pointsStr);
-            if(p < 25) return { title: 'Beginner', color: 'text-silver', icon: 'ph-star', next: 'Blue Chip', needed: (25 - p).toFixed(2), progress: (p/25)*100 };
+            if(p < 25) return { title: 'Novus Trader', color: 'text-silver', icon: 'ph-star', next: 'Blue Chip', needed: (25 - p).toFixed(2), progress: (p/25)*100 };
             if(p < 50) return { title: 'Blue Chip', color: 'text-blue-400', icon: 'ph-medal', next: 'Liquidity King', needed: (50 - p).toFixed(2), progress: ((p-25)/25)*100 };
             if(p < 75) return { title: 'Liquidity King', color: 'text-diamond', icon: 'ph-crown', next: 'Market Maker', needed: (75 - p).toFixed(2), progress: ((p-50)/25)*100 };
             if(p < 90) return { title: 'Market Maker', color: 'text-orange-500', icon: 'ph-sword', next: 'The Operator', needed: (90 - p).toFixed(2), progress: ((p-75)/15)*100 };
@@ -1101,7 +1137,7 @@
                       maxWinStr: 0, currWinStr: 0, maxLossStr: 0, currLossStr: 0,
                       longWins: 0, longLosses: 0, longPnl: 0, longGrossWin: 0, longGrossLoss: 0,
                       shortWins: 0, shortLosses: 0, shortPnl: 0, shortGrossWin: 0, shortGrossLoss: 0,
-                      byInstrument: {}, byTag: {}, byMonth: {}, dailyPnl: {}, dailyVol: {}, byTime: { 'Pre/Open':0, 'Mid-Day':0, 'Late':0 },
+                      byInstrument: {}, byTag: {}, byMonth: {}, dailyPnl: {}, dailyVol: {}, dailyTradeCount: {}, byTime: { 'Pre/Open':0, 'Mid-Day':0, 'Late':0 },
                       byDuration: { 'Intraday':0, 'Multi-Day':0 }, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0, maxTradeWin: 0, maxTradeLoss: 0
             };
 
@@ -1119,6 +1155,7 @@
                 s.byMonth[month] = (s.byMonth[month] || 0) + t.pnl;
                 s.dailyPnl[t.exitDate] = (s.dailyPnl[t.exitDate] || 0) + t.pnl;
                 s.dailyVol[t.exitDate] = (s.dailyVol[t.exitDate] || 0) + (t.entryValue||0);
+                s.dailyTradeCount[t.exitDate] = (s.dailyTradeCount[t.exitDate] || 0) + 1;
 
                 if (t.pnl >= 0) {
                     s.wins++; s.grossWin += t.pnl; s.currWinStr++; s.currLossStr = 0;
@@ -1162,6 +1199,16 @@
             s.maxWinDayStr = maxWinDayStr; s.maxLossDayStr = maxLossDayStr;
             s.maxDayProfit = maxDayProfit; s.maxDayLoss = maxDayLoss;
             s.dayWinPerc = sortedDays.length > 0 ? (winDays / sortedDays.length)*100 : 0;
+
+            // Calculate total broker charges based on days where manual Net is logged
+            let totalCharges = 0;
+            Object.keys(s.dailyPnl).forEach(d => {
+                if(dailyStats[d] !== undefined) {
+                    totalCharges += (s.dailyPnl[d] - dailyStats[d]);
+                }
+            });
+            s.totalCharges = totalCharges;
+
             s.avgDailyVol = sortedDays.length > 0 ? (s.totalEntryVal / sortedDays.length) : 0;
             s.avgDailyPnl = sortedDays.length > 0 ? (s.totalPnl / sortedDays.length) : 0;
             s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
@@ -1193,6 +1240,12 @@
         function updateDashboard() {
             const st = getStats();
             document.getElementById('d_netPnl').innerText = fINR(st.totalPnl); document.getElementById('d_netPnl').className = `text-xl font-bold font-mono truncate ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+            
+            document.getElementById('d_avgDailyPnl').innerText = fINR(st.avgDailyPnl);
+            document.getElementById('d_avgDailyPnl').className = `text-2xl font-bold font-mono ${st.avgDailyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+            document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl);
+            document.getElementById('d_avgMonthlyPnl').className = `text-2xl font-bold font-mono ${st.avgMonthlyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+
             document.getElementById('d_avgTrades').innerText = st.avgTradesDay.toFixed(1); document.getElementById('d_winPerc').innerText = `${st.winPerc.toFixed(2)}%`;
             document.getElementById('d_winRatioCount').innerText = `${st.wins} W / ${st.losses} L`; document.getElementById('d_winBar').style.width = `${st.winPerc}%`; document.getElementById('d_profitFactor').innerText = st.pf.toFixed(2);
             document.getElementById('d_tiqsVal').innerText = st.tiqsScore.toFixed(1);
@@ -1214,9 +1267,9 @@
 
             document.getElementById('lm_pNetPnl').innerText = lgPoints.pnl; document.getElementById('lm_pAvgTrades').innerText = lgPoints.avgTrades; document.getElementById('lm_pWinPerc').innerText = lgPoints.winPerc;
             document.getElementById('lm_pProfitFactor').innerText = lgPoints.pf; document.getElementById('lm_pAvgRR').innerText = lgPoints.rr; document.getElementById('lm_pMaxWinLoss').innerText = lgPoints.maxRatio;
+            document.getElementById('lm_pAvgRR').innerText = lgPoints.rr; document.getElementById('lm_pMaxWinLoss').innerText = lgPoints.maxRatio;
 
             createChart('c_avgTradesGauge', getMiniGaugeConfig(Math.min(st.avgTradesDay, 10), 10, '#00f28e')); createChart('c_pfGauge', getMiniGaugeConfig(Math.min(st.pf, 5), 5, '#00f28e'));
-            createChart('c_moodGauge', { type: 'doughnut', data: { datasets: [{ data: [20, 80], backgroundColor: ['#ff3b69', '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '80%', plugins: { legend: { display: false } }, maintainAspectRatio: false } });
             createChart('c_tiqsGauge', { type: 'doughnut', data: { datasets: [{ data: [st.tiqsScore, 100-st.tiqsScore], backgroundColor: ['#00f28e', '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '80%', plugins: { legend: { display: false } }, maintainAspectRatio: false } });
             createChart('c_edgeRadar', { type: 'radar', data: { labels: ['Win Rate', 'Consistency', 'Recovery', 'Profit Factor', 'Avg Win/Loss', 'Max Drawdown'], datasets: [{ data: [st.winPerc, Math.min(st.winDays*5, 100), 70, Math.min(st.pf*20, 100), 65, 90], borderColor: '#00f28e', backgroundColor: 'rgba(0, 242, 142, 0.1)', borderWidth: 1, pointRadius: 2 }] }, options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales: { r: { ticks:{display:false}, grid:{color:'rgba(255,255,255,0.05)'}, angleLines:{color:'rgba(255,255,255,0.05)'}, pointLabels:{color:'#8b94a5', font:{size:9}} } } } });
 
@@ -1239,12 +1292,12 @@
 
         function updateAnalytics() {
             const st = getStats();
-            let bestMoVal = 0, lowMoVal = 0, bestMo='', lowMo='';
-            Object.entries(st.byMonth).forEach(([m, pnl]) => { if(bestMo==='' || pnl > bestMoVal) { bestMoVal = pnl; bestMo = m; } if(lowMo==='' || pnl < lowMoVal) { lowMoVal = pnl; lowMo = m; } });
-            document.getElementById('as_bestMoVal').innerText = fINR(bestMoVal); document.getElementById('as_bestMoLabel').innerText = `in ${bestMo || '--'}`; document.getElementById('as_lowMoVal').innerText = fINR(lowMoVal); document.getElementById('as_lowMoLabel').innerText = `in ${lowMo || '--'}`;
-
-            const grid = document.getElementById('fullStatsGrid');
-            grid.innerHTML = buildStatCell('Total P&L', (st.totalPnl>=0?'text-white':'text-neonRed'), fINR(st.totalPnl)) + buildStatCell('Average Daily Volume', 'text-white', fINR(st.avgDailyVol)) + buildStatCell('Average Daily P&L', (st.avgDailyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgDailyPnl)) + buildStatCell('Average Winning Trade', 'text-white', fINR(st.wins>0?st.grossWin/st.wins:0)) + buildStatCell('Average Losing Trade', 'text-white', fINR(st.losses>0?-st.grossLoss/st.losses:0)) + buildStatCell('Total Number of Trades', 'text-white', st.totalTrades) + buildStatCell('Winning Trades', 'text-white', st.wins) + buildStatCell('Losing Trades', 'text-white', st.losses) + buildStatCell('Winning Days', 'text-white', st.winDays) + buildStatCell('Losing Days', 'text-white', st.lossDays) + buildStatCell('Breakeven Days', 'text-white', st.beDays) + buildStatCell('Max Consecutive Winning Days', 'text-white', st.maxWinDayStr) + buildStatCell('Max Consecutive Losing Days', 'text-white', st.maxLossDayStr) + buildStatCell('Largest Profit Day', 'text-white', fINR(st.maxDayProfit)) + buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) + buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) + buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) + buildStatCell('Average Drawdown %', 'text-white', '0.40% (Est)') + buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) + buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) + buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) + buildStatCell('Sharpe Ratio', 'text-white', '0.81 (Est)') + buildStatCell('Gross Profit', 'text-white', fINR(st.grossWin)) + buildStatCell('Gross Loss', 'text-white', fINR(st.grossLoss)) + buildStatCell('Average Hold Time (Winning)', 'text-white', `${st.wins>0?Math.floor(st.totalHoldWin/st.wins):0} mins`) + buildStatCell('Average Hold Time (Losing)', 'text-white', `${st.losses>0?Math.floor(st.totalHoldLoss/st.losses):0} mins`) + buildStatCell('Avg Trade Size', 'text-white', fINR(st.avgTradeSize)) + buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1));
+                buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) + buildStatCell('Sharpe Ratio', 'text-white', '0.81 (Est)') + buildStatCell('Gross Profit', 'text-white', fINR(st.grossWin)) + buildStatCell('Gross Loss', 'text-white', fINR(st.grossLoss)) + 
+                buildStatCell('Average Hold Time (Winning)', 'text-white', st.wins>0 ? formatHoldTime(Math.floor(st.totalHoldWin/st.wins)) : '0 Min') + 
+                buildStatCell('Average Hold Time (Losing)', 'text-white', st.losses>0 ? formatHoldTime(Math.floor(st.totalHoldLoss/st.losses)) : '0 Min') + 
+                buildStatCell('Avg Trade Size', 'text-white', fINR(st.avgTradeSize)) + 
+                buildStatCell('Total Broker Charges', 'text-neonRed', fINR(st.totalCharges)) +
+                buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1));
 
             document.getElementById('a_winStreak').innerText = st.maxWinStr; document.getElementById('a_loseStreak').innerText = st.maxLossStr;
 
@@ -1259,7 +1312,25 @@
             fillLs('a_long', st.longWins, st.longLosses, st.longPnl, st.longGrossWin, st.longGrossLoss); fillLs('a_short', st.shortWins, st.shortLosses, st.shortPnl, st.shortGrossWin, st.shortGrossLoss);
 
             const days = Object.keys(st.dailyPnl).sort();
-            createChart('c_netDailyBar', { type: 'bar', data: { labels: days.map(d=>d.substring(5)), datasets: [{ data: days.map(d=>st.dailyPnl[d]), backgroundColor: days.map(d=>st.dailyPnl[d]>=0?'#00f28e':'#ff3b69'), borderRadius: 2 }] }, options: { maintainAspectRatio: false, plugins: { legend:{display:false} }, scales:{x:{grid:{display:false}, ticks:{font:{size:9}}}, y:{grid:{color:'rgba(255,255,255,0.05)'}}} } });
+            createChart('c_netDailyBar', {
+                type: 'bar',
+                data: { 
+                    labels: days.map(d=>d.substring(5)), 
+                    datasets: [
+                        { type: 'bar', label: 'Net P&L', data: days.map(d=>st.dailyPnl[d]), backgroundColor: days.map(d=>st.dailyPnl[d]>=0?'#00f28e':'#ff3b69'), borderRadius: 2, yAxisID: 'y' },
+                        { type: 'line', label: 'Trades Taken', data: days.map(d=>st.dailyTradeCount[d]), borderColor: '#00a3ff', backgroundColor: '#00a3ff', borderWidth: 2, pointRadius: 3, fill: false, yAxisID: 'y1' }
+                    ] 
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend:{display:true, labels:{color:'#8b94a5', font:{size:10}}} }, 
+                    scales:{
+                        x:{grid:{display:false}, ticks:{font:{size:9}}}, 
+                        y:{type: 'linear', display: true, position: 'left', grid:{color:'rgba(255,255,255,0.05)'}},
+                        y1:{type: 'linear', display: true, position: 'right', grid:{display:false}, min: 0, ticks: {stepSize: 1}}
+                    } 
+                }
+            });
 
             createChart('c_timePie', { type: 'pie', data: { labels: Object.keys(st.byTime), datasets: [{ data: Object.values(st.byTime), backgroundColor: ['#ffb020', '#00a3ff', '#00f28e'], borderWidth:0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels:{color:'#8b94a5', boxWidth:10} } } } }); createChart('c_durationPie', { type: 'pie', data: { labels: Object.keys(st.byDuration), datasets: [{ data: Object.values(st.byDuration), backgroundColor: ['#ff3b69', '#9d4edd'], borderWidth:0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels:{color:'#8b94a5', boxWidth:10} } } } });
         }
@@ -1422,21 +1493,66 @@
             const list = document.getElementById('dtm_tradesList'); list.innerHTML = '';
             
             const dayTrades = trades.filter(t => t.entryDate === dateStr || t.exitDate === dateStr);
-            let dayNet = 0;
+            let dayGross = 0;
 
             if(dayTrades.length === 0) list.innerHTML = '<p class="text-textMuted text-center py-4">No trades found.</p>';
             else {
                 dayTrades.forEach(t => {
-                    dayNet += t.pnl;
+                    dayGross += t.pnl;
                     list.innerHTML += `<div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg border border-gray-800"><div class="flex flex-col"><span class="font-bold text-sm text-white">${t.symbol}</span><span class="text-[10px] text-textMuted uppercase">${t.category} | ${t.entryTime} - ${t.exitTime}</span></div><span class="font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</span></div>`;
                 });
             }
             
-            document.getElementById('dtm_dailyNet').innerText = fINR(dayNet);
-            document.getElementById('dtm_dailyNet').className = `text-lg font-bold font-mono ${dayNet>=0?'text-neonGreen':'text-neonRed'}`;
+            document.getElementById('dtm_grossPnl').innerText = fINR(dayGross);
+            document.getElementById('dtm_grossPnl').dataset.val = dayGross; // store raw value for calculation
+            
+            const manualNet = dailyStats[dateStr];
+            if (manualNet !== undefined) {
+                document.getElementById('dtm_manualNet').value = manualNet;
+            } else {
+                document.getElementById('dtm_manualNet').value = '';
+            }
+            window.calcDailyCharges();
 
             document.getElementById('dailyTradesModal').classList.remove('hidden');
             setTimeout(()=> { document.getElementById('dailyTradesModal').classList.remove('opacity-0'); document.getElementById('dailyTradesModalContent').classList.remove('scale-95'); }, 10);
+        };
+
+        window.calcDailyCharges = () => {
+            const gross = parseFloat(document.getElementById('dtm_grossPnl').dataset.val) || 0;
+            const netInput = document.getElementById('dtm_manualNet').value;
+            if(netInput === '') {
+                document.getElementById('dtm_charges').innerText = '₹0.00';
+                return;
+            }
+            const net = parseFloat(netInput) || 0;
+            const charges = gross - net;
+            document.getElementById('dtm_charges').innerText = fINR(charges);
+        };
+
+        window.saveDailyNet = async () => {
+            const dateStr = document.getElementById('dtm_dateLabel').innerText;
+            const val = parseFloat(document.getElementById('dtm_manualNet').value);
+            if (isNaN(val)) return;
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Saving...";
+
+            try {
+                if (currentUser) {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dateStr), { netPnl: val });
+                } else {
+                    dailyStats[dateStr] = val;
+                    renderActiveView();
+                }
+                btn.innerText = "Saved!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            } catch (err) {
+                console.error("Save daily net error:", err);
+                btn.innerText = "Error";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            }
         };
 
         window.closeDailyTradesModal = () => {
