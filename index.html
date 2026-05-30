@@ -409,7 +409,7 @@
                             <option value="Short from Overbought">Short from Overbought</option>
                             <option value="Algo">Algo</option>
                             <option value="FOMO">FOMO</option>
-                            <option value="Over Qty">Over Qty</option>
+                            <option value="Over Quantity Risk">Over Quantity Risk</option>
                         </select>
                     </div>
                 </div>
@@ -522,7 +522,7 @@
                                 <option value="Short from Overbought">Short from Overbought</option>
                                 <option value="Algo">Algo</option>
                                 <option value="FOMO">FOMO</option>
-                                <option value="Over Qty">Over Quantity Risk</option>
+                                <option value="Over Quantity Risk">Over Quantity Risk</option>
                             </select>
                         </div>
                         <div>
@@ -1435,42 +1435,38 @@
             document.getElementById('as_bestMoVal').innerText = fINR(bestMoVal); document.getElementById('as_bestMoLabel').innerText = `in ${bestMo || '--'}`;
             document.getElementById('as_lowMoVal').innerText = fINR(lowMoVal); document.getElementById('as_lowMoLabel').innerText = `in ${lowMo || '--'}`;
 
+            // Reordered and cleaned up stats grid
+            let grossTotal = st.totalPnl + st.totalCharges; // Recovering Gross from Net + Charges
             document.getElementById('fullStatsGrid').innerHTML = 
-                buildStatCell('Total P&L', (st.totalPnl>=0?'text-white':'text-neonRed'), fINR(st.totalPnl)) +
-                buildStatCell('Average Daily Volume', 'text-white', fINR(st.avgDailyVol)) +
-                buildStatCell('Average Daily P&L', (st.avgDailyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgDailyPnl)) +
-                buildStatCell('Average Winning Trade', 'text-white', fINR(st.wins>0?st.grossWin/st.wins:0)) +
-                
-                buildStatCell('Average Losing Trade', 'text-white', fINR(st.losses>0?-st.grossLoss/st.losses:0)) +
+                buildStatCell('Net P&L', (st.totalPnl>=0?'text-neonGreen':'text-neonRed'), fINR(st.totalPnl)) +
+                buildStatCell('Gross P&L', (grossTotal>=0?'text-white':'text-neonRed'), fINR(grossTotal)) +
+                buildStatCell('Total Broker Charges', 'text-neonRed', fINR(st.totalCharges)) +
                 buildStatCell('Total Number of Trades', 'text-white', st.totalTrades) +
-                buildStatCell('Winning Trades', 'text-white', st.wins) +
-                buildStatCell('Losing Trades', 'text-white', st.losses) +
                 
-                buildStatCell('Winning Days', 'text-white', st.winDays) +
-                buildStatCell('Losing Days', 'text-white', st.lossDays) +
-                buildStatCell('Breakeven Days', 'text-white', st.beDays) +
-                buildStatCell('Max Consecutive Winning Days', 'text-white', st.maxWinDayStr) +
-                
-                buildStatCell('Max Consecutive Losing Days', 'text-white', st.maxLossDayStr) +
-                buildStatCell('Largest Profit Day', 'text-white', fINR(st.maxDayProfit)) +
-                buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) +
-                buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
-                
-                buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) +
-                buildStatCell('Average Drawdown %', 'text-white', '0.40%') +
                 buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) +
                 buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) +
-                
                 buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) +
-                buildStatCell('Sharpe Ratio', 'text-white', '0.81') +
-                buildStatCell('Gross Profit', 'text-white', fINR(st.grossWin)) +
-                buildStatCell('Gross Loss', 'text-white', fINR(st.grossLoss)) +
+                buildStatCell('Average Daily P&L', (st.avgDailyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgDailyPnl)) +
                 
+                buildStatCell('Winning Trades', 'text-white', st.wins) +
+                buildStatCell('Losing Trades', 'text-white', st.losses) +
+                buildStatCell('Winning Days', 'text-white', st.winDays) +
+                buildStatCell('Losing Days', 'text-white', st.lossDays) +
+                
+                buildStatCell('Average Winning Trade', 'text-white', fINR(st.wins>0?st.grossWin/st.wins:0)) +
+                buildStatCell('Average Losing Trade', 'text-white', fINR(st.losses>0?-st.grossLoss/st.losses:0)) +
+                buildStatCell('Largest Profit Day', 'text-white', fINR(st.maxDayProfit)) +
+                buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) +
+                
+                buildStatCell('Max Consecutive Winning Days', 'text-white', st.maxWinDayStr) +
+                buildStatCell('Max Consecutive Losing Days', 'text-white', st.maxLossDayStr) +
+                buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
+                buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1)) +
+
                 buildStatCell('Average Hold Time (Winning)', 'text-white', st.wins>0 ? formatHoldTime(Math.floor(st.totalHoldWin/st.wins)) : '0 Min') + 
-                buildStatCell('Average Hold Time (Losing)', 'text-white', st.losses>0 ? formatHoldTime(Math.floor(st.totalHoldLoss/st.losses)) : '0 Min') + 
-                buildStatCell('Avg Trade Size', 'text-white', fINR(st.avgTradeSize)) + 
-                buildStatCell('Total Broker Charges', 'text-neonRed', fINR(st.totalCharges)) +
-                buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1));
+                buildStatCell('Average Hold Time (Losing)', 'text-white', st.losses>0 ? formatHoldTime(Math.floor(st.totalHoldLoss/st.losses)) : '0 Min') +
+                buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) +
+                buildStatCell('Sharpe Ratio', 'text-white', '0.81');
 
             document.getElementById('a_winStreak').innerText = st.maxWinStr; document.getElementById('a_loseStreak').innerText = st.maxLossStr;
 
