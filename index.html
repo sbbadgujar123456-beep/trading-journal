@@ -440,9 +440,9 @@
                         Trading Calendar <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
                      </h2>
                      <div class="flex items-center gap-2 bg-[#1f2433] p-1.5 rounded-lg border border-gray-800">
-                         <span class="text-[10px] text-textMuted uppercase font-bold pl-1">Holidays</span>
-                         <input type="date" id="holidayInput" class="input-dark rounded px-2 py-1 text-xs">
-                         <button onclick="window.addHoliday()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1 rounded transition-colors shadow">Toggle</button>
+                         <button onclick="window.openHolidayModal()" class="flex items-center gap-2 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 transition-colors">
+                             <i class="ph-bold ph-calendar-x text-lg"></i> Manage Holidays
+                         </button>
                      </div>
                  </div>
                 <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
@@ -450,6 +450,30 @@
             
         </div>
     </main>
+
+    <!-- CUSTOM HOLIDAY MANAGER MODAL -->
+    <div id="holidayModal" class="fixed inset-0 modal-overlay z-[80] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) closeHolidayModal()">
+        <div class="bg-[#11141c] w-full max-w-4xl max-h-[90vh] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="holidayContent">
+            
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-xl">
+                <div>
+                    <h3 class="font-bold text-lg text-white flex items-center gap-2"><i class="ph-fill ph-calendar-x text-neonRed"></i> Manage Market Holidays</h3>
+                    <p class="text-[10px] text-gray-500 mt-0.5">Click any date to toggle it as a holiday. Changes save automatically.</p>
+                </div>
+                <button type="button" onclick="closeHolidayModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+
+            <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div id="holidayYearGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-gray-800 flex justify-end bg-[#0b0e14] rounded-b-xl shrink-0">
+                <button type="button" onclick="closeHolidayModal()" class="bg-gray-800 text-white hover:bg-gray-700 transition-colors px-6 py-2 rounded-lg text-sm font-bold shadow-sm">Done</button>
+            </div>
+        </div>
+    </div>
 
     <!-- CUSTOM CONFIRM MODAL (Replaces window.confirm) -->
     <div id="confirmModal" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4">
@@ -902,16 +926,88 @@
             window.renderPickerCalendar();
         };
 
-        window.addHoliday = async () => {
-            const dInput = document.getElementById('holidayInput').value;
-            if(!dInput) return;
-            if(marketHolidays.includes(dInput)) {
-                window.showConfirm("Remove this date from Holidays?", async () => {
-                    try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dInput)); } catch(e){}
-                });
+        // --- Multi-Date Holiday Logic ---
+        let currentHolidayYear = new Date().getFullYear();
+
+        window.openHolidayModal = () => {
+            window.renderHolidayGrid();
+            const mod = document.getElementById('holidayModal');
+            const cont = document.getElementById('holidayContent');
+            mod.classList.remove('hidden');
+            setTimeout(()=> { mod.classList.remove('opacity-0'); cont.classList.remove('scale-95'); }, 10);
+        };
+
+        window.closeHolidayModal = () => {
+            const mod = document.getElementById('holidayModal');
+            const cont = document.getElementById('holidayContent');
+            mod.classList.add('opacity-0'); cont.classList.add('scale-95');
+            setTimeout(()=> mod.classList.add('hidden'), 300);
+        };
+
+        window.toggleHoliday = async (dateStr) => {
+            if(!currentUser) return;
+            const btn = document.getElementById(`hol_${dateStr}`);
+            const isHol = marketHolidays.includes(dateStr);
+            
+            // Optimistic UI Update
+            if (isHol) {
+                marketHolidays = marketHolidays.filter(d => d !== dateStr);
+                if(btn) btn.className = "flex items-center justify-center h-8 text-[11px] bg-[#11141c] text-gray-400 hover:bg-[#1f2433] cursor-pointer transition-colors border border-gray-800 rounded-sm";
             } else {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dInput), { isHoliday: true }); document.getElementById('holidayInput').value=''; } catch(e){}
+                marketHolidays.push(dateStr);
+                if(btn) btn.className = "flex items-center justify-center h-8 text-[11px] bg-red-500/20 text-red-400 font-bold border border-red-500/40 cursor-pointer transition-colors rounded-sm shadow-[inset_0_0_8px_rgba(255,59,105,0.2)]";
             }
+            
+            // Background DB sync
+            try {
+                if(isHol) {
+                    await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dateStr));
+                } else {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dateStr), { isHoliday: true });
+                }
+            } catch(e) {
+                console.error("Holiday sync failed", e);
+            }
+        };
+
+        window.renderHolidayGrid = () => {
+            const grid = document.getElementById('holidayYearGrid');
+            grid.innerHTML = '';
+            
+            const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+            const year = currentHolidayYear;
+
+            months.forEach((month, index) => {
+                const daysInMonth = new Date(year, index+1, 0).getDate(); 
+                const firstDay = new Date(year, index, 1).getDay();
+                
+                let html = `<div class="bg-[#151822] rounded-lg p-3 border border-gray-800">
+                    <h4 class="text-center font-bold text-xs text-gray-300 mb-3 uppercase tracking-widest">${month} ${year}</h4>
+                    <div class="grid grid-cols-7 gap-1 text-[9px] text-gray-500 font-bold text-center mb-2">
+                        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1">`;
+                
+                for(let i=0; i<firstDay; i++) html += `<div></div>`;
+                
+                for(let d=1; d<=daysInMonth; d++) {
+                    const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
+                    const dObj = new Date(year, index, d); 
+                    const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6; 
+                    const isHol = marketHolidays.includes(dt);
+                    
+                    if (isWeekend) {
+                        html += `<div class="flex items-center justify-center h-8 text-[11px] text-gray-700 bg-[#0b0e14] opacity-50 cursor-not-allowed border border-transparent rounded-sm">${d}</div>`;
+                    } else {
+                        let cls = isHol 
+                            ? "bg-red-500/20 text-red-400 font-bold border border-red-500/40 cursor-pointer transition-colors rounded-sm shadow-[inset_0_0_8px_rgba(255,59,105,0.2)]" 
+                            : "bg-[#11141c] text-gray-400 hover:bg-[#1f2433] cursor-pointer transition-colors border border-gray-800 rounded-sm";
+                        html += `<div id="hol_${dt}" onclick="window.toggleHoliday('${dt}')" class="flex items-center justify-center h-8 text-[11px] ${cls}">${d}</div>`;
+                    }
+                }
+                html += `</div></div>`;
+                grid.innerHTML += html;
+            });
         };
 
         window.selectPickerDate = (dateStr) => {
@@ -1560,21 +1656,72 @@
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-            const st = getStats(); document.getElementById('calTotalLabel').innerText = `(${fINR(st.totalPnl)})`;
+            const st = getStats(); 
+            
+            const calLabel = document.getElementById('calTotalLabel');
+            if (st.totalPnl > 0) { calLabel.innerText = `(+${fINR(st.totalPnl)})`; calLabel.className = 'text-sm text-neonGreen font-mono'; }
+            else if (st.totalPnl < 0) { calLabel.innerText = `(${fINR(st.totalPnl)})`; calLabel.className = 'text-sm text-neonRed font-mono'; }
+            else { calLabel.innerText = `(₹0.00)`; calLabel.className = 'text-sm text-gray-500 font-mono'; }
             
             const year = new Date().getFullYear();
-            ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].forEach((month, index) => {
-                const daysInMonth = new Date(year, index+1, 0).getDate(); const firstDay = new Date(year, index, 1).getDay();
-                const monthKey = `${year}-${String(index+1).padStart(2,'0')}`; const mPnl = st.byMonth[monthKey] || 0;
-                let html = `<div class="glass-panel rounded-lg overflow-hidden flex flex-col border border-gray-800 text-[10px] h-full"><div class="flex justify-between items-center px-3 py-2 bg-[#1a1d27] border-b border-gray-800 shrink-0"><span class="text-[11px] font-bold text-white uppercase tracking-wider">${month}</span><span class="text-[10px] font-mono font-bold ${mPnl > 0 ? 'text-neonGreen' : (mPnl < 0 ? 'text-neonRed' : 'text-gray-500')}">${mPnl > 0 ? '+' : ''}${fINR(mPnl)}</span></div><div class="grid grid-cols-7 gap-px bg-gray-800 flex-1"><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">S</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">M</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">T</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">W</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">T</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">F</div><div class="bg-panelDark text-center py-1 text-[9px] text-textMuted font-bold">S</div>`;
-                for(let i=0; i<firstDay; i++) html += `<div class="bg-[#0b0e14]"></div>`;
-                for(let d=1; d<=daysInMonth; d++) {
-                    const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const pnl = st.dailyPnl[dt];
-                    const dObj = new Date(year, index, d); const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6; const isHoliday = marketHolidays.includes(dt);
-                    let cls = ""; if (isWeekend || isHoliday) cls = "bg-transparent text-gray-700 cursor-not-allowed text-center py-1.5 line-through opacity-50"; else if (pnl > 0) cls = "bg-green-500/20 text-green-400 font-bold hover:bg-green-500/40 cursor-pointer text-center py-1.5 transition-colors"; else if (pnl < 0) cls = "bg-red-500/20 text-red-400 font-bold hover:bg-red-500/40 cursor-pointer text-center py-1.5 transition-colors"; else if (pnl === 0) cls = "bg-gray-500/20 text-white cursor-pointer text-center py-1.5 transition-colors"; else cls = "bg-[#11141c] text-gray-600 text-center py-1.5";
-                    html += `<div class="${cls}" ${pnl!==undefined ? `onclick="window.openDailyTradesModal('${dt}')"` : ''} title="${pnl?fINR(pnl):''}">${d}</div>`;
+            ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'].forEach((month, index) => {
+                const daysInMonth = new Date(year, index+1, 0).getDate(); 
+                const firstDay = new Date(year, index, 1).getDay();
+                const prevMonthDays = new Date(year, index, 0).getDate();
+                
+                const monthKey = `${year}-${String(index+1).padStart(2,'0')}`; 
+                const mPnl = st.byMonth[monthKey] || 0;
+                
+                let html = `<div class="glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-800/80 text-[10px] h-full shadow-sm">
+                    <div class="flex justify-between items-center px-4 py-3 bg-[#11141c] border-b border-gray-800/80 shrink-0">
+                        <span class="text-[11px] font-bold text-white uppercase tracking-wider">${month}</span>
+                        <span class="text-[10px] font-mono font-bold ${mPnl > 0 ? 'text-neonGreen' : (mPnl < 0 ? 'text-neonRed' : 'text-gray-500')}">${mPnl > 0 ? '+' : ''}${fINR(mPnl)}</span>
+                    </div>
+                    <div class="grid grid-cols-7 gap-px bg-gray-800/50 flex-1">
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">S</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">M</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">T</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">W</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">T</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">F</div>
+                        <div class="bg-[#11141c] text-center py-2 text-[9px] text-textMuted font-bold">S</div>`;
+                
+                // Previous month faint dates
+                for(let i=firstDay-1; i>=0; i--) { 
+                    html += `<div class="bg-[#11141c] text-gray-800 flex items-center justify-center h-9 md:h-10 text-[11px] opacity-30 select-none">${prevMonthDays - i}</div>`;
                 }
-                const rem = (7 - ((firstDay+daysInMonth)%7))%7; for(let i=0; i<rem; i++) html += `<div class="bg-[#0b0e14]"></div>`;
+                
+                // Current month dates
+                for(let d=1; d<=daysInMonth; d++) {
+                    const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
+                    const pnl = st.dailyPnl[dt];
+                    const dObj = new Date(year, index, d); 
+                    const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6; 
+                    const isHoliday = marketHolidays.includes(dt);
+                    
+                    let cls = "flex items-center justify-center h-9 md:h-10 text-[11px] "; 
+                    if (isWeekend || isHoliday) {
+                        cls += "bg-[#11141c] text-gray-700 cursor-not-allowed line-through opacity-60"; 
+                    } else if (pnl > 0) {
+                        cls += "bg-neonGreen/10 text-neonGreen font-bold hover:bg-neonGreen/20 cursor-pointer transition-colors shadow-[inset_0_0_0_1px_rgba(0,242,142,0.3)]"; 
+                    } else if (pnl < 0) {
+                        cls += "bg-neonRed/10 text-neonRed font-bold hover:bg-neonRed/20 cursor-pointer transition-colors shadow-[inset_0_0_0_1px_rgba(255,59,105,0.3)]"; 
+                    } else if (pnl === 0) {
+                        cls += "bg-gray-500/20 text-white font-bold cursor-pointer transition-colors shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"; 
+                    } else {
+                        cls += "bg-[#11141c] text-gray-500 hover:bg-[#1a1d27] cursor-pointer transition-colors";
+                    }
+                    
+                    html += `<div class="${cls}" ${pnl!==undefined ? `onclick="window.openDailyTradesModal('${dt}')"` : ''} title="${pnl!==undefined?fINR(pnl):''}">${d}</div>`;
+                }
+                
+                // Next month faint dates
+                const rem = (7 - ((firstDay+daysInMonth)%7))%7; 
+                let nextDay = 1;
+                for(let i=0; i<rem; i++) { 
+                    html += `<div class="bg-[#11141c] text-gray-800 flex items-center justify-center h-9 md:h-10 text-[11px] opacity-30 select-none">${nextDay++}</div>`;
+                }
+                
                 grid.innerHTML += html + `</div></div>`;
             });
         }
