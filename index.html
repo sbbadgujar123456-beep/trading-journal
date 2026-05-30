@@ -170,9 +170,27 @@
                     </div>
                     
                     <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="glass-panel p-4 rounded-xl">
-                            <p class="text-[10px] text-textMuted mb-2">Net P&L</p>
-                            <h3 class="text-xl font-bold font-mono text-white truncate" id="d_netPnl">₹0.00</h3>
+                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-between relative group">
+                            <div class="flex justify-between items-center mb-2 relative z-20">
+                                <p class="text-[10px] text-textMuted">Net P&L</p>
+                                <select id="dashDateRange" class="bg-transparent text-[9px] text-textMuted border border-gray-800 rounded px-1 py-0.5 outline-none hover:text-white cursor-pointer" onchange="updateDashboard()">
+                                    <option value="all">Lifetime</option>
+                                    <option value="7d">Last 7 Days</option>
+                                    <option value="1m">Last 1 Month</option>
+                                    <option value="3m">Last 3 Months</option>
+                                    <option value="6m">Last 6 Months</option>
+                                    <option value="1y">Last 1 Year</option>
+                                    <option value="3y">Last 3 Years</option>
+                                    <option value="5y">Last 5 Years</option>
+                                </select>
+                            </div>
+                            <h3 class="text-xl font-bold font-mono text-white truncate z-20" id="d_netPnl">₹0.00</h3>
+                            <div class="flex items-center justify-between mt-1 z-20">
+                                <p class="text-[10px] font-bold" id="d_netPnlPerc"><span class="text-gray-500">ROI:</span> <span class="text-white">--</span></p>
+                                <p class="text-[10px] font-bold" id="d_cagr" title="Compound Annual Growth Rate"><span class="text-gray-500">CAGR:</span> <span class="text-white">--</span></p>
+                            </div>
+                            <!-- Subtle background glow for ROI -->
+                            <div class="absolute -bottom-4 -right-4 w-20 h-20 bg-neonGreen/5 rounded-full blur-xl z-10 pointer-events-none transition-all" id="d_pnlGlow"></div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
                             <div>
@@ -728,6 +746,7 @@
         let dailyStats = {}; // To store manual daily net entries
         let marketHolidays = []; // Custom user holidays
         let editingTradeId = null;
+        const INITIAL_CAPITAL = 100000; // Base capital assumption for ROI/CAGR. Can be made dynamic later.
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
 
@@ -1332,19 +1351,40 @@
         }
 
         // --- Core Stats Engine ---
-        function getStats() {
+        function getStats(dateFilter = 'all') {
             let s = { totalPnl: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0, uniqueDays: new Set(),
                       maxWinStr: 0, currWinStr: 0, maxLossStr: 0, currLossStr: 0,
                       longWins: 0, longLosses: 0, longPnl: 0, longGrossWin: 0, longGrossLoss: 0,
                       shortWins: 0, shortLosses: 0, shortPnl: 0, shortGrossWin: 0, shortGrossLoss: 0,
                       byInstrument: {}, byTag: {}, byMonth: {}, dailyPnl: {}, dailyVol: {}, dailyTradeCount: {}, byTime: { 'Pre/Open':0, 'Mid-Day':0, 'Late':0 },
-                      byDuration: { 'Intraday':0, 'Multi-Day':0 }, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0, maxTradeWin: 0, maxTradeLoss: 0
+                      byDuration: { 'Intraday':0, 'Multi-Day':0 }, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0, maxTradeWin: 0, maxTradeLoss: 0,
+                      firstTradeDate: null, lastTradeDate: null
             };
 
-            const sorted = [...trades].sort((a,b) => new Date(`${a.exitDate}T${a.exitTime}`) - new Date(`${b.exitDate}T${b.exitTime}`));
+            const now = new Date();
+            let filterDate = new Date(0); // Epoch, meaning 'all'
+            
+            if (dateFilter !== 'all') {
+                filterDate = new Date();
+                if (dateFilter === '7d') filterDate.setDate(now.getDate() - 7);
+                if (dateFilter === '1m') filterDate.setMonth(now.getMonth() - 1);
+                if (dateFilter === '3m') filterDate.setMonth(now.getMonth() - 3);
+                if (dateFilter === '6m') filterDate.setMonth(now.getMonth() - 6);
+                if (dateFilter === '1y') filterDate.setFullYear(now.getFullYear() - 1);
+                if (dateFilter === '3y') filterDate.setFullYear(now.getFullYear() - 3);
+                if (dateFilter === '5y') filterDate.setFullYear(now.getFullYear() - 5);
+            }
+
+            // Filter trades based on date first
+            const filteredTrades = trades.filter(t => new Date(t.exitDate) >= filterDate);
+            const sorted = [...filteredTrades].sort((a,b) => new Date(`${a.exitDate}T${a.exitTime}`) - new Date(`${b.exitDate}T${b.exitTime}`));
+
             let peakEquity = 0; let currentEquity = 0; s.maxDrawdownAmt = 0;
 
-            sorted.forEach(t => {
+            sorted.forEach((t, index) => {
+                if(index === 0) s.firstTradeDate = new Date(t.exitDate);
+                s.lastTradeDate = new Date(t.exitDate);
+
                 s.totalPnl += t.pnl; s.uniqueDays.add(t.exitDate); s.totalEntryVal += (t.entryValue || 0);
                 if (t.pnl > s.maxTradeWin) s.maxTradeWin = t.pnl; if (t.pnl < s.maxTradeLoss) s.maxTradeLoss = t.pnl;
                 
@@ -1420,6 +1460,23 @@
             s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
             s.avgTradeSize = s.totalTrades > 0 ? (s.totalEntryVal / s.totalTrades) : 0;
             s.tiqsScore = Math.min(100, Math.max(0, (s.winPerc*0.4) + (Math.min(s.pf, 3)*10) + (s.totalTrades>10?20:0) ));
+            
+            // ROI & CAGR Calculation
+            s.roi = (s.totalPnl / INITIAL_CAPITAL) * 100;
+            
+            s.cagr = 0;
+            if (s.firstTradeDate && s.lastTradeDate) {
+                const diffTime = Math.abs(s.lastTradeDate - s.firstTradeDate);
+                const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+                if (diffYears > 0) {
+                    const finalValue = INITIAL_CAPITAL + s.totalPnl;
+                    s.cagr = (Math.pow(finalValue / INITIAL_CAPITAL, 1 / diffYears) - 1) * 100;
+                } else if (s.totalTrades > 0 && diffYears === 0) {
+                    // If all trades are on day 1, CAGR = ROI for that brief period technically, but usually shown as ROI
+                    s.cagr = s.roi;
+                }
+            }
+
             return s;
         }
 
@@ -1444,9 +1501,27 @@
         }
 
         function updateDashboard() {
-            const st = getStats();
-            document.getElementById('d_netPnl').innerText = fINR(st.totalPnl); document.getElementById('d_netPnl').className = `text-xl font-bold font-mono truncate ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+            const filterVal = document.getElementById('dashDateRange') ? document.getElementById('dashDateRange').value : 'all';
+            const st = getStats(filterVal);
             
+            const pnlEl = document.getElementById('d_netPnl');
+            pnlEl.innerText = fINR(st.totalPnl); 
+            pnlEl.className = `text-xl font-bold font-mono truncate z-20 relative ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
+            
+            const roiEl = document.getElementById('d_netPnlPerc');
+            const cagrEl = document.getElementById('d_cagr');
+            const glowEl = document.getElementById('d_pnlGlow');
+            
+            if(st.totalTrades > 0) {
+                roiEl.innerHTML = `<span class="text-gray-500">ROI:</span> <span class="${st.roi >= 0 ? 'text-neonGreen' : 'text-neonRed'} font-mono">${st.roi >= 0 ? '+' : ''}${st.roi.toFixed(2)}%</span>`;
+                cagrEl.innerHTML = `<span class="text-gray-500">CAGR:</span> <span class="${st.cagr >= 0 ? 'text-neonGreen' : 'text-neonRed'} font-mono">${st.cagr >= 0 ? '+' : ''}${st.cagr.toFixed(2)}%</span>`;
+                glowEl.className = `absolute -bottom-4 -right-4 w-20 h-20 rounded-full blur-xl z-10 pointer-events-none transition-all ${st.totalPnl >= 0 ? 'bg-neonGreen/10' : 'bg-neonRed/10'}`;
+            } else {
+                roiEl.innerHTML = `<span class="text-gray-500">ROI:</span> <span class="text-gray-400 font-mono">0.00%</span>`;
+                cagrEl.innerHTML = `<span class="text-gray-500">CAGR:</span> <span class="text-gray-400 font-mono">0.00%</span>`;
+                glowEl.className = `absolute -bottom-4 -right-4 w-20 h-20 bg-gray-500/5 rounded-full blur-xl z-10 pointer-events-none transition-all`;
+            }
+
             document.getElementById('d_avgDailyPnl').innerText = fINR(st.avgDailyPnl);
             document.getElementById('d_avgDailyPnl').className = `text-2xl font-bold font-mono ${st.avgDailyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl);
