@@ -670,6 +670,25 @@
         const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
         const fNum = (val) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
 
+        const formatHoldTime = (totalMins) => {
+            if (totalMins === undefined || isNaN(totalMins) || totalMins < 0) return '0 Min';
+            if (totalMins === 0) return '0 Min';
+            
+            const days = Math.floor(totalMins / (24 * 60));
+            const remainingMins = totalMins % (24 * 60);
+            const hours = Math.floor(remainingMins / 60);
+            const mins = remainingMins % 60;
+
+            let res = [];
+            if (days > 0) res.push(`${days} Day${days > 1 ? 's' : ''}`);
+            if (hours > 0) res.push(`${hours} Hour${hours > 1 ? 's' : ''}`);
+            if (mins > 0 || res.length === 0) res.push(`${mins} Min${mins > 1 ? 's' : ''}`);
+
+            if (res.length === 3) return `${res[0]}, ${res[1]} & ${res[2]}`;
+            if (res.length === 2) return `${res[0]} & ${res[1]}`;
+            return res[0];
+        };
+
         async function initAuth() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
@@ -1278,35 +1297,52 @@
             let currentYear = '';
             let currentMonth = '';
 
-            sorted.forEach(t => {
+            sorted.forEach((t, index) => {
                 const yr = t.entryDate.substring(0,4);
                 const mo = t.entryDate.substring(0,7);
                 const dObj = new Date(t.entryDate);
                 const moName = dObj.toLocaleString('default', { month: 'long', year: 'numeric' });
 
+                // YEAR SEPARATION
                 if(yr !== currentYear) {
                     currentYear = yr;
                     const ypnl = yearPnl[yr];
+                    
+                    // Add spacer row if it's not the very first item
+                    if (index !== 0) {
+                        tbody.innerHTML += `<tr class="h-8 bg-transparent border-0"><td colspan="6"></td></tr>`;
+                    }
+
                     tbody.innerHTML += `
-                        <tr class="bg-[#0b0e14] border-y border-gray-800">
-                            <td colspan="6" class="p-4">
+                        <tr class="bg-gradient-to-r from-[#151822] to-[#0b0e14] border-t border-gray-700 shadow-md">
+                            <td colspan="6" class="p-5">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-sm font-bold text-white tracking-widest">${yr} SUMMARY</span>
-                                    <span class="font-mono text-sm font-bold ${ypnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}">${ypnl >= 0 ? '+' : ''}${fINR(ypnl)}</span>
+                                    <div class="flex items-center gap-4">
+                                        <div class="p-2.5 bg-gray-800/80 rounded-xl border border-gray-700 shadow-sm"><i class="ph-fill ph-calendar-check text-neonGreen text-2xl"></i></div>
+                                        <div>
+                                            <span class="text-xs text-gray-400 uppercase tracking-widest font-bold block mb-0.5">Trading Year</span>
+                                            <span class="text-2xl font-bold text-white">${yr}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right bg-[#0b0e14] p-3 rounded-lg border border-gray-800/80">
+                                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Yearly Net P&L</p>
+                                        <span class="font-mono text-lg font-bold ${ypnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}">${ypnl >= 0 ? '+' : ''}${fINR(ypnl)}</span>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                     `;
                 }
 
+                // MONTH SEPARATION
                 if(mo !== currentMonth) {
                     currentMonth = mo;
                     const mpnl = monthPnl[mo];
                     tbody.innerHTML += `
-                        <tr class="bg-panelDark border-b border-gray-800/50">
-                            <td colspan="6" class="px-4 py-2">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${moName}</span>
+                        <tr class="bg-[#11141c] border-y border-gray-800/80 shadow-sm">
+                            <td colspan="6" class="px-5 py-3.5">
+                                <div class="flex justify-between items-center pl-2 border-l-2 border-gray-600">
+                                    <span class="text-xs font-bold text-gray-300 uppercase tracking-widest">${moName}</span>
                                     <span class="font-mono text-xs font-bold ${mpnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}">${mpnl >= 0 ? '+' : ''}${fINR(mpnl)}</span>
                                 </div>
                             </td>
@@ -1314,8 +1350,29 @@
                     `;
                 }
 
-                tbody.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4"><div class="font-medium">${t.entryDate}</div><div class="text-[10px] text-textMuted">${t.entryTime}</div></td><td class="p-4"><div class="font-medium">${t.exitDate}</div><div class="text-[10px] text-textMuted">${t.exitTime}</div></td><td class="p-4 font-bold">${t.symbol}</td><td class="p-4"><span class="text-xs bg-bgDark border border-gray-700 px-2 py-1 rounded">${t.category}</span></td><td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</td><td class="p-4 text-center"><button onclick="window.deleteTrade('${t.id}')" class="text-red-400 p-1 hover:bg-red-500/10 rounded"><i class="ph-bold ph-trash"></i></button></td></tr>`;
+                // INDIVIDUAL TRADE ROWS
+                tbody.innerHTML += `
+                    <tr class="hover:bg-panelLighter border-b border-gray-800/50 transition-colors">
+                        <td class="p-4">
+                            <div class="font-medium text-gray-200">${t.entryDate}</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1"><i class="ph-bold ph-clock"></i> ${t.entryTime}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-medium text-gray-200">${t.exitDate}</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1" title="${t.holdTime} total mins"><i class="ph-bold ph-hourglass-high"></i> ${formatHoldTime(t.holdTime)}</div>
+                        </td>
+                        <td class="p-4 font-bold text-white">${t.symbol}</td>
+                        <td class="p-4"><span class="text-[11px] bg-bgDark border border-gray-700 text-gray-300 px-2 py-1.5 rounded shadow-sm">${t.category}</span></td>
+                        <td class="p-4 text-right font-mono font-bold text-sm ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</td>
+                        <td class="p-4 text-center"><button onclick="window.deleteTrade('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete Trade"><i class="ph-bold ph-trash text-lg"></i></button></td>
+                    </tr>`;
             });
+            
+            const noTradesEl = document.getElementById('noTradesMsg');
+            if(noTradesEl) {
+                if (sorted.length === 0) noTradesEl.classList.remove('hidden');
+                else noTradesEl.classList.add('hidden');
+            }
         }
 
         function renderCalendar() {
