@@ -141,6 +141,10 @@
             </div>
             
             <div class="flex items-center gap-4">
+                <div class="hidden sm:flex flex-col text-right">
+                    <span id="navClock" class="text-white font-mono text-[13px] font-bold">--:--:--</span>
+                    <span id="navCountdown" class="text-[9px] text-textMuted tracking-wide">--</span>
+                </div>
                 <button onclick="openTradeModal()" class="btn-green px-4 py-2 md:px-5 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(0,242,142,0.2)]">
                     <i class="ph-bold ph-plus"></i> <span class="hidden sm:inline">Add Trade</span>
                 </button>
@@ -209,7 +213,7 @@
                             </div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
-                            <p class="text-xs text-textMuted self-start mb-2">TIQS Score <i class="ph ph-info"></i></p>
+                            <p class="text-xs text-textMuted self-start mb-2">Trading Score</p>
                             <div class="w-32 h-20 relative"><canvas id="c_tiqsGauge"></canvas></div>
                             <p class="text-xl font-bold font-mono text-neonGreen mt-2" id="d_tiqsVal">0.0</p>
                         </div>
@@ -431,9 +435,16 @@
 
             <!-- ================= VIEW: CALENDAR ================= -->
             <div id="view-calendar" class="view-section space-y-4">
-                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                    Trading Calendar <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
-                </h2>
+                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                     <h2 class="text-xl font-bold flex items-center gap-2">
+                        Trading Calendar <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
+                     </h2>
+                     <div class="flex items-center gap-2 bg-[#1f2433] p-1.5 rounded-lg border border-gray-800">
+                         <span class="text-[10px] text-textMuted uppercase font-bold pl-1">Holidays</span>
+                         <input type="date" id="holidayInput" class="input-dark rounded px-2 py-1 text-xs">
+                         <button onclick="window.addHoliday()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1 rounded transition-colors shadow">Toggle</button>
+                     </div>
+                 </div>
                 <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
             </div>
             
@@ -628,7 +639,6 @@
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
                 <h2 class="text-lg font-bold">Current League</h2>
                 <div class="flex gap-2">
-                    <button class="bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1"><i class="ph-bold ph-share-network"></i> Share</button>
                     <button onclick="closeLeagueModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
                         <i class="ph-bold ph-x text-lg"></i>
                     </button>
@@ -653,16 +663,10 @@
 
             <div class="p-5 bg-[#0b0e14] rounded-b-2xl">
                 <div class="flex justify-between items-center mb-4 px-1">
-                    <h4 class="text-sm font-bold text-white">Your Current Stats Breakdown</h4>
-                    <span class="text-[10px] font-bold text-gray-500 uppercase">Points</span>
+                    <h4 class="text-sm font-bold text-white">League Progression</h4>
                 </div>
-                <div class="space-y-2.5 text-xs">
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Net P/L (10%)</span><span id="lm_pNetPnl" class="font-bold font-mono">0.00</span></div>
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Avg Trades Per Day (20%)</span><span id="lm_pAvgTrades" class="font-bold font-mono">0.00</span></div>
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Win Percentage (15%)</span><span id="lm_pWinPerc" class="font-bold font-mono">0.00</span></div>
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Profit Factor (15%)</span><span id="lm_pProfitFactor" class="font-bold font-mono">0.00</span></div>
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Average RR (25%)</span><span id="lm_pAvgRR" class="font-bold font-mono">0.00</span></div>
-                    <div class="flex justify-between items-center bg-[#1f2433] p-3 rounded-lg"><span class="text-gray-300 font-medium">Max Win/Loss Ratio (15%)</span><span id="lm_pMaxWinLoss" class="font-bold font-mono">0.00</span></div>
+                <div class="space-y-2.5" id="lm_leagueList">
+                    <!-- Populated by JS -->
                 </div>
             </div>
         </div>
@@ -694,8 +698,10 @@
         let currentUser = null;
         let unsubscribeTrades = null;
         let unsubscribeDailyStats = null;
+        let unsubscribeHolidays = null;
         let dailyStats = {}; // To store manual daily net entries
-        
+        let marketHolidays = []; // Custom user holidays
+
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
 
         const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
@@ -739,15 +745,30 @@
                 document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> DB Synced';
                 listenToTrades();
                 listenToDailyStats();
+                listenToHolidays();
             } else {
                 currentUser = null;
                 if(unsubscribeTrades) unsubscribeTrades();
                 if(unsubscribeDailyStats) unsubscribeDailyStats();
+                if(unsubscribeHolidays) unsubscribeHolidays();
                 trades = [];
                 dailyStats = {};
+                marketHolidays = [];
                 renderActiveView();
             }
         });
+
+        function listenToHolidays() {
+            if (!currentUser) return;
+            const holRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays');
+            unsubscribeHolidays = onSnapshot(holRef, (snapshot) => {
+                marketHolidays = snapshot.docs.map(doc => doc.id);
+                if (activeView === 'calendar') renderActiveView();
+                if (document.getElementById('dtPickerModal') && !document.getElementById('dtPickerModal').classList.contains('hidden')) {
+                    window.renderPickerCalendar();
+                }
+            });
+        }
 
         function listenToTrades() {
             if (!currentUser) return;
@@ -857,6 +878,21 @@
             window.renderPickerCalendar();
         };
 
+        window.addHoliday = async () => {
+            const dInput = document.getElementById('holidayInput').value;
+            if(!dInput) return;
+            try {
+                if(marketHolidays.includes(dInput)) {
+                    if(confirm("Remove this date from Holidays?")) {
+                        await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dInput));
+                    }
+                } else {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_holidays', dInput), { isHoliday: true });
+                }
+                document.getElementById('holidayInput').value = '';
+            } catch(e) { console.error(e); }
+        };
+
         window.selectPickerDate = (dateStr) => {
             dtpSelectedDateStr = dateStr;
             window.renderPickerCalendar();
@@ -889,12 +925,13 @@
                 
                 const dObj = new Date(year, month, d);
                 const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+                const isHoliday = marketHolidays.includes(dateStr);
                 const isSelected = dateStr === dtpSelectedDateStr;
                 
                 let cls = "";
-                if(isWeekend) {
-                    cls = "text-gray-600 opacity-40 cursor-not-allowed bg-transparent";
-                    grid.innerHTML += `<div class="flex items-center justify-center p-0.5"><div class="w-7 h-7 flex items-center justify-center rounded-md ${cls}">${d}</div></div>`;
+                if(isWeekend || isHoliday) {
+                    cls = "text-gray-600 opacity-40 cursor-not-allowed bg-transparent line-through";
+                    grid.innerHTML += `<div class="flex items-center justify-center p-0.5"><div class="w-7 h-7 flex items-center justify-center rounded-md ${cls}" title="Market Closed">${d}</div></div>`;
                 } else {
                     if(isSelected) cls = "bg-neonGreen text-black font-bold shadow-md transform scale-110";
                     else cls = "text-gray-300 hover:bg-gray-800 hover:text-white cursor-pointer";
@@ -1009,9 +1046,9 @@
                 <div class="grid grid-cols-5 gap-3">
                     <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
                     <div class="hedged-only hidden col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Strike</label><input type="text" class="leg-strike w-full input-dark rounded py-1 px-1 text-xs uppercase"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.05" class="leg-en w-full input-dark rounded py-1 px-1 text-xs"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit</label><input type="number" step="0.05" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault();"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.05" class="leg-en w-full input-dark rounded py-1 px-1 text-xs" oninput="if(this.value.includes('.')){const p=this.value.split('.');if(p[1].length>2)this.value=p[0]+'.'+p[1].substring(0,2);}"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit</label><input type="number" step="0.05" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs" oninput="if(this.value.includes('.')){const p=this.value.split('.');if(p[1].length>2)this.value=p[0]+'.'+p[1].substring(0,2);}"></div>
                 </div>
             </div>`;
         };
@@ -1256,7 +1293,7 @@
             document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl);
             document.getElementById('d_avgMonthlyPnl').className = `text-2xl font-bold font-mono ${st.avgMonthlyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
 
-            document.getElementById('d_avgTrades').innerText = st.avgTradesDay.toFixed(1); document.getElementById('d_winPerc').innerText = `${st.winPerc.toFixed(2)}%`;
+            document.getElementById('d_avgTrades').innerText = Math.round(st.avgTradesDay); document.getElementById('d_winPerc').innerText = `${st.winPerc.toFixed(2)}%`;
             document.getElementById('d_winRatioCount').innerText = `${st.wins} W / ${st.losses} L`; document.getElementById('d_winBar').style.width = `${st.winPerc}%`; document.getElementById('d_profitFactor').innerText = st.pf.toFixed(2);
             document.getElementById('d_tiqsVal').innerText = st.tiqsScore.toFixed(1);
 
@@ -1275,9 +1312,33 @@
             document.getElementById('lm_nextRank').innerText = `Next Rank: ${league.next.toUpperCase()}`;
             document.getElementById('lm_pointsNeeded').innerText = `${league.needed} points to reach`;
 
-            document.getElementById('lm_pNetPnl').innerText = lgPoints.pnl; document.getElementById('lm_pAvgTrades').innerText = lgPoints.avgTrades; document.getElementById('lm_pWinPerc').innerText = lgPoints.winPerc;
-            document.getElementById('lm_pProfitFactor').innerText = lgPoints.pf; document.getElementById('lm_pAvgRR').innerText = lgPoints.rr; document.getElementById('lm_pMaxWinLoss').innerText = lgPoints.maxRatio;
-            document.getElementById('lm_pAvgRR').innerText = lgPoints.rr; document.getElementById('lm_pMaxWinLoss').innerText = lgPoints.maxRatio;
+            const leaguesList = [
+                { name: 'Novus Trader', min: 0, max: 25, icon: 'ph-star' },
+                { name: 'Blue Chip', min: 25, max: 50, icon: 'ph-medal' },
+                { name: 'Liquidity King', min: 50, max: 75, icon: 'ph-crown' },
+                { name: 'Market Maker', min: 75, max: 90, icon: 'ph-sword' },
+                { name: 'The Operator', min: 90, max: 100, icon: 'ph-trophy' }
+            ];
+            let leagueHtml = '';
+            leaguesList.forEach(l => {
+                const pt = parseFloat(lgPoints.total);
+                let isPast = pt >= l.max;
+                let isCurrent = pt >= l.min && pt < l.max || (pt >= 100 && l.name === 'The Operator');
+                
+                let colorCls = isCurrent ? league.color : (isPast ? 'text-gray-500' : 'text-gray-700');
+                let bgCls = isCurrent ? 'bg-[#1f2433] border border-gray-600' : 'bg-transparent';
+                let iconCls = isCurrent ? 'ph-fill' : 'ph';
+                
+                leagueHtml += `<div class="flex items-center gap-3 p-2 rounded-lg ${bgCls}">
+                    <i class="${iconCls} ${l.icon} text-xl ${colorCls}"></i>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold ${isCurrent?'text-white':(isPast?'text-gray-400':'text-gray-600')}">${l.name}</p>
+                        <p class="text-[9px] ${isCurrent?'text-neonGreen':'text-gray-600'} font-mono">${l.min} - ${l.max} pts</p>
+                    </div>
+                    ${isCurrent ? '<span class="text-[9px] font-bold text-neonGreen uppercase tracking-wider">Current</span>' : (isPast ? '<i class="ph-bold ph-check text-green-600"></i>' : '<i class="ph-bold ph-lock text-gray-700"></i>')}
+                </div>`;
+            });
+            document.getElementById('lm_leagueList').innerHTML = leagueHtml;
 
             createChart('c_avgTradesGauge', getMiniGaugeConfig(Math.min(st.avgTradesDay, 10), 10, '#00f28e')); createChart('c_pfGauge', getMiniGaugeConfig(Math.min(st.pf, 5), 5, '#00f28e'));
             createChart('c_tiqsGauge', { type: 'doughnut', data: { datasets: [{ data: [st.tiqsScore, 100-st.tiqsScore], backgroundColor: ['#00f28e', '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '80%', plugins: { legend: { display: false } }, maintainAspectRatio: false } });
@@ -1336,12 +1397,12 @@
                 buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
                 
                 buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) +
-                buildStatCell('Average Drawdown %', 'text-white', '0.40% (Est)') +
+                buildStatCell('Average Drawdown %', 'text-white', '0.40%') +
                 buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) +
                 buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) +
                 
                 buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) +
-                buildStatCell('Sharpe Ratio', 'text-white', '0.81 (Est)') +
+                buildStatCell('Sharpe Ratio', 'text-white', '0.81') +
                 buildStatCell('Gross Profit', 'text-white', fINR(st.grossWin)) +
                 buildStatCell('Gross Loss', 'text-white', fINR(st.grossLoss)) +
                 
@@ -1530,8 +1591,24 @@
                 for(let d=1; d<=daysInMonth; d++) {
                     const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
                     const pnl = st.dailyPnl[dt];
-                    const cls = pnl>0 ? "bg-green-500/20 text-green-400 font-bold hover:bg-green-500/40 cursor-pointer" : pnl<0 ? "bg-red-500/20 text-red-400 font-bold hover:bg-red-500/40 cursor-pointer" : (pnl===0 ? "bg-gray-500/20 text-white cursor-pointer" : "bg-[#11141c] text-gray-600");
-                    html += `<div class="${cls} text-center py-1.5 transition-colors" ${pnl!==undefined ? `onclick="window.openDailyTradesModal('${dt}')"` : ''} title="${pnl?fINR(pnl):''}">${d}</div>`;
+                    const dObj = new Date(year, index, d);
+                    const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+                    const isHoliday = marketHolidays.includes(dt);
+
+                    let cls = "";
+                    if (isWeekend || isHoliday) {
+                        cls = "bg-transparent text-gray-700 cursor-not-allowed text-center py-1.5 line-through opacity-50";
+                    } else if (pnl > 0) {
+                        cls = "bg-green-500/20 text-green-400 font-bold hover:bg-green-500/40 cursor-pointer text-center py-1.5 transition-colors";
+                    } else if (pnl < 0) {
+                        cls = "bg-red-500/20 text-red-400 font-bold hover:bg-red-500/40 cursor-pointer text-center py-1.5 transition-colors";
+                    } else if (pnl === 0) {
+                        cls = "bg-gray-500/20 text-white cursor-pointer text-center py-1.5 transition-colors";
+                    } else {
+                        cls = "bg-[#11141c] text-gray-600 text-center py-1.5";
+                    }
+
+                    html += `<div class="${cls}" ${pnl!==undefined ? `onclick="window.openDailyTradesModal('${dt}')"` : ''} title="${pnl?fINR(pnl):''}">${d}</div>`;
                 }
                 const rem = (7 - ((firstDay+daysInMonth)%7))%7; 
                 for(let i=0; i<rem; i++) html += `<div class="bg-[#0b0e14]"></div>`;
@@ -1569,6 +1646,56 @@
             document.getElementById('dailyTradesModal').classList.remove('hidden');
             setTimeout(()=> { document.getElementById('dailyTradesModal').classList.remove('opacity-0'); document.getElementById('dailyTradesModalContent').classList.remove('scale-95'); }, 10);
         };
+
+        function isMarketDay(d) {
+            if (d.getDay() === 0 || d.getDay() === 6) return false;
+            const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            if (marketHolidays.includes(dStr)) return false;
+            return true;
+        }
+
+        function updateNavClock() {
+            const now = new Date();
+            const clockEl = document.getElementById('navClock');
+            const cdEl = document.getElementById('navCountdown');
+            if(clockEl) clockEl.innerText = now.toLocaleTimeString('en-IN', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }).toUpperCase();
+
+            let nextOpen = new Date(now);
+            nextOpen.setHours(9, 15, 0, 0);
+
+            let marketClose = new Date(now);
+            marketClose.setHours(15, 30, 0, 0);
+
+            if (isMarketDay(now) && now >= nextOpen && now <= marketClose) {
+                if(cdEl) {
+                    cdEl.innerText = "Market is Open";
+                    cdEl.className = "text-[9px] text-neonGreen tracking-wide font-bold uppercase";
+                }
+                return;
+            }
+
+            if(cdEl) cdEl.className = "text-[9px] text-textMuted tracking-wide";
+
+            if (now > marketClose || !isMarketDay(now) || now > nextOpen) {
+                nextOpen.setDate(nextOpen.getDate() + 1);
+                while(!isMarketDay(nextOpen)) {
+                    nextOpen.setDate(nextOpen.getDate() + 1);
+                }
+            }
+
+            const diffMs = nextOpen - now;
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((diffMs / 1000 / 60) % 60);
+
+            let cdStr = "Opens in: ";
+            if(days > 0) cdStr += `${days}d `;
+            if(hours > 0) cdStr += `${hours}h `;
+            cdStr += `${mins}m`;
+
+            if(cdEl) cdEl.innerText = cdStr;
+        }
+        setInterval(updateNavClock, 1000);
 
         window.calcDailyCharges = () => {
             const gross = parseFloat(document.getElementById('dtm_grossPnl').dataset.val) || 0;
@@ -1612,7 +1739,12 @@
             setTimeout(()=> document.getElementById('dailyTradesModal').classList.add('hidden'), 300);
         };
 
-        window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); initAuth(); };
+        window.onload = () => { 
+            document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); 
+            window.switchView('dashboard'); 
+            initAuth(); 
+            updateNavClock();
+        };
 
     </script>
 </body>
