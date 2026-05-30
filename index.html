@@ -385,9 +385,9 @@
                         <input type="text" id="searchTrade" placeholder="Search Symbol..." class="input-dark rounded-lg px-3 py-1.5 text-sm w-full md:w-48" onkeyup="renderTradesTable()">
                         <select id="filterCategory" class="input-dark rounded-lg px-3 py-1.5 text-sm appearance-none" onchange="renderTradesTable()">
                             <option value="All">All Categories</option>
-                            <option value="Price Action">Price Action</option>
-                            <option value="Algo">Algo</option>
-                            <option value="Mean Reversion">Mean Reversion</option>
+                            <option value="Price Action">Long from OverSold</option>
+                            <option value="Algo">Short from Overbought</option>
+                            <option value="Mean Reversion">Zen Credit</option>
                             <option value="FOMO">FOMO</option>
                             <option value="Over Qty">Over Qty</option>
                         </select>
@@ -599,7 +599,7 @@
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
                 <h2 class="text-lg font-bold">Current League</h2>
                 <div class="flex gap-2">
-                    <button class="bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1"><i class="ph-bold ph-share-network"></i> Share</button>
+                    
                     <button onclick="closeLeagueModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
                         <i class="ph-bold ph-x text-lg"></i>
                     </button>
@@ -1088,7 +1088,7 @@
 
         function getTraderLeague(pointsStr) {
             const p = parseFloat(pointsStr);
-            if(p < 25) return { title: 'Novus Trader', color: 'text-silver', icon: 'ph-star', next: 'Blue Chip', needed: (25 - p).toFixed(2), progress: (p/25)*100 };
+            if(p < 25) return { title: 'Beginner', color: 'text-silver', icon: 'ph-star', next: 'Blue Chip', needed: (25 - p).toFixed(2), progress: (p/25)*100 };
             if(p < 50) return { title: 'Blue Chip', color: 'text-blue-400', icon: 'ph-medal', next: 'Liquidity King', needed: (50 - p).toFixed(2), progress: ((p-25)/25)*100 };
             if(p < 75) return { title: 'Liquidity King', color: 'text-diamond', icon: 'ph-crown', next: 'Market Maker', needed: (75 - p).toFixed(2), progress: ((p-50)/25)*100 };
             if(p < 90) return { title: 'Market Maker', color: 'text-orange-500', icon: 'ph-sword', next: 'The Operator', needed: (90 - p).toFixed(2), progress: ((p-75)/15)*100 };
