@@ -437,7 +437,7 @@
             <div id="view-calendar" class="view-section space-y-4">
                  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                      <h2 class="text-xl font-bold flex items-center gap-2">
-                        Trading Calendar <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
+                        <span id="calYearHeaderTitle">2026</span> <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
                      </h2>
                      <div class="flex items-center gap-2 bg-[#1f2433] p-1.5 rounded-lg border border-gray-800">
                          <button onclick="window.openHolidayModal()" class="flex items-center gap-2 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 transition-colors">
@@ -1664,6 +1664,9 @@
             else { calLabel.innerText = `(₹0.00)`; calLabel.className = 'text-sm text-gray-500 font-mono'; }
             
             const year = new Date().getFullYear();
+            document.getElementById('calYearHeaderTitle').innerText = year; // Set Current Year
+            const todayStr = new Date().toISOString().split('T')[0];
+
             ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'].forEach((month, index) => {
                 const daysInMonth = new Date(year, index+1, 0).getDate(); 
                 const firstDay = new Date(year, index, 1).getDay();
@@ -1698,8 +1701,14 @@
                     const dObj = new Date(year, index, d); 
                     const isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6; 
                     const isHoliday = marketHolidays.includes(dt);
+                    const isToday = dt === todayStr;
                     
-                    let cls = "flex items-center justify-center h-9 md:h-10 text-[11px] "; 
+                    let cls = "flex items-center justify-center h-9 md:h-10 text-[11px] relative "; 
+                    
+                    if (isToday) {
+                        cls += " ring-2 ring-inset ring-[#ff00ff] rounded-sm z-10 font-bold shadow-[inset_0_0_8px_rgba(255,0,255,0.3)] "; // Highlight today
+                    }
+
                     if (isWeekend || isHoliday) {
                         cls += "bg-[#11141c] text-gray-700 cursor-not-allowed line-through opacity-60"; 
                     } else if (pnl > 0) {
@@ -1709,7 +1718,7 @@
                     } else if (pnl === 0) {
                         cls += "bg-gray-500/20 text-white font-bold cursor-pointer transition-colors shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"; 
                     } else {
-                        cls += "bg-[#11141c] text-gray-500 hover:bg-[#1a1d27] cursor-pointer transition-colors";
+                        cls += "bg-[#11141c] text-white hover:bg-[#1a1d27] cursor-pointer transition-colors";
                     }
                     
                     html += `<div class="${cls}" ${pnl!==undefined ? `onclick="window.openDailyTradesModal('${dt}')"` : ''} title="${pnl!==undefined?fINR(pnl):''}">${d}</div>`;
