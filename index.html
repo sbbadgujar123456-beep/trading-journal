@@ -149,11 +149,6 @@
             </div>
             
             <div class="flex items-center gap-6">
-                <!-- Warning Icon (Hidden by default) -->
-                <div id="navWarningIcon" class="hidden text-orange-500 hover:text-orange-400 cursor-pointer transition-colors" title="Missing Net P&L" onclick="window.switchView('dashboard')">
-                    <i class="ph-fill ph-warning text-2xl drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]"></i>
-                </div>
-
                 <!-- Clock & Countdown -->
                 <div class="hidden sm:flex flex-col items-end">
                     <p class="text-xs font-bold text-white font-mono tracking-widest" id="topClock">--:--:-- IST</p>
@@ -172,12 +167,12 @@
             <div id="view-dashboard" class="view-section active space-y-4">
                 
                 <!-- Missing PnL Warning Banner -->
-                <div id="missingPnlWarning" class="hidden bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                <div id="missingPnlWarning" class="hidden bg-neonRed/10 border border-neonRed/30 rounded-xl p-3 flex items-center justify-between shadow-[0_0_15px_rgba(255,59,105,0.1)]">
                     <div class="flex items-center gap-3">
-                        <i class="ph-fill ph-warning-circle text-2xl text-orange-500 shrink-0"></i>
+                        <i class="ph-fill ph-warning-circle text-2xl text-neonRed shrink-0"></i>
                         <div>
-                            <p class="text-xs font-bold text-white uppercase tracking-wider">Unverified Daily P&L</p>
-                            <p class="text-[10px] text-gray-300 mt-0.5">We are using Gross P&L temporarily. Enter Broker Net P&L in the Calendar to finalize.<br><span id="missingPnlDates" class="font-bold text-orange-400"></span></p>
+                            <p class="text-xs font-bold text-white uppercase tracking-wider">Missing Daily Net P&L</p>
+                            <p class="text-[10px] text-textMuted mt-0.5">You have un-finalized trading days. Click dates on the <a href="#" onclick="window.switchView('calendar')" class="text-neonRed hover:underline">Calendar</a> to enter your final broker P&L.</p>
                         </div>
                     </div>
                     <button onclick="document.getElementById('missingPnlWarning').classList.add('hidden')" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x"></i></button>
@@ -518,7 +513,7 @@
                                 <option value="Algo">Algo</option>
                                 <option value="FOMO">FOMO</option>
                                 <option value="Normal">Normal</option>
-                                <option value="Zee">Zee</option>
+                                <option value="Zee">Zee</option
                                 <option value="Liquide">Liquide</option>
                                 <option value="Over Quantity Risk">Over Quantity Risk</option>
                             </select>
@@ -528,17 +523,11 @@
                             <div class="flex gap-2">
                                 <div class="flex-1 relative">
                                     <span class="block text-[9px] text-gray-500 mb-0.5">Entry (09:15-15:30)</span>
-                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('entryTime')">
-                                        <span id="entryTimeDisp">09:15</span> <i class="ph-bold ph-clock text-gray-500"></i>
-                                    </div>
-                                    <input type="hidden" id="entryTime" required value="09:15">
+                                    <input type="time" id="entryTime" required value="09:15" class="w-full input-dark rounded-lg p-2 text-sm font-mono flex items-center justify-between hover:border-neonGreen transition-colors" onchange="window.validateFormTime()">
                                 </div>
                                 <div class="flex-1 relative">
                                     <span class="block text-[9px] text-gray-500 mb-0.5">Exit (09:15-15:30)</span>
-                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('exitTime')">
-                                        <span id="exitTimeDisp">15:30</span> <i class="ph-bold ph-clock text-gray-500"></i>
-                                    </div>
-                                    <input type="hidden" id="exitTime" required value="15:30">
+                                    <input type="time" id="exitTime" required value="15:30" class="w-full input-dark rounded-lg p-2 text-sm font-mono flex items-center justify-between hover:border-neonGreen transition-colors" onchange="window.validateFormTime()">
                                 </div>
                             </div>
                         </div>
@@ -662,7 +651,6 @@
         </div>
     </div>
 
-    <!-- DAILY PNL EDIT MODAL -->
     <!-- CUSTOM DATE PICKER MODAL -->
     <div id="dtPickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeDateTimePicker()">
         <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[320px]" id="dtPickerContent">
@@ -1014,7 +1002,7 @@
                       shortWins: 0, shortLosses: 0, shortPnl: 0, shortGrossWin: 0, shortGrossLoss: 0,
                       byInstrument: {}, byTag: {}, byMonth: {}, dailyNet: {}, dailyGross: {}, dailyTradeCount: {}, 
                       timeStats: {}, durationStats: {}, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0,
-                      maxWinStr: 0, maxLossStr: 0, missingPnlDays: []
+                      maxWinStr: 0, maxLossStr: 0
             };
 
             const tBuckets = ['Pre-Market (Before 9:00)', 'Pre-Open (9:00-9:15)', 'Opening Hour (9:15-10:15)', 'Mid-Morning (10:15-11:30)', 'Mid-Day (11:30-13:30)', 'Early Afternoon (13:30-14:30)', 'Late Afternoon (14:30-15:30)', 'Closing (15:30-15:45)', 'Post-Market (After 15:45)'];
@@ -1074,19 +1062,21 @@
                 s.durationStats[dB].trades++; s.durationStats[dB].pnl += t.pnl;
             });
 
-            // Detect missing manual PnL entries and set temporary fallbacks
+            // Missing PnL Detection
+            s.missingPnlDays = [];
             const todayStr = now.toISOString().split('T')[0];
             Object.keys(s.dailyGross).forEach(d => {
-                if(window.dailyStats[d] === undefined && d !== todayStr) {
-                    s.missingPnlDays.push(d);
-                }
+                if(d !== todayStr && window.dailyStats[d] === undefined) s.missingPnlDays.push(d);
+            });
+
+            // 2. Build Daily Net (Manual overrides Gross, defaults to Gross)
+            Object.keys(s.dailyGross).forEach(d => {
                 s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? window.dailyStats[d] : s.dailyGross[d];
                 s.totalPnl += s.dailyNet[d];
                 s.uniqueDays.add(d);
                 const month = d.substring(0,7);
                 s.byMonth[month] = (s.byMonth[month] || 0) + s.dailyNet[d];
             });
-            s.missingPnlDays.sort((a,b) => new Date(a) - new Date(b));
 
             s.totalTrades = s.wins + s.losses;
             s.brokerCharges = s.totalGross - s.totalPnl;
@@ -1263,19 +1253,8 @@
             const st = getStats(filterVal);
             
             const warningEl = document.getElementById('missingPnlWarning');
-            const navWarn = document.getElementById('navWarningIcon');
-            if(st.missingPnlDays.length > 0) {
-                warningEl.classList.remove('hidden');
-                if(navWarn) navWarn.classList.remove('hidden');
-                const datesStr = st.missingPnlDays.map(d => {
-                    const date = new Date(d);
-                    return `${date.getDate()} ${date.toLocaleString('en-US',{month:'short'})}`;
-                }).join(', ');
-                document.getElementById('missingPnlDates').innerText = `Missing Dates: ${datesStr}`;
-            } else {
-                warningEl.classList.add('hidden');
-                if(navWarn) navWarn.classList.add('hidden');
-            }
+            if(st.missingPnlDays.length > 0) warningEl.classList.remove('hidden');
+            else warningEl.classList.add('hidden');
 
             document.getElementById('d_netPnl').innerText = fINR(st.totalPnl); 
             document.getElementById('d_netPnl').className = `text-xl md:text-2xl font-bold font-mono truncate ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
@@ -1674,11 +1653,8 @@
 
                     if(isToday) cls += " ring-1 ring-inset ring-fuchsia-500 shadow-[inset_0_0_8px_rgba(217,70,239,0.5)]";
                     
-                    const isMissing = st.missingPnlDays.includes(dt);
-                    const indicator = isMissing ? `<div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full shadow-[0_0_5px_rgba(249,115,22,0.8)]"></div>` : '';
-
                     const clickEvt = (pnl !== undefined) ? `onclick="window.openDayModal('${dt}', ${pnl})"` : `onclick="window.openDayModal('${dt}', 0)"`;
-                    html += `<div class="${cls} text-center py-2 flex items-center justify-center relative group" ${clickEvt} title="${pnl?fINR(pnl):''}"><span class="${innerCls}">${d}</span>${indicator}</div>`;
+                    html += `<div class="${cls} text-center py-2 flex items-center justify-center relative group" ${clickEvt} title="${pnl?fINR(pnl):''}"><span class="${innerCls}">${d}</span></div>`;
                 }
                 const rem = (7 - ((firstDay+daysInMonth)%7))%7;
                 for(let i=1; i<=rem; i++) html += `<div class="bg-[#11141c] text-center py-2 flex items-center justify-center text-gray-700 opacity-50">${i}</div>`;
@@ -1734,89 +1710,38 @@
 
         window.applyDateTimePicker = () => window.closeDateTimePicker();
 
-        // --- TIME PICKER ---
-        let tpTarget = '';
-        let tpSelH = 9;
-        let tpSelM = 15;
-
-        window.openTimePicker = (targetId) => {
-            tpTarget = targetId;
-            const curVal = document.getElementById(targetId).value || "09:15";
-            tpSelH = parseInt(curVal.split(':')[0]);
-            tpSelM = parseInt(curVal.split(':')[1]);
+        // --- TIME PICKER VALIDATION (NATIVE OVERRIDE) ---
+        window.validateFormTime = () => {
+            const eEl = document.getElementById('entryTime');
+            const xEl = document.getElementById('exitTime');
+            const eTime = eEl.value;
+            const xTime = xEl.value;
+            const err = document.getElementById('formErrorAlert');
+            const btn = document.getElementById('saveTradeBtn');
             
-            window.renderTpLists();
+            const check = (t, el) => { 
+                if(!t) return false; 
+                const [h,m]=t.split(':').map(Number); 
+                const min=h*60+m; 
+                const valid = min>=555 && min<=930;
+                if(!valid && el) el.classList.add('border-neonRed');
+                else if(el) el.classList.remove('border-neonRed');
+                return valid; 
+            };
 
-            const mEl = document.getElementById('timePickerModal');
-            mEl.classList.remove('hidden'); 
-            setTimeout(()=> { 
-                mEl.classList.remove('opacity-0'); 
-                document.getElementById('timePickerContent').classList.remove('scale-95');
-                
-                const hEl = document.getElementById(`tp_h_${tpSelH}`);
-                const mEl = document.getElementById(`tp_m_${tpSelM}`);
-                if(hEl) hEl.scrollIntoView({block:'center', behavior: 'instant'});
-                if(mEl) mEl.scrollIntoView({block:'center', behavior: 'instant'});
-            }, 10);
-        };
+            const eValid = check(eTime, eEl);
+            const xValid = check(xTime, xEl);
+            const bothValid = eValid && xValid;
 
-        window.renderTpLists = () => {
-            const hCont = document.getElementById('tp_hours');
-            const mCont = document.getElementById('tp_minutes');
-            
-            let hHtml = '<div class="h-[40px]"></div>';
-            for(let i=9; i<=15; i++) {
-                const isSel = i === tpSelH;
-                const cls = isSel ? 'text-neonGreen font-bold text-lg border-y border-gray-700/50 bg-gray-800/30' : 'text-gray-500 hover:text-white cursor-pointer';
-                hHtml += `<div id="tp_h_${i}" class="h-[40px] flex items-center justify-center snap-center transition-all ${cls}" onclick="window.selectTp('h', ${i})">${String(i).padStart(2,'0')}</div>`;
-            }
-            hHtml += '<div class="h-[40px]"></div>';
-            hCont.innerHTML = hHtml;
-
-            let mHtml = '<div class="h-[40px]"></div>';
-            for(let i=0; i<=59; i++) {
-                let disabled = false;
-                if(tpSelH === 9 && i < 15) disabled = true;
-                if(tpSelH === 15 && i > 30) disabled = true;
-
-                if(disabled) {
-                    mHtml += `<div class="h-[40px] flex items-center justify-center snap-center text-gray-800 opacity-20 pointer-events-none">${String(i).padStart(2,'0')}</div>`;
-                } else {
-                    const isSel = i === tpSelM;
-                    const cls = isSel ? 'text-neonGreen font-bold text-lg border-y border-gray-700/50 bg-gray-800/30' : 'text-gray-500 hover:text-white cursor-pointer';
-                    mHtml += `<div id="tp_m_${i}" class="h-[40px] flex items-center justify-center snap-center transition-all ${cls}" onclick="window.selectTp('m', ${i})">${String(i).padStart(2,'0')}</div>`;
-                }
-            }
-            mHtml += '<div class="h-[40px]"></div>';
-            mCont.innerHTML = mHtml;
-        };
-
-        window.selectTp = (type, val) => {
-            if(type === 'h') {
-                tpSelH = val;
-                if(tpSelH === 9 && tpSelM < 15) tpSelM = 15;
-                if(tpSelH === 15 && tpSelM > 30) tpSelM = 30;
+            if(!bothValid) {
+                document.getElementById('formErrorMsg').innerText = "Time must be during Indian market hours (09:15 - 15:30).";
+                err.classList.remove('hidden');
             } else {
-                tpSelM = val;
+                err.classList.add('hidden');
             }
-            window.renderTpLists();
-            
-            const el = document.getElementById(`tp_${type}_${val}`);
-            if(el) el.scrollIntoView({block:'center', behavior: 'smooth'});
-        };
 
-        window.closeTimePicker = () => {
-            const m = document.getElementById('timePickerModal'); m.classList.add('opacity-0'); document.getElementById('timePickerContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
-        };
-
-        window.applyTimePicker = () => {
-            const timeStr = `${String(tpSelH).padStart(2,'0')}:${String(tpSelM).padStart(2,'0')}`;
-            document.getElementById(tpTarget).value = timeStr;
-            document.getElementById(tpTarget+'Disp').innerText = timeStr;
-            document.getElementById(tpTarget+'Disp').className = "text-white";
-            
-            window.calcPrev();
-            window.closeTimePicker();
+            btn.disabled = !bothValid;
+            return bothValid;
         };
 
         // --- EDIT TRADE MODAL LOGIC ---
@@ -1982,13 +1907,7 @@
             document.getElementById('dayModalGross').innerText = fINR(g);
             window.calcDayCharges();
             
-            const m = document.getElementById('dayModal'); m.classList.remove('hidden'); 
-            setTimeout(()=> { 
-                m.classList.remove('opacity-0'); document.getElementById('dayModalContent').classList.remove('scale-95'); 
-                const netInput = document.getElementById('dayModalNet');
-                netInput.focus();
-                netInput.select(); // Auto-selects the default value for quick typing
-            }, 10);
+            const m = document.getElementById('dayModal'); m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('dayModalContent').classList.remove('scale-95'); document.getElementById('dayModalNet').focus(); }, 10);
         };
         
         window.closeDayModal = () => { const m = document.getElementById('dayModal'); m.classList.add('opacity-0'); document.getElementById('dayModalContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300); };
