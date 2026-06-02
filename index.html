@@ -113,6 +113,9 @@
                 <button onclick="window.switchView('calendar')" id="nav-calendar" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-calendar text-xl"></i> Calendar
                 </button>
+                <button onclick="window.switchView('targets')" id="nav-targets" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-crosshair text-xl"></i> Targets
+                </button>
                 <button onclick="window.switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-list-numbers text-xl"></i> Past Trades
                 </button>
@@ -186,7 +189,7 @@
                     </div>
                     
                     <!-- Stats Blocks -->
-                    <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div class="glass-panel p-4 rounded-xl">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="text-[10px] text-textMuted">Net P&L</p>
@@ -208,33 +211,12 @@
                             </div>
                         </div>
 
-                        <!-- Monthly Target Widget -->
-                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-between relative group col-span-2 md:col-span-1">
-                            <div id="tgt_displayMode" class="w-full h-full flex flex-col justify-between">
-                                <div class="flex justify-between items-center mb-1">
-                                    <p class="text-[10px] text-textMuted uppercase tracking-wider">Target (<span id="tgt_monthLabel"></span>)</p>
-                                    <button onclick="window.toggleTargetEdit(true)" class="text-[10px] text-neonGreen hover:underline opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph-bold ph-pencil-simple"></i></button>
-                                </div>
-                                <div class="flex items-end justify-between">
-                                    <h3 class="text-lg font-bold font-mono text-white truncate" id="tgt_amount">₹0</h3>
-                                    <p class="text-[9px] text-neonGreen font-bold" id="tgt_perc">0%</p>
-                                </div>
-                                <div class="w-full bg-gray-800 h-1.5 rounded-full mt-2 mb-1 overflow-hidden">
-                                    <div class="bg-neonGreen h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,242,142,0.6)]" id="tgt_bar" style="width: 0%"></div>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <p class="text-[9px] text-textMuted truncate flex-1" id="tgt_remaining">₹0 left</p>
-                                    <p class="text-[9px] font-bold text-white bg-[#1f2433] px-1.5 py-0.5 rounded" id="tgt_reqDay">₹0/day</p>
-                                </div>
+                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] text-textMuted mb-2">Profit Factor</p>
+                                <h3 class="text-xl font-bold font-mono text-white" id="d_profitFactor">0.00</h3>
                             </div>
-                            <div id="tgt_editMode" class="hidden flex flex-col justify-center h-full gap-2">
-                                <label class="text-[9px] text-textMuted uppercase">Set Target (₹)</label>
-                                <input type="number" id="tgt_input" class="input-dark rounded px-2 py-1.5 text-xs font-mono w-full" placeholder="e.g. 50000">
-                                <div class="flex gap-2 mt-1">
-                                    <button onclick="window.saveTarget()" class="flex-1 bg-neonGreen/20 text-neonGreen border border-neonGreen/30 text-[10px] font-bold py-1 rounded hover:bg-neonGreen hover:text-black transition-colors">Save</button>
-                                    <button onclick="window.toggleTargetEdit(false)" class="flex-1 bg-gray-800 text-gray-400 text-[10px] font-bold py-1 rounded hover:text-white transition-colors">Cancel</button>
-                                </div>
-                            </div>
+                            <div class="w-10 h-10 relative"><canvas id="c_pfGauge"></canvas></div>
                         </div>
 
                         <div class="glass-panel p-4 rounded-xl flex flex-col justify-center items-center">
@@ -243,13 +225,7 @@
                             <div class="w-full progress-bar-bg mb-1"><div id="d_winBar" class="progress-bar-fill bg-neonGreen w-0"></div></div>
                             <span class="text-[9px] text-textMuted" id="d_winRatioCount">0 W / 0 L</span>
                         </div>
-                        <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
-                            <div>
-                                <p class="text-[10px] text-textMuted mb-2">Profit Factor</p>
-                                <h3 class="text-xl font-bold font-mono text-white" id="d_profitFactor">0.00</h3>
-                            </div>
-                            <div class="w-10 h-10 relative"><canvas id="c_pfGauge"></canvas></div>
-                        </div>
+                        
                         <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
                             <p class="text-[10px] text-textMuted mb-1">Trading Score</p>
                             <h3 class="text-2xl font-bold font-mono text-neonGreen" id="d_tiqsVal">0.0</h3>
@@ -462,6 +438,12 @@
                     <button onclick="window.openHolidayModal()" class="bg-panelLighter hover:bg-gray-700 text-white border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Manage Holidays</button>
                  </div>
                 <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- ================= VIEW: TARGETS ================= -->
+            <div id="view-targets" class="view-section space-y-4">
+                <h2 class="text-xl font-bold mb-4">Monthly Profit Targets</h2>
+                <div id="targetsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
             </div>
             
         </div>
@@ -730,6 +712,24 @@
         </div>
     </div>
 
+    <!-- TARGET MODAL -->
+    <div id="targetModal" class="fixed inset-0 modal-overlay z-[65] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTargetModal()">
+        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-sm" id="targetModalContent">
+            <div class="p-5 border-b border-gray-800">
+                <h3 class="font-bold text-white text-lg" id="tm_title">Set Target</h3>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="tm_monthKey">
+                <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Target Amount (₹)</label>
+                <input type="number" id="tm_amount" step="1" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="50000">
+            </div>
+            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl">
+                <button type="button" onclick="window.closeTargetModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button type="button" onclick="window.saveMonthlyTarget()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Target</button>
+            </div>
+        </div>
+    </div>
+
     <!-- FIREBASE AND APP LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -740,7 +740,7 @@
         window.trades = [];
         window.dailyStats = {}; 
         window.marketHolidays = []; 
-        window.monthlyTargetVal = 0;
+        window.monthlyTargets = {};
         
         let activeView = 'dashboard';
         let charts = {}; 
@@ -901,10 +901,10 @@
                     window.renderActiveView();
                 }, e => {});
 
-                getDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', getCurrentMonthKey())).then(d => {
-                    window.monthlyTargetVal = d.exists() ? d.data().amount : 0;
-                    if(activeView === 'dashboard') window.updateDashboard();
-                }).catch(e => {});
+                onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
+                    if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
+                    if(activeView === 'targets') window.renderTargetsView();
+                }, e => {});
             } catch(e) {
                 console.warn("Snapshot attach failed. Using Local.");
                 useLocalStorage = true; loadLocal();
@@ -916,7 +916,7 @@
             window.trades = JSON.parse(localStorage.getItem('tr_trades') || '[]');
             window.dailyStats = JSON.parse(localStorage.getItem('tr_daily') || '{}');
             window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
-            window.monthlyTargetVal = parseFloat(localStorage.getItem(`tr_tgt_${getCurrentMonthKey()}`)) || 0;
+            window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets') || '{}');
             window.renderActiveView();
         }
 
@@ -924,26 +924,10 @@
             localStorage.setItem('tr_trades', JSON.stringify(window.trades));
             localStorage.setItem('tr_daily', JSON.stringify(window.dailyStats));
             localStorage.setItem('tr_holidays', JSON.stringify(window.marketHolidays));
-            localStorage.setItem(`tr_tgt_${getCurrentMonthKey()}`, window.monthlyTargetVal);
+            localStorage.setItem('tr_targets', JSON.stringify(window.monthlyTargets));
         }
 
         const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
-
-        window.toggleTargetEdit = (show) => {
-            document.getElementById('tgt_displayMode').classList.toggle('hidden', show);
-            document.getElementById('tgt_editMode').classList.toggle('hidden', !show);
-            if(show) { document.getElementById('tgt_input').value = window.monthlyTargetVal > 0 ? window.monthlyTargetVal : ''; document.getElementById('tgt_input').focus(); }
-        };
-
-        window.saveTarget = async () => {
-            window.monthlyTargetVal = parseFloat(document.getElementById('tgt_input').value) || 0;
-            window.toggleTargetEdit(false);
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', getCurrentMonthKey()), { amount: window.monthlyTargetVal }); } catch(e){}
-            }
-            if(activeView === 'dashboard') window.updateDashboard();
-        };
 
         function getRemainingMarketDays(year, month) {
              const now = new Date();
@@ -959,6 +943,86 @@
              }
              return remaining;
         }
+
+        // --- TARGETS ENGINE ---
+        window.renderTargetsView = () => {
+            const grid = document.getElementById('targetsGrid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            const st = getStats();
+            const year = new Date().getFullYear();
+            const currentMonth = new Date().getMonth();
+            const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+            months.forEach((month, index) => {
+                const monthKey = `${year}-${String(index+1).padStart(2,'0')}`;
+                const targetAmt = window.monthlyTargets[monthKey] || 0;
+                const pnlAmt = st.byMonth[monthKey] || 0;
+                const isPast = index < currentMonth;
+                const isCurrent = index === currentMonth;
+                
+                let progress = targetAmt > 0 ? Math.min(100, Math.max(0, (pnlAmt / targetAmt) * 100)) : 0;
+                let remDays = getRemainingMarketDays(year, index);
+                let remAmt = targetAmt - pnlAmt;
+                let reqPerDay = remDays > 0 && remAmt > 0 ? (remAmt / remDays) : 0;
+
+                let opacityClass = isPast ? 'opacity-50' : (isCurrent ? 'ring-1 ring-neonGreen shadow-[0_0_15px_rgba(0,242,142,0.1)]' : '');
+                
+                let html = `
+                <div class="glass-panel p-5 rounded-xl flex flex-col relative ${opacityClass}">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-white text-lg">${month} ${year}</h3>
+                        <button onclick="window.openTargetModal('${monthKey}', '${month} ${year}')" class="text-textMuted hover:text-white p-1 rounded hover:bg-gray-800 transition-colors"><i class="ph-bold ph-pencil-simple text-lg"></i></button>
+                    </div>
+                    <div class="flex items-end justify-between mb-3">
+                        <div>
+                            <p class="text-[10px] text-textMuted uppercase mb-1">Target</p>
+                            <p class="font-mono font-bold text-white text-lg">${targetAmt > 0 ? fINR(targetAmt) : 'Not Set'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-textMuted uppercase mb-1">Achieved</p>
+                            <p class="font-mono font-bold text-lg ${pnlAmt >= 0 ? 'text-neonGreen' : 'text-neonRed'}">${fINR(pnlAmt)}</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden">
+                        <div class="bg-neonGreen h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,242,142,0.6)]" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="text-gray-400 font-bold">${progress.toFixed(1)}% Done</span>
+                        ${targetAmt > 0 && isCurrent && remAmt > 0 ? `<span class="bg-[#1f2433] px-2 py-1 rounded border border-gray-700 text-white font-bold tracking-wide">${fINR(reqPerDay)} / day req</span>` : ''}
+                        ${targetAmt > 0 && pnlAmt >= targetAmt ? `<span class="text-neonGreen font-bold bg-neonGreen/10 px-2 py-1 rounded">Target Hit 🎯</span>` : ''}
+                    </div>
+                </div>`;
+                grid.innerHTML += html;
+            });
+        };
+        
+        window.openTargetModal = (key, title) => {
+            document.getElementById('tm_monthKey').value = key;
+            document.getElementById('tm_title').innerText = `Target for ${title}`;
+            document.getElementById('tm_amount').value = window.monthlyTargets[key] || '';
+            const m = document.getElementById('targetModal');
+            m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('targetModalContent').classList.remove('scale-95'); }, 10);
+        };
+        
+        window.closeTargetModal = () => {
+            const m = document.getElementById('targetModal');
+            m.classList.add('opacity-0'); document.getElementById('targetModalContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
+        };
+        
+        window.saveMonthlyTarget = async () => {
+            const key = document.getElementById('tm_monthKey').value;
+            const amt = parseFloat(document.getElementById('tm_amount').value) || 0;
+            window.monthlyTargets[key] = amt;
+            window.closeTargetModal();
+            window.renderTargetsView();
+            
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) {
+                await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
+            }
+            if(activeView === 'dashboard') window.updateDashboard();
+        };
 
         // --- Custom Confirm Modal ---
         window.openConfirm = (title, desc, btnText, cb) => {
@@ -1167,6 +1231,7 @@
         window.renderActiveView = () => {
             if (activeView === 'dashboard') window.updateDashboard();
             else if (activeView === 'analytics') window.updateAnalytics();
+            else if (activeView === 'targets') window.renderTargetsView();
             else if (activeView === 'trades') window.renderPastTrades();
             else if (activeView === 'calendar') window.renderCalendar();
             else if (activeView === 'instruments') window.renderInstrumentsTable();
@@ -1242,27 +1307,6 @@
             document.getElementById('d_roi').innerText = `${st.roi >= 0 ? '+' : ''}${st.roi.toFixed(2)}%`; document.getElementById('d_roi').className = st.roi >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
             document.getElementById('d_cagr').innerText = `${st.cagr >= 0 ? '+' : ''}${st.cagr.toFixed(2)}%`; document.getElementById('d_cagr').className = st.cagr >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
 
-            const now = new Date();
-            document.getElementById('tgt_monthLabel').innerText = now.toLocaleString('default', { month: 'short', year: 'numeric' });
-            document.getElementById('tgt_amount').innerText = window.monthlyTargetVal > 0 ? fINR(window.monthlyTargetVal) : 'Not Set';
-            
-            const curMonthKey = getCurrentMonthKey();
-            const currentMonthPnl = st.byMonth[curMonthKey] || 0;
-            if(window.monthlyTargetVal > 0) {
-                let perc = Math.max(0, Math.min(100, (currentMonthPnl / window.monthlyTargetVal) * 100));
-                document.getElementById('tgt_perc').innerText = `${perc.toFixed(1)}%`; document.getElementById('tgt_bar').style.width = `${perc}%`;
-                const remAmt = window.monthlyTargetVal - currentMonthPnl;
-                if(remAmt <= 0) {
-                    document.getElementById('tgt_remaining').innerText = 'Target Hit! 🎯'; document.getElementById('tgt_remaining').className = "text-[9px] text-neonGreen font-bold truncate flex-1"; document.getElementById('tgt_reqDay').innerText = "Done";
-                } else {
-                    document.getElementById('tgt_remaining').innerText = `${fINR(remAmt)} left`; document.getElementById('tgt_remaining').className = "text-[9px] text-textMuted truncate flex-1";
-                    const remDays = getRemainingMarketDays(now.getFullYear(), now.getMonth());
-                    document.getElementById('tgt_reqDay').innerText = remDays > 0 ? `${fINR(remAmt/remDays)}/day` : "No days left";
-                }
-            } else {
-                document.getElementById('tgt_perc').innerText = '0%'; document.getElementById('tgt_bar').style.width = '0%'; document.getElementById('tgt_remaining').innerText = 'Click Edit to set goal'; document.getElementById('tgt_reqDay').innerText = '-';
-            }
-
             document.getElementById('d_avgDailyPnl').innerText = fINR(st.avgDailyPnl); document.getElementById('d_avgDailyPnl').className = `text-2xl font-bold font-mono ${st.avgDailyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl); document.getElementById('d_avgMonthlyPnl').className = `text-2xl font-bold font-mono ${st.avgMonthlyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_totalTrades').innerText = st.totalTrades;
@@ -1279,7 +1323,6 @@
             document.getElementById('badgeIcon').className = `ph-fill ${badge.icon} text-4xl mb-1 drop-shadow-md transition-all duration-500 group-hover:scale-110 ${badge.color}`;
             document.getElementById('badgeTitle').className = `text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${badge.color}`;
 
-            window.createChart('c_avgTradesGauge', window.getMiniGauge(Math.min(st.avgTradesDay, 10), 10, '#00f28e'));
             window.createChart('c_pfGauge', window.getMiniGauge(Math.min(st.pf, 5), 5, '#00f28e'));
             
             window.createChart('c_edgeRadar', {
@@ -1832,6 +1875,46 @@
             if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); window.renderActiveView(); return; }
             if(!currentUser) return;
             try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); } catch(e) { console.error("Delete error:", e); }
+        };
+
+        // --- DAILY PNL MODAL ---
+        window.openDayModal = (dt, pnl) => {
+            document.getElementById('dayModalDate').value = dt;
+            const dp = new Date(dt).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+            document.getElementById('dayModalTitle').innerText = dp;
+            document.getElementById('dayModalNet').value = window.dailyStats[dt] !== undefined ? window.dailyStats[dt] : (pnl || 0);
+            
+            let g = 0; window.trades.forEach(t => { if(t.exitDate === dt) g += t.pnl; });
+            document.getElementById('dayModalGross').innerText = fINR(g);
+            window.calcDayCharges();
+            
+            const m = document.getElementById('dayModal'); m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('dayModalContent').classList.remove('scale-95'); document.getElementById('dayModalNet').focus(); }, 10);
+        };
+        
+        window.closeDayModal = () => { const m = document.getElementById('dayModal'); m.classList.add('opacity-0'); document.getElementById('dayModalContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300); };
+        
+        window.calcDayCharges = () => {
+            const net = parseFloat(document.getElementById('dayModalNet').value) || 0;
+            const grossStr = document.getElementById('dayModalGross').innerText.replace(/[₹,\s]/g, '');
+            const g = parseFloat(grossStr) || 0;
+            const charges = g - net;
+            document.getElementById('dayModalCharges').innerText = fINR(charges);
+        };
+        
+        document.getElementById('dayModalNet').addEventListener('input', window.calcDayCharges);
+
+        window.saveDayPnl = async () => {
+            const dt = document.getElementById('dayModalDate').value;
+            const val = parseFloat(document.getElementById('dayModalNet').value) || 0;
+            window.dailyStats[dt] = val;
+            window.closeDayModal();
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl: val });
+                } catch(e) { console.error("Error saving daily PNL", e); }
+            }
+            window.renderActiveView();
         };
 
         window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); };
