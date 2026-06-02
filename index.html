@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tradology - Elite Market Journal</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <script>
@@ -76,19 +73,16 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .modal-overlay { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); }
-        
-        /* Time Scroller Styles */
-        .time-scroller { scroll-snap-type: y mandatory; overflow-y: auto; height: 120px; }
-        .time-scroller::-webkit-scrollbar { display: none; }
-        .time-item { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b94a5; transition: all 0.2s; }
-        .time-item.active { color: #00f28e; font-weight: bold; font-size: 1.25rem; }
+
+        /* Privacy Mode Styles */
+        .privacy-mode .font-mono { filter: blur(5px); opacity: 0.8; user-select: none; transition: all 0.3s; }
+        .privacy-mode .font-mono:hover { filter: blur(0px); opacity: 1; }
     </style>
 </head>
 <body class="flex h-screen relative">
 
-    <div id="mobileOverlay" onclick="window.toggleMobileMenu()" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden"></div>
+    <div id="mobileOverlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden"></div>
 
-    <!-- Sidebar -->
     <aside id="sidebar" class="w-64 glass-panel border-r border-gray-800 flex flex-col justify-between fixed md:relative h-full z-50 transition-transform duration-300 -translate-x-full md:translate-x-0">
         <div>
             <div class="p-6 flex justify-between items-center border-b border-gray-800/50">
@@ -100,20 +94,23 @@
                     </svg>
                     <span class="text-xl font-bold tracking-wider">Tradology</span>
                 </div>
-                <button onclick="window.toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white"><i class="ph-bold ph-x text-xl"></i></button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white"><i class="ph-bold ph-x text-xl"></i></button>
             </div>
             
             <nav class="mt-4 px-4 space-y-2">
-                <button onclick="window.switchView('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-squares-four text-xl"></i> Home
                 </button>
-                <button onclick="window.switchView('analytics')" id="nav-analytics" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                <button onclick="switchView('analytics')" id="nav-analytics" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-chart-polar text-xl"></i> Analytics
                 </button>
-                <button onclick="window.switchView('calendar')" id="nav-calendar" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                <button onclick="switchView('calendar')" id="nav-calendar" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-calendar text-xl"></i> Calendar
                 </button>
-                <button onclick="window.switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                <button onclick="switchView('targets')" id="nav-targets" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-target text-xl"></i> Targets
+                </button>
+                <button onclick="switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-list-numbers text-xl"></i> Past Trades
                 </button>
             </nav>
@@ -126,22 +123,23 @@
         </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-bgDark w-full">
         
-        <!-- Header -->
         <header class="h-16 border-b border-gray-800 flex justify-between items-center px-4 md:px-6 glass-panel z-10 shrink-0">
             <div class="flex items-center gap-4">
-                <button onclick="window.toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white p-2"><i class="ph ph-list text-2xl"></i></button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-textMuted hover:text-white p-2"><i class="ph ph-list text-2xl"></i></button>
                 <div class="hidden md:flex bg-[#0b0e14] border border-gray-800 rounded-lg p-1 gap-1">
-                    <button onclick="window.switchTopNav('overview')" id="topnav-overview" class="top-nav-item active px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Overview</button>
-                    <button onclick="window.switchTopNav('instruments')" id="topnav-instruments" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Instruments</button>
-                    <button onclick="window.switchTopNav('tags')" id="topnav-tags" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Tags</button>
+                    <button onclick="switchTopNav('overview')" id="topnav-overview" class="top-nav-item active px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Overview</button>
+                    <button onclick="switchTopNav('instruments')" id="topnav-instruments" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Instruments</button>
+                    <button onclick="switchTopNav('tags')" id="topnav-tags" class="top-nav-item px-4 py-1.5 rounded-md text-textMuted hover:text-white text-xs font-medium transition-colors">Tags</button>
                 </div>
             </div>
             
             <div class="flex items-center gap-6">
-                <!-- Clock & Countdown -->
+                <button onclick="window.togglePrivacy()" class="text-gray-400 hover:text-white transition-colors" id="privacyBtn" title="Toggle Privacy Mode">
+                    <i class="ph-bold ph-eye text-xl"></i>
+                </button>
+
                 <div class="hidden sm:flex flex-col items-end">
                     <p class="text-xs font-bold text-white font-mono tracking-widest" id="topClock">--:--:-- IST</p>
                     <p class="text-[9px] text-gray-500 font-medium tracking-wide mt-0.5" id="topCountdown">Market opens in --:--</p>
@@ -155,42 +153,37 @@
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 custom-scrollbar relative">
             
-            <!-- ================= VIEW: DASHBOARD ================= -->
             <div id="view-dashboard" class="view-section active space-y-4">
-                
-                <!-- Missing PnL Warning Banner -->
-                <div id="missingPnlWarning" class="hidden bg-neonRed/10 border border-neonRed/30 rounded-xl p-3 flex items-center justify-between shadow-[0_0_15px_rgba(255,59,105,0.1)]">
+                <div id="missingPnlBanner" class="hidden mb-4 bg-neonRed/10 border border-neonRed/30 text-neonRed p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-lg gap-3">
                     <div class="flex items-center gap-3">
-                        <i class="ph-fill ph-warning-circle text-2xl text-neonRed shrink-0"></i>
-                        <div>
-                            <p class="text-xs font-bold text-white uppercase tracking-wider">Missing Daily Net P&L</p>
-                            <p class="text-[10px] text-textMuted mt-0.5">You have un-finalized trading days. Click dates on the <a href="#" onclick="window.switchView('calendar')" class="text-neonRed hover:underline">Calendar</a> to enter your final broker P&L.</p>
+                        <i class="ph-fill ph-warning-circle text-2xl shrink-0"></i>
+                        <div class="text-xs">
+                            <p class="font-bold text-sm">Missing Broker Net P&L</p>
+                            <p class="text-neonRed/80 mt-0.5" id="missingPnlText">You have trades on dates without verified Net P&L.</p>
                         </div>
                     </div>
-                    <button onclick="document.getElementById('missingPnlWarning').classList.add('hidden')" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x"></i></button>
+                    <button onclick="window.fixMissingPnl()" class="bg-neonRed text-white px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 whitespace-nowrap w-full sm:w-auto shadow-md">Verify Now</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <!-- Welcome Widget -->
                     <div class="md:col-span-4 glass-panel p-5 rounded-xl flex items-center justify-between">
                         <div>
                             <p class="text-xs text-textMuted">Welcome Back,</p>
                             <h2 class="text-xl font-bold mt-1 mb-2 text-white">Shubham</h2>
                             <p class="text-[10px] text-textMuted">Let's dominate the markets.</p>
                         </div>
-                        <div class="text-center flex flex-col items-center justify-center cursor-pointer group" onclick="window.openLeagueModal()">
+                        <div class="text-center flex flex-col items-center justify-center cursor-pointer group" onclick="openLeagueModal()">
                             <i id="badgeIcon" class="ph-fill ph-circle-dashed text-4xl text-gray-500 mb-1 drop-shadow-md transition-all duration-500 group-hover:scale-110"></i>
                             <p id="badgeTitle" class="text-[10px] text-gray-400 font-bold uppercase tracking-wider transition-colors duration-500">Unranked</p>
                             <p class="text-[9px] text-textMuted mt-0.5 group-hover:text-white transition-colors">View League</p>
                         </div>
                     </div>
                     
-                    <!-- Stats Blocks -->
-                    <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div class="glass-panel p-4 rounded-xl">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="text-[10px] text-textMuted">Net P&L</p>
-                                <select id="dashDateRange" class="bg-transparent text-[9px] text-textMuted border border-gray-800 rounded px-1 py-0.5 outline-none hover:text-white cursor-pointer" onchange="window.updateDashboard()">
+                                <select id="dashDateRange" class="bg-transparent text-[9px] text-textMuted border border-gray-800 rounded px-1 py-0.5 outline-none hover:text-white cursor-pointer" onchange="updateDashboard()">
                                     <option value="all">Lifetime</option>
                                     <option value="7d">Last 7 Days</option>
                                     <option value="1m">Last 1 Month</option>
@@ -205,35 +198,6 @@
                             <div class="flex justify-between mt-2">
                                 <p class="text-[9px] text-textMuted"><span id="d_roi">0.00%</span> ROI</p>
                                 <p class="text-[9px] text-textMuted"><span id="d_cagr">0.00%</span> CAGR</p>
-                            </div>
-                        </div>
-
-                        <!-- Monthly Target Widget -->
-                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-between relative group col-span-2 md:col-span-1">
-                            <div id="tgt_displayMode" class="w-full h-full flex flex-col justify-between">
-                                <div class="flex justify-between items-center mb-1">
-                                    <p class="text-[10px] text-textMuted uppercase tracking-wider">Target (<span id="tgt_monthLabel"></span>)</p>
-                                    <button onclick="window.toggleTargetEdit(true)" class="text-[10px] text-neonGreen hover:underline opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph-bold ph-pencil-simple"></i></button>
-                                </div>
-                                <div class="flex items-end justify-between">
-                                    <h3 class="text-lg font-bold font-mono text-white truncate" id="tgt_amount">₹0</h3>
-                                    <p class="text-[9px] text-neonGreen font-bold" id="tgt_perc">0%</p>
-                                </div>
-                                <div class="w-full bg-gray-800 h-1.5 rounded-full mt-2 mb-1 overflow-hidden">
-                                    <div class="bg-neonGreen h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,242,142,0.6)]" id="tgt_bar" style="width: 0%"></div>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <p class="text-[9px] text-textMuted truncate flex-1" id="tgt_remaining">₹0 left</p>
-                                    <p class="text-[9px] font-bold text-white bg-[#1f2433] px-1.5 py-0.5 rounded" id="tgt_reqDay">₹0/day</p>
-                                </div>
-                            </div>
-                            <div id="tgt_editMode" class="hidden flex flex-col justify-center h-full gap-2">
-                                <label class="text-[9px] text-textMuted uppercase">Set Target (₹)</label>
-                                <input type="number" id="tgt_input" class="input-dark rounded px-2 py-1.5 text-xs font-mono w-full" placeholder="e.g. 50000">
-                                <div class="flex gap-2 mt-1">
-                                    <button onclick="window.saveTarget()" class="flex-1 bg-neonGreen/20 text-neonGreen border border-neonGreen/30 text-[10px] font-bold py-1 rounded hover:bg-neonGreen hover:text-black transition-colors">Save</button>
-                                    <button onclick="window.toggleTargetEdit(false)" class="flex-1 bg-gray-800 text-gray-400 text-[10px] font-bold py-1 rounded hover:text-white transition-colors">Cancel</button>
-                                </div>
                             </div>
                         </div>
 
@@ -253,7 +217,7 @@
                         <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
                             <p class="text-[10px] text-textMuted mb-1">Trading Score</p>
                             <h3 class="text-2xl font-bold font-mono text-neonGreen" id="d_tiqsVal">0.0</h3>
-                            <p class="text-[8px] text-gray-500 uppercase tracking-widest mt-1 cursor-pointer hover:text-white transition-colors" onclick="window.switchView('analytics')">Analyze Edge &rarr;</p>
+                            <p class="text-[8px] text-gray-500 uppercase tracking-widest mt-1 cursor-pointer hover:text-white transition-colors" onclick="switchView('analytics')">Analyze Edge &rarr;</p>
                         </div>
                     </div>
                 </div>
@@ -305,7 +269,6 @@
                 </div>
             </div>
 
-            <!-- ================= VIEW: ANALYTICS ================= -->
             <div id="view-analytics" class="view-section space-y-6">
                 
                 <div class="glass-panel p-4 md:p-6 rounded-xl">
@@ -324,8 +287,7 @@
                     </div>
 
                     <div class="stats-grid" id="fullStatsGrid">
-                        <!-- Populated dynamically -->
-                    </div>
+                        </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -415,7 +377,6 @@
                 </div>
             </div>
 
-            <!-- ================= VIEW: INSTRUMENTS ================= -->
             <div id="view-instruments" class="view-section space-y-4">
                 <h2 class="text-xl font-bold mb-4">Instrument Performance</h2>
                 <div class="glass-panel rounded-xl overflow-hidden border border-gray-800">
@@ -428,32 +389,24 @@
                 </div>
             </div>
 
-            <!-- ================= VIEW: TAGS ================= -->
             <div id="view-tags" class="view-section space-y-4">
                 <h2 class="text-xl font-bold mb-4">Category / Tags Performance</h2>
                 <div class="glass-panel rounded-xl overflow-hidden border border-gray-800">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-panelDark border-b border-gray-800 text-[10px] uppercase text-textMuted">
-                            <tr><th class="p-4">Strategy Tag</th><th class="p-4 text-center">Trades</th><th class="p-4 text-center">Win Rate</th><th class="p-4 text-center">Avg Hold Time</th><th class="p-4 text-right">Net P&L</th></tr>
+                            <tr><th class="p-4">Strategy Tag</th><th class="p-4 text-center">Trades</th><th class="p-4 text-center">Win Rate</th><th class="p-4 text-center">Avg Hold</th><th class="p-4 text-right">Net P&L</th></tr>
                         </thead>
                         <tbody id="tbl_tags" class="divide-y divide-gray-800 text-sm"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- ================= VIEW: PAST TRADES ================= -->
             <div id="view-trades" class="view-section space-y-4">
                 <h2 class="text-xl font-bold">Past Trades</h2>
-                <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[800px]">
-                            <tbody id="fullTradesTableBody" class="text-sm"></tbody>
-                        </table>
+                <div id="fullTradesContainer" class="space-y-4 pb-4">
                     </div>
-                </div>
             </div>
 
-            <!-- ================= VIEW: CALENDAR ================= -->
             <div id="view-calendar" class="view-section space-y-4">
                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                      <h2 class="text-xl font-bold flex items-center gap-2">
@@ -463,13 +416,24 @@
                  </div>
                 <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
             </div>
+
+            <div id="view-targets" class="view-section space-y-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Monthly Profit Targets</h2>
+                    <div class="flex gap-3 items-center bg-[#11141c] border border-gray-800 px-3 py-1.5 rounded-lg">
+                        <button onclick="window.changeTargetYear(-1)" class="text-gray-400 hover:text-white"><i class="ph-bold ph-caret-left"></i></button>
+                        <span id="targetYearDisplay" class="font-bold text-white tracking-wide">2026</span>
+                        <button onclick="window.changeTargetYear(1)" class="text-gray-400 hover:text-white"><i class="ph-bold ph-caret-right"></i></button>
+                    </div>
+                </div>
+                
+                <div id="targetsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    </div>
+            </div>
             
         </div>
     </main>
 
-    <!-- ================= MODALS ================= -->
-
-    <!-- ADD/EDIT TRADE MODAL -->
     <div id="tradeModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-2 md:px-0" onclick="if(event.target === this) window.closeTradeModal()">
         <div class="bg-[#11141c] w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] rounded-2xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300" id="modalContent">
             <div class="flex justify-between items-center p-4 md:p-5 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-2xl">
@@ -486,7 +450,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div>
                             <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Entry Date</label>
-                            <div class="relative cursor-pointer group" onclick="window.openDateTimePicker('entryDate')">
+                            <div class="relative cursor-pointer group" onclick="openDateTimePicker('entryDate')">
                                 <div class="w-full input-dark rounded-lg p-2 text-sm flex items-center justify-between group-hover:border-neonGreen transition-colors">
                                     <span id="entryDateDisp">Select Date</span> <i class="ph-bold ph-calendar-blank text-gray-500"></i>
                                 </div>
@@ -495,7 +459,7 @@
                         </div>
                         <div>
                             <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Exit Date</label>
-                            <div class="relative cursor-pointer group" onclick="window.openDateTimePicker('exitDate')">
+                            <div class="relative cursor-pointer group" onclick="openDateTimePicker('exitDate')">
                                 <div class="w-full input-dark rounded-lg p-2 text-sm flex items-center justify-between group-hover:border-neonGreen transition-colors">
                                     <span id="exitDateDisp">Select Date</span> <i class="ph-bold ph-calendar-blank text-gray-500"></i>
                                 </div>
@@ -525,28 +489,22 @@
                                 <option value="Short from Overbought">Short from Overbought</option>
                                 <option value="Algo">Algo</option>
                                 <option value="FOMO">FOMO</option>
+                                <option value="Over Quantity Risk">Over Quantity Risk</option>
                                 <option value="Normal">Normal</option>
                                 <option value="Zee">Zee</option>
                                 <option value="Liquide">Liquide</option>
-                                <option value="Over Quantity Risk">Over Quantity Risk</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Execution Times (IST)</label>
                             <div class="flex gap-2">
-                                <div class="flex-1 relative">
-                                    <span class="block text-[9px] text-gray-500 mb-0.5">Entry (09:15-15:30)</span>
-                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('entryTime')">
-                                        <span id="entryTimeDisp">09:15</span> <i class="ph-bold ph-clock text-gray-500"></i>
-                                    </div>
-                                    <input type="hidden" id="entryTime" required value="09:15">
+                                <div class="flex-1 relative cursor-pointer" onclick="window.openTimePicker('entryTime')">
+                                    <span class="block text-[9px] text-gray-500 mb-0.5">Entry Time</span>
+                                    <input type="text" id="entryTime" readonly class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors" placeholder="09:15">
                                 </div>
-                                <div class="flex-1 relative">
-                                    <span class="block text-[9px] text-gray-500 mb-0.5">Exit (09:15-15:30)</span>
-                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('exitTime')">
-                                        <span id="exitTimeDisp">15:30</span> <i class="ph-bold ph-clock text-gray-500"></i>
-                                    </div>
-                                    <input type="hidden" id="exitTime" required value="15:30">
+                                <div class="flex-1 relative cursor-pointer" onclick="window.openTimePicker('exitTime')">
+                                    <span class="block text-[9px] text-gray-500 mb-0.5">Exit Time</span>
+                                    <input type="text" id="exitTime" readonly class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors" placeholder="15:30">
                                 </div>
                             </div>
                         </div>
@@ -576,41 +534,6 @@
         </div>
     </div>
 
-    <!-- CUSTOM TIME PICKER MODAL -->
-    <div id="timePickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTimePicker()">
-        <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[280px]" id="timePickerContent">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0">
-                <h3 class="font-bold text-gray-200 flex items-center gap-2"><i class="ph-bold ph-clock text-neonGreen"></i> Select Time</h3>
-                <button type="button" onclick="window.closeTimePicker()" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-            </div>
-            <div class="p-6 flex justify-center items-center gap-4 shrink-0 relative">
-                <!-- Highlight Bar -->
-                <div class="absolute top-1/2 left-0 right-0 h-10 bg-gray-800/30 border-y border-gray-700 -translate-y-1/2 pointer-events-none"></div>
-                
-                <!-- Hours -->
-                <div class="flex flex-col items-center z-10">
-                    <span class="text-[9px] text-gray-500 font-bold mb-2 tracking-widest">HOUR</span>
-                    <div id="tp_hours" class="time-scroller w-16 text-center" onscroll="window.handleTimeScroll('hr')">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-                <span class="text-xl font-bold text-gray-500 pb-2 z-10">:</span>
-                <!-- Minutes -->
-                <div class="flex flex-col items-center z-10">
-                    <span class="text-[9px] text-gray-500 font-bold mb-2 tracking-widest">MIN</span>
-                    <div id="tp_minutes" class="time-scroller w-16 text-center" onscroll="window.handleTimeScroll('min')">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </div>
-            <div class="p-4 border-t border-gray-800 flex justify-end items-center bg-[#151822] rounded-b-xl shrink-0 gap-2">
-                <button type="button" onclick="window.closeTimePicker()" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5">Cancel</button>
-                <button type="button" onclick="window.applyTimePicker()" class="bg-neonGreen/20 text-neonGreen border border-neonGreen/30 hover:bg-neonGreen hover:text-black px-4 py-1.5 rounded-lg text-xs font-bold">Apply</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- DAILY PNL EDIT MODAL -->
     <div id="dayModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeDayModal()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-sm" id="dayModalContent">
             <div class="p-5 border-b border-gray-800">
@@ -636,7 +559,6 @@
         </div>
     </div>
 
-    <!-- CUSTOM DATE/TIME PICKER MODAL -->
     <div id="dtPickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeDateTimePicker()">
         <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[320px]" id="dtPickerContent">
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0">
@@ -661,7 +583,29 @@
         </div>
     </div>
 
-    <!-- MANAGE HOLIDAYS MODAL -->
+    <div id="timePickerModal" class="fixed inset-0 modal-overlay z-[75] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTimePicker()">
+        <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[280px]" id="timePickerContent">
+            <div class="p-4 border-b border-gray-800 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-white text-sm">Select Market Time</h3>
+                <button type="button" onclick="window.closeTimePicker()" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="p-4 flex gap-4 justify-center">
+                <div class="flex-1">
+                    <p class="text-[10px] text-gray-500 text-center mb-2 uppercase font-bold">Hour</p>
+                    <div class="h-[180px] overflow-y-auto custom-scrollbar flex flex-col gap-1 pr-1" id="tp_hours"></div>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[10px] text-gray-500 text-center mb-2 uppercase font-bold">Minute</p>
+                    <div class="h-[180px] overflow-y-auto custom-scrollbar flex flex-col gap-1 pr-1" id="tp_mins"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-800 bg-[#151822] rounded-b-xl flex justify-between items-center shrink-0">
+                <div class="text-xl font-mono font-bold text-neonGreen tracking-wider" id="tp_preview">09:15</div>
+                <button type="button" onclick="window.applyTimePicker()" class="bg-neonGreen text-black px-5 py-2 rounded-lg text-xs font-bold hover:brightness-110 shadow-lg">Apply</button>
+            </div>
+        </div>
+    </div>
+
     <div id="holidayModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeHolidayModal()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[600px] h-[80vh]" id="holidayContent">
             <div class="flex justify-between items-center p-5 border-b border-gray-800 shrink-0 bg-[#0b0e14] rounded-t-xl">
@@ -678,7 +622,6 @@
         </div>
     </div>
 
-    <!-- LEAGUE MODAL -->
     <div id="leagueModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeLeagueModal()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-lg max-h-[90vh]" id="leagueContent">
             <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0">
@@ -695,7 +638,6 @@
                 </div>
                 <p class="text-[10px] text-gray-400 font-medium mb-6">Next Rank: <span id="lm_nextRank" class="text-white">Rookie</span> (<span id="lm_ptsReq" class="text-neonGreen">25.00</span> points to reach)</p>
 
-                <!-- Points Breakdown -->
                 <div class="w-full bg-[#0b0e14] border border-gray-800 rounded-xl p-4 mb-6">
                     <h4 class="text-xs font-bold text-white mb-3 uppercase tracking-wider border-b border-gray-800 pb-2">Your Current Stats</h4>
                     <div class="space-y-3 text-xs">
@@ -708,7 +650,6 @@
                     </div>
                 </div>
 
-                <!-- Timeline -->
                 <div class="w-full">
                     <h4 class="text-xs font-bold text-white mb-4 uppercase tracking-wider">League Timeline</h4>
                     <div class="space-y-4" id="lm_timeline"></div>
@@ -717,7 +658,6 @@
         </div>
     </div>
 
-    <!-- CUSTOM CONFIRM MODAL -->
     <div id="confirmModal" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center hidden opacity-0 transition-opacity duration-200 px-4" onclick="if(event.target === this) window.closeConfirm()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-200 w-full max-w-sm p-6 text-center" id="confirmContent">
             <i class="ph-fill ph-warning-circle text-4xl text-neonRed mb-3 mx-auto"></i>
@@ -730,7 +670,26 @@
         </div>
     </div>
 
-    <!-- FIREBASE AND APP LOGIC -->
+    <div id="targetModal" class="fixed inset-0 modal-overlay z-[65] flex items-center justify-center hidden opacity-0 transition-opacity duration-200 px-4" onclick="if(event.target === this) window.closeTargetModal()">
+        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-200 w-full max-w-sm" id="targetModalContent">
+            <div class="p-5 border-b border-gray-800">
+                <h3 class="font-bold text-white text-lg flex items-center gap-2"><i class="ph-fill ph-target text-neonGreen"></i> Set Target</h3>
+                <p class="text-xs text-textMuted mt-1">Goal for <span id="tm_monthStr" class="font-bold text-gray-300"></span></p>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="tm_monthKey">
+                <div class="mb-4">
+                    <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Target Amount (₹)</label>
+                    <input type="number" id="tm_amount" step="1" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="e.g. 50000">
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl">
+                <button type="button" onclick="window.closeTargetModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button type="button" onclick="window.saveMonthlyTarget()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Target</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -740,7 +699,9 @@
         window.trades = [];
         window.dailyStats = {}; 
         window.marketHolidays = []; 
-        window.monthlyTargetVal = 0;
+        window.monthlyTargets = {};
+        window.targetViewYear = new Date().getFullYear();
+        window.privacyMode = false;
         
         let activeView = 'dashboard';
         let charts = {}; 
@@ -748,6 +709,7 @@
         let unsubscribeTrades = null;
         let unsubscribeDailyStats = null;
         let unsubscribeHolidays = null;
+        let unsubscribeTargets = null;
         let editingTradeId = null;
         let confirmActionCb = null;
 
@@ -795,6 +757,29 @@
             return str[0];
         };
 
+        // --- PRIVACY TOGGLE ---
+        window.togglePrivacy = () => {
+            window.privacyMode = !window.privacyMode;
+            document.body.classList.toggle('privacy-mode', window.privacyMode);
+            document.getElementById('privacyBtn').innerHTML = window.privacyMode ? '<i class="ph-bold ph-eye-closed text-xl"></i>' : '<i class="ph-bold ph-eye text-xl"></i>';
+        };
+
+        // --- WEEKEND LOGIC ---
+        // Specifically honoring the 2nd & 4th Saturday off logic for the Indian market
+        const isWeekendOrHoliday = (year, month, day) => {
+            const dt = new Date(year, month, day);
+            const d = dt.getDay();
+            if (d === 0) return true; // Sunday always off
+            if (d === 6) {
+                // Determine which occurrence of Saturday this is in the month
+                const occurrence = Math.ceil(dt.getDate() / 7);
+                if (occurrence === 2 || occurrence === 4) return true; 
+            }
+            const dtStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            if (window.marketHolidays.includes(dtStr)) return true;
+            return false;
+        };
+
         // --- CLOCK & COUNTDOWN ---
         function updateClock() {
             const now = new Date();
@@ -817,8 +802,8 @@
                 nextOpen.setDate(nextOpen.getDate() + 1);
             }
             
-            // Skip weekends and holidays
-            while (nextOpen.getDay() === 0 || nextOpen.getDay() === 6 || window.marketHolidays.includes(nextOpen.toISOString().split('T')[0])) {
+            // Skip weekends and holidays using the updated logic
+            while (isWeekendOrHoliday(nextOpen.getFullYear(), nextOpen.getMonth(), nextOpen.getDate())) {
                 nextOpen.setDate(nextOpen.getDate() + 1);
             }
 
@@ -864,8 +849,9 @@
                     if(unsubscribeTrades) unsubscribeTrades();
                     if(unsubscribeDailyStats) unsubscribeDailyStats();
                     if(unsubscribeHolidays) unsubscribeHolidays();
-                    window.trades = []; window.dailyStats = {}; window.marketHolidays = [];
-                    window.renderActiveView();
+                    if(unsubscribeTargets) unsubscribeTargets();
+                    window.trades = []; window.dailyStats = {}; window.marketHolidays = []; window.monthlyTargets = {};
+                    renderActiveView();
                 }
             });
         }
@@ -873,31 +859,26 @@
         function listenToData() {
             if (!currentUser) return;
             
-            try {
-                unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
-                    window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    window.renderActiveView();
-                }, (e) => { console.warn("Fallback to Local Storage due to DB limits"); useLocalStorage = true; loadLocal(); });
-                
-                unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
-                    window.dailyStats = {};
-                    snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
-                    window.renderActiveView();
-                }, e => {});
+            unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
+                window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderActiveView();
+            });
+            
+            unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
+                window.dailyStats = {};
+                snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
+                renderActiveView();
+            });
 
-                unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
-                    if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
-                    window.renderActiveView();
-                }, e => {});
+            unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
+                if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
+                renderActiveView();
+            });
 
-                getDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', getCurrentMonthKey())).then(d => {
-                    window.monthlyTargetVal = d.exists() ? d.data().amount : 0;
-                    if(activeView === 'dashboard') window.updateDashboard();
-                }).catch(e => {});
-            } catch(e) {
-                console.warn("Snapshot attach failed. Using Local.");
-                useLocalStorage = true; loadLocal();
-            }
+            unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
+                if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
+                if(activeView === 'targets') window.renderTargetsView();
+            });
         }
 
         function loadLocal() {
@@ -905,34 +886,16 @@
             window.trades = JSON.parse(localStorage.getItem('tr_trades') || '[]');
             window.dailyStats = JSON.parse(localStorage.getItem('tr_daily') || '{}');
             window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
-            window.monthlyTargetVal = parseFloat(localStorage.getItem(`tr_tgt_${getCurrentMonthKey()}`)) || 0;
-            window.renderActiveView();
+            window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets_all') || '{}');
+            renderActiveView();
         }
 
         function saveLocal() {
             localStorage.setItem('tr_trades', JSON.stringify(window.trades));
             localStorage.setItem('tr_daily', JSON.stringify(window.dailyStats));
             localStorage.setItem('tr_holidays', JSON.stringify(window.marketHolidays));
-            localStorage.setItem(`tr_tgt_${getCurrentMonthKey()}`, window.monthlyTargetVal);
+            localStorage.setItem('tr_targets_all', JSON.stringify(window.monthlyTargets));
         }
-
-        const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
-
-        window.toggleTargetEdit = (show) => {
-            document.getElementById('tgt_displayMode').classList.toggle('hidden', show);
-            document.getElementById('tgt_editMode').classList.toggle('hidden', !show);
-            if(show) { document.getElementById('tgt_input').value = window.monthlyTargetVal > 0 ? window.monthlyTargetVal : ''; document.getElementById('tgt_input').focus(); }
-        };
-
-        window.saveTarget = async () => {
-            window.monthlyTargetVal = parseFloat(document.getElementById('tgt_input').value) || 0;
-            window.toggleTargetEdit(false);
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', getCurrentMonthKey()), { amount: window.monthlyTargetVal }); } catch(e){}
-            }
-            if(activeView === 'dashboard') window.updateDashboard();
-        };
 
         function getRemainingMarketDays(year, month) {
              const now = new Date();
@@ -942,11 +905,18 @@
              let remaining = 0;
              let startDay = isCurrentMonth ? today : 1;
              for(let d=startDay; d<=daysInMonth; d++) {
-                 const dt = new Date(year, month, d);
-                 const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                 if (dt.getDay() !== 0 && dt.getDay() !== 6 && !window.marketHolidays.includes(dStr)) remaining++;
+                 if (!isWeekendOrHoliday(year, month, d)) remaining++;
              }
              return remaining;
+        }
+        
+        function getTotalMarketDays(year, month) {
+             const daysInMonth = new Date(year, month + 1, 0).getDate();
+             let total = 0;
+             for(let d=1; d<=daysInMonth; d++) {
+                 if (!isWeekendOrHoliday(year, month, d)) total++;
+             }
+             return total;
         }
 
         // --- Custom Confirm Modal ---
@@ -990,6 +960,7 @@
                 filteredTrades = window.trades.filter(t => new Date(t.exitDate) >= cutoff);
             }
 
+            // 1. Calculate Gross per day
             filteredTrades.forEach(t => {
                 s.totalGross += t.pnl;
                 s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + t.pnl;
@@ -1007,9 +978,10 @@
                 s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
                 if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
 
-                if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0, holdTime:0 };
-                s.byTag[t.category].trades++; s.byTag[t.category].pnl += t.pnl;
-                s.byTag[t.category].holdTime += t.holdTime;
+                if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0, holdTime: 0 };
+                s.byTag[t.category].trades++; 
+                s.byTag[t.category].pnl += t.pnl;
+                s.byTag[t.category].holdTime += t.holdTime; // Added tag hold time accumulation
                 if(t.pnl >= 0) s.byTag[t.category].wins++;
 
                 const [th, tm] = t.entryTime.split(':').map(Number);
@@ -1034,13 +1006,7 @@
                 s.durationStats[dB].trades++; s.durationStats[dB].pnl += t.pnl;
             });
 
-            // Missing PnL Detection
-            s.missingPnlDays = [];
-            const todayStr = now.toISOString().split('T')[0];
-            Object.keys(s.dailyGross).forEach(d => {
-                if(d !== todayStr && window.dailyStats[d] === undefined) s.missingPnlDays.push(d);
-            });
-
+            // 2. Build Daily Net (Manual overrides Gross)
             Object.keys(s.dailyGross).forEach(d => {
                 s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? window.dailyStats[d] : s.dailyGross[d];
                 s.totalPnl += s.dailyNet[d];
@@ -1055,7 +1021,7 @@
             s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
             s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
             s.roi = (s.totalPnl / 100000) * 100; // Assuming 1L base
-            s.cagr = s.roi; 
+            s.cagr = s.roi; // Simplify for demo
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
             let peak = 0, eq = 0; s.maxDrawdownAmt = 0;
@@ -1153,109 +1119,80 @@
         };
 
         // --- VIEWS ---
-        window.renderActiveView = () => {
-            if (activeView === 'dashboard') window.updateDashboard();
-            else if (activeView === 'analytics') window.updateAnalytics();
-            else if (activeView === 'trades') window.renderPastTrades();
-            else if (activeView === 'calendar') window.renderCalendar();
-            else if (activeView === 'instruments') window.renderInstrumentsTable();
-            else if (activeView === 'tags') window.renderTagsTable();
-        };
-
         window.switchView = (viewId) => {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
             const activeBtn = document.getElementById(`nav-${viewId}`);
             if(activeBtn) activeBtn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
             
             document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
-            const topnavOverview = document.getElementById('topnav-overview');
-            if((viewId === 'dashboard' || viewId === 'analytics') && topnavOverview) {
-                topnavOverview.classList.add('active', 'bg-panelLighter', 'text-white');
-            }
+            if(viewId === 'dashboard' || viewId === 'analytics') document.getElementById('topnav-overview').classList.add('active', 'bg-panelLighter', 'text-white');
 
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            const targetView = document.getElementById(`view-${viewId}`);
-            if(targetView) {
-                targetView.classList.add('active');
-                activeView = viewId;
-                window.renderActiveView();
-            }
-            
-            if(window.innerWidth < 768) {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('mobileOverlay');
-                if(sidebar) sidebar.classList.add('-translate-x-full');
-                if(overlay) overlay.classList.add('hidden');
-            }
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            activeView = viewId;
+            renderActiveView();
+            if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('-translate-x-full'), document.getElementById('mobileOverlay').classList.add('hidden');
         };
 
         window.switchTopNav = (subViewId) => {
             document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
-            const subNav = document.getElementById(`topnav-${subViewId}`);
-            if(subNav) subNav.classList.add('active', 'bg-panelLighter', 'text-white');
-            
+            document.getElementById(`topnav-${subViewId}`).classList.add('active', 'bg-panelLighter', 'text-white');
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             
             if(subViewId === 'overview') {
-                const viewAn = document.getElementById('view-analytics');
-                if(viewAn) viewAn.classList.add('active');
-                activeView = 'analytics';
-                const navAn = document.getElementById('nav-analytics');
-                if(navAn) navAn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
+                document.getElementById('view-analytics').classList.add('active'); activeView = 'analytics';
+                document.getElementById('nav-analytics').classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
             } else {
-                const viewSub = document.getElementById(`view-${subViewId}`);
-                if(viewSub) viewSub.classList.add('active');
-                activeView = subViewId;
+                document.getElementById(`view-${subViewId}`).classList.add('active'); activeView = subViewId;
             }
-            window.renderActiveView();
+            renderActiveView();
         };
 
-        window.toggleMobileMenu = () => {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            if(sidebar) sidebar.classList.toggle('-translate-x-full');
-            if(overlay) overlay.classList.toggle('hidden');
-        };
+        window.toggleMobileMenu = () => { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('mobileOverlay').classList.toggle('hidden'); };
 
-        window.updateDashboard = () => {
+        function createChart(ctxId, config) {
+            if (charts[ctxId]) charts[ctxId].destroy();
+            const ctx = document.getElementById(ctxId); if(!ctx) return;
+            Chart.defaults.color = '#8b94a5'; Chart.defaults.font.family = 'Inter';
+            charts[ctxId] = new Chart(ctx.getContext('2d'), config);
+        }
+
+        function getMiniGauge(value, max, color) { return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; }
+
+        function renderActiveView() {
+            if (activeView === 'dashboard') updateDashboard();
+            else if (activeView === 'analytics') updateAnalytics();
+            else if (activeView === 'trades') renderPastTrades();
+            else if (activeView === 'calendar') renderCalendar();
+            else if (activeView === 'targets') window.renderTargetsView();
+            else if (activeView === 'instruments') renderInstrumentsTable();
+            else if (activeView === 'tags') renderTagsTable();
+        }
+
+        function updateDashboard() {
             const filterVal = document.getElementById('dashDateRange') ? document.getElementById('dashDateRange').value : 'all';
             const st = getStats(filterVal);
             
-            const warningEl = document.getElementById('missingPnlWarning');
-            if(st.missingPnlDays.length > 0) warningEl.classList.remove('hidden');
-            else warningEl.classList.add('hidden');
+            // Check for missing Net P&L Verification
+            const missingDates = Object.keys(st.dailyGross).filter(d => window.dailyStats[d] === undefined);
+            const banner = document.getElementById('missingPnlBanner');
+            if (missingDates.length > 0) {
+                window.firstMissingDate = missingDates.sort()[0];
+                document.getElementById('missingPnlText').innerText = `You have ${missingDates.length} day(s) with unverified Net P&L.`;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
 
             document.getElementById('d_netPnl').innerText = fINR(st.totalPnl); 
             document.getElementById('d_netPnl').className = `text-xl md:text-2xl font-bold font-mono truncate ${st.totalPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_roi').innerText = `${st.roi >= 0 ? '+' : ''}${st.roi.toFixed(2)}%`; document.getElementById('d_roi').className = st.roi >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
             document.getElementById('d_cagr').innerText = `${st.cagr >= 0 ? '+' : ''}${st.cagr.toFixed(2)}%`; document.getElementById('d_cagr').className = st.cagr >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
 
-            const now = new Date();
-            document.getElementById('tgt_monthLabel').innerText = now.toLocaleString('default', { month: 'short', year: 'numeric' });
-            document.getElementById('tgt_amount').innerText = window.monthlyTargetVal > 0 ? fINR(window.monthlyTargetVal) : 'Not Set';
-            
-            const curMonthKey = getCurrentMonthKey();
-            const currentMonthPnl = st.byMonth[curMonthKey] || 0;
-            if(window.monthlyTargetVal > 0) {
-                let perc = Math.max(0, Math.min(100, (currentMonthPnl / window.monthlyTargetVal) * 100));
-                document.getElementById('tgt_perc').innerText = `${perc.toFixed(1)}%`; document.getElementById('tgt_bar').style.width = `${perc}%`;
-                const remAmt = window.monthlyTargetVal - currentMonthPnl;
-                if(remAmt <= 0) {
-                    document.getElementById('tgt_remaining').innerText = 'Target Hit! 🎯'; document.getElementById('tgt_remaining').className = "text-[9px] text-neonGreen font-bold truncate flex-1"; document.getElementById('tgt_reqDay').innerText = "Done";
-                } else {
-                    document.getElementById('tgt_remaining').innerText = `${fINR(remAmt)} left`; document.getElementById('tgt_remaining').className = "text-[9px] text-textMuted truncate flex-1";
-                    const remDays = getRemainingMarketDays(now.getFullYear(), now.getMonth());
-                    document.getElementById('tgt_reqDay').innerText = remDays > 0 ? `${fINR(remAmt/remDays)}/day` : "No days left";
-                }
-            } else {
-                document.getElementById('tgt_perc').innerText = '0%'; document.getElementById('tgt_bar').style.width = '0%'; document.getElementById('tgt_remaining').innerText = 'Click Edit to set goal'; document.getElementById('tgt_reqDay').innerText = '-';
-            }
-
             document.getElementById('d_avgDailyPnl').innerText = fINR(st.avgDailyPnl); document.getElementById('d_avgDailyPnl').className = `text-2xl font-bold font-mono ${st.avgDailyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl); document.getElementById('d_avgMonthlyPnl').className = `text-2xl font-bold font-mono ${st.avgMonthlyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_totalTrades').innerText = st.totalTrades;
-            document.getElementById('d_avgTradesDay').innerText = st.avgTradesDay.toFixed(1);
             
             document.getElementById('d_winPerc').innerText = `${st.winPerc.toFixed(2)}%`;
             document.getElementById('d_winRatioCount').innerText = `${st.wins} W / ${st.losses} L`;
@@ -1268,7 +1205,6 @@
             document.getElementById('badgeIcon').className = `ph-fill ${badge.icon} text-4xl mb-1 drop-shadow-md transition-all duration-500 group-hover:scale-110 ${badge.color}`;
             document.getElementById('badgeTitle').className = `text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${badge.color}`;
 
-            createChart('c_avgTradesGauge', getMiniGauge(Math.min(st.avgTradesDay, 10), 10, '#00f28e'));
             createChart('c_pfGauge', getMiniGauge(Math.min(st.pf, 5), 5, '#00f28e'));
             
             createChart('c_edgeRadar', {
@@ -1301,13 +1237,20 @@
             top5.forEach(t => {
                 rl.innerHTML += `<div class="flex justify-between items-center bg-[#1f2433] p-2.5 rounded-lg border border-gray-800"><div><p class="text-[9px] text-textMuted uppercase">${t.entryDate}</p><p class="font-bold text-xs">${t.symbol}</p></div><p class="font-mono text-xs font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</p></div>`;
             });
+        }
+        
+        window.fixMissingPnl = () => {
+            if(window.firstMissingDate) {
+                const pnl = getStats('all').dailyGross[window.firstMissingDate] || 0;
+                window.openDayModal(window.firstMissingDate, pnl);
+            }
         };
 
         function buildStatCell(label, valClass, valText) {
             return `<div class="stat-cell"><span class="stat-label">${label}</span><span class="stat-val ${valClass}">${valText}</span></div>`;
         }
 
-        window.updateAnalytics = () => {
+        function updateAnalytics() {
             const st = getStats();
             
             let bestMoVal = 0, lowMoVal = 0, bestMo='', lowMo='';
@@ -1404,27 +1347,39 @@
                 durContainer.innerHTML += `<div class="bg-[#11141c] border border-gray-800 rounded-lg p-3 flex flex-col justify-between hover:bg-[#1f2433] transition-colors border-t-2" style="border-top-color: ${durColors[colorIndex]}"><div class="flex justify-between items-start mb-2"><p class="text-[11px] font-bold text-white leading-tight">${bucket}</p><div class="text-right"><p class="text-[8px] text-textMuted uppercase tracking-wider">Total P/L</p><p class="text-xs font-bold font-mono ${pnlColorCls}">${sign}${formatK(data.pnl)}</p></div></div><p class="text-[9px] text-textMuted"><span class="text-white font-bold">${data.trades}</span> trades</p></div>`;
                 colorIndex++;
             });
-        };
+        }
 
-        window.renderInstrumentsTable = () => {
+        function renderInstrumentsTable() {
             const st = getStats(); const tb = document.getElementById('tbl_instruments'); tb.innerHTML = '';
             Object.entries(st.byInstrument).sort((a,b)=>b[1].pnl-a[1].pnl).forEach(([sym, d]) => {
                 const wr = ((d.wins/d.trades)*100).toFixed(1);
                 tb.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4 font-bold uppercase">${sym}</td><td class="p-4 text-center">${d.trades}</td><td class="p-4 text-center">${wr}%</td><td class="p-4 text-right font-mono ${d.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(d.pnl)}</td></tr>`;
             });
-        };
+        }
 
-        window.renderTagsTable = () => {
+        function renderTagsTable() {
             const st = getStats(); const tb = document.getElementById('tbl_tags'); tb.innerHTML = '';
             Object.entries(st.byTag).sort((a,b)=>b[1].pnl-a[1].pnl).forEach(([tag, d]) => {
                 const wr = ((d.wins/d.trades)*100).toFixed(1);
-                const avgHold = d.trades > 0 ? formatHoldTime(Math.floor(d.holdTime / d.trades)) : '0 Mins';
-                tb.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4"><span class="bg-gray-800 px-2 py-1 rounded text-xs border border-gray-700">${tag}</span></td><td class="p-4 text-center">${d.trades}</td><td class="p-4 text-center">${wr}%</td><td class="p-4 text-center text-[10px] text-textMuted">${avgHold}</td><td class="p-4 text-right font-mono ${d.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(d.pnl)}</td></tr>`;
+                const avgHold = formatHoldTime(Math.floor(d.holdTime / d.trades));
+                tb.innerHTML += `<tr class="hover:bg-panelLighter border-b border-gray-800/50"><td class="p-4"><span class="bg-gray-800 px-2 py-1 rounded text-xs border border-gray-700">${tag}</span></td><td class="p-4 text-center">${d.trades}</td><td class="p-4 text-center">${wr}%</td><td class="p-4 text-center text-xs text-textMuted">${avgHold}</td><td class="p-4 text-right font-mono ${d.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(d.pnl)}</td></tr>`;
             });
+        }
+
+        window.toggleAccordionGroup = (id, iconId) => {
+            const el = document.getElementById(id);
+            const icon = document.getElementById(iconId);
+            if(el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.classList.replace('ph-caret-down', 'ph-caret-up');
+            } else {
+                el.classList.add('hidden');
+                icon.classList.replace('ph-caret-up', 'ph-caret-down');
+            }
         };
 
-        window.renderPastTrades = () => {
-            const tbody = document.getElementById('fullTradesTableBody'); tbody.innerHTML = '';
+        function renderPastTrades() {
+            const container = document.getElementById('fullTradesContainer'); container.innerHTML = '';
             const st = getStats();
             
             const tradesByDate = {};
@@ -1440,57 +1395,79 @@
             const monthsArr = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
             Object.keys(tradesByDate).sort((a,b)=>b-a).forEach(year => {
-                tbody.innerHTML += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
-                tbody.innerHTML += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
+                let yearHtml = `<div class="mb-6"><h3 class="text-xl font-bold font-mono text-neonGreen mb-4 px-2 tracking-widest">${year} Overview</h3><div class="space-y-4">`;
                 
                 Object.keys(tradesByDate[year]).sort((a,b)=>b-a).forEach(monthStr => {
                     const monthName = monthsArr[parseInt(monthStr)-1];
-                    tbody.innerHTML += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
+                    const monthId = `grp-mo-${year}-${monthStr}`;
+                    const iconId = `icon-mo-${year}-${monthStr}`;
+                    
+                    yearHtml += `
+                        <div class="glass-panel border border-gray-800 rounded-xl overflow-hidden shadow-lg">
+                            <div class="p-4 bg-[#1f2433] flex justify-between items-center cursor-pointer hover:bg-gray-700 transition-colors" onclick="window.toggleAccordionGroup('${monthId}', '${iconId}')">
+                                <h4 class="font-bold text-md text-white flex items-center gap-2 uppercase tracking-wide"><i class="ph-fill ph-calendar text-gray-400"></i>${monthName}</h4>
+                                <i id="${iconId}" class="ph-bold ph-caret-down text-gray-400 text-lg transition-transform"></i>
+                            </div>
+                            <div id="${monthId}" class="hidden p-4 space-y-3 bg-[#0b0e14]">`;
 
                     Object.keys(tradesByDate[year][monthStr]).sort((a,b)=>new Date(b)-new Date(a)).forEach(dateStr => {
                         const dayPnl = st.dailyNet[dateStr] || 0;
                         const dayClass = dayPnl > 0 ? 'text-neonGreen' : (dayPnl < 0 ? 'text-neonRed' : 'text-gray-400');
-                        const bgBadgeClass = dayPnl > 0 ? 'bg-neonGreen/10' : (dayPnl < 0 ? 'bg-neonRed/10' : 'bg-gray-800');
                         const dateObj = new Date(dateStr);
                         const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                        const dayId = `grp-day-${dateStr}`;
+                        const dayIconId = `icon-day-${dateStr}`;
                         
-                        tbody.innerHTML += `
-                        <tr>
-                            <td colspan="6" class="p-0 border-none">
-                                <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
-                                    <div class="flex items-center gap-3">
-                                        <span class="bg-[#1f2433] text-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm">${dayName}</span>
-                                        <span class="text-xs text-gray-400 font-medium">${dateStr}</span>
+                        yearHtml += `
+                            <div class="border border-gray-800 rounded-lg overflow-hidden bg-panelDark shadow">
+                                <div class="p-3 bg-[#11141c] flex justify-between items-center cursor-pointer hover:bg-[#1f2433] border-l-4 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} transition-colors" onclick="window.toggleAccordionGroup('${dayId}', '${dayIconId}')">
+                                    <span class="text-sm font-bold text-white tracking-wide">${dayName}, ${dateStr}</span>
+                                    <div class="flex items-center gap-4">
+                                        <span class="text-sm font-mono font-bold ${dayClass}">${fINR(dayPnl)} Net</span>
+                                        <i id="${dayIconId}" class="ph-bold ph-caret-down text-gray-500"></i>
                                     </div>
-                                    <span class="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full ${bgBadgeClass} ${dayClass}">${dayPnl>0?'+':''}${fINR(dayPnl)} Net</span>
                                 </div>
-                            </td>
-                        </tr>`;
+                                <div id="${dayId}" class="hidden overflow-x-auto p-2">
+                                    <table class="w-full text-left border-collapse min-w-[800px] text-sm">
+                                        <tbody>`;
                         
                         const dayTrades = tradesByDate[year][monthStr][dateStr].sort((a,b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
                         dayTrades.forEach(t => {
-                            tbody.innerHTML += `
-                                <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
-                                    <td class="p-4 pl-10"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
-                                    <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-textMuted mt-1">${formatHoldTime(t.holdTime)}</div></td>
-                                    <td class="p-4 font-bold text-white">${t.symbol}</td>
-                                    <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${t.category}</span></td>
-                                    <td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</td>
-                                    <td class="p-4 text-center">
+                            yearHtml += `
+                                <tr class="hover:bg-gray-800/50 border-b border-gray-800/30 group">
+                                    <td class="p-3 pl-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
+                                    <td class="p-3"><div class="text-[10px] text-gray-500 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-textMuted mt-1">${formatHoldTime(t.holdTime)}</div></td>
+                                    <td class="p-3 font-bold text-white">${t.symbol}</td>
+                                    <td class="p-3"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${t.category}</span></td>
+                                    <td class="p-3 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</td>
+                                    <td class="p-3 text-center">
                                         <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="window.editTrade('${t.id}')" class="text-blue-400 p-1 hover:bg-blue-500/10 rounded transition-colors"><i class="ph-bold ph-pencil-simple"></i></button>
-                                            <button onclick="window.openConfirm('Delete Trade', 'Permanently delete this execution?', 'Delete', () => window.deleteTrade('${t.id}'))" class="text-red-400 p-1 hover:bg-red-500/10 rounded transition-colors"><i class="ph-bold ph-trash"></i></button>
+                                            <button onclick="window.editTrade('${t.id}')" class="text-blue-400 p-1 hover:bg-blue-500/10 rounded transition-colors" title="Edit Trade"><i class="ph-bold ph-pencil-simple"></i></button>
+                                            <button onclick="window.openConfirm('Delete Trade', 'Permanently delete this execution?', 'Delete', () => window.deleteTrade('${t.id}'))" class="text-red-400 p-1 hover:bg-red-500/10 rounded transition-colors" title="Delete Trade"><i class="ph-bold ph-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>`;
                         });
+                        
+                        yearHtml += `       </tbody>
+                                    </table>
+                                </div>
+                            </div>`;
                     });
+                    
+                    yearHtml += `
+                            </div>
+                        </div>`;
                 });
+                
+                yearHtml += `</div></div>`;
+                container.innerHTML += yearHtml;
             });
-            if(window.trades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No trades recorded yet.</td></tr>`;
-        };
+            
+            if(window.trades.length === 0) container.innerHTML = `<div class="p-8 text-center text-gray-500 glass-panel rounded-xl">No trades recorded yet. Go dominate the market and log them here.</div>`;
+        }
 
-        window.renderCalendar = () => {
+        function renderCalendar() {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
             const st = getStats();
             document.getElementById('calTotalLabel').innerText = `(${st.totalPnl>=0?'+':''}${fINR(st.totalPnl)})`;
@@ -1516,8 +1493,9 @@
                     const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                     const pnl = st.dailyNet[dt];
                     const isToday = dt === todayStr;
-                    const isWeekend = new Date(year, index, d).getDay() === 0 || new Date(year, index, d).getDay() === 6;
-                    const isHol = window.marketHolidays.includes(dt);
+                    
+                    // Utilize the updated holiday logic strictly checking for 2nd & 4th Saturdays + Sundays + user holidays
+                    const isWkndOrHol = isWeekendOrHoliday(year, index, d);
                     
                     let cls = "bg-[#11141c] text-white";
                     let innerCls = "";
@@ -1525,7 +1503,10 @@
                     if(pnl > 0) cls = "bg-[#00f28e]/10 text-neonGreen font-bold border border-[#00f28e]/30 shadow-[inset_0_0_10px_rgba(0,242,142,0.1)] hover:bg-[#00f28e]/20 cursor-pointer transition-colors";
                     else if(pnl < 0) cls = "bg-[#ff3b69]/10 text-neonRed font-bold border border-[#ff3b69]/30 shadow-[inset_0_0_10px_rgba(255,59,105,0.1)] hover:bg-[#ff3b69]/20 cursor-pointer transition-colors";
                     else if(pnl === 0) cls = "bg-gray-500/20 text-white cursor-pointer hover:bg-gray-500/40 transition-colors";
-                    else if(isWeekend || isHol) { cls = "bg-[#11141c] text-gray-700"; if(isHol) innerCls="line-through"; }
+                    else if(isWkndOrHol) { 
+                        cls = "bg-[#11141c] text-gray-700"; 
+                        if(window.marketHolidays.includes(dt)) innerCls="line-through"; 
+                    }
 
                     if(isToday) cls += " ring-1 ring-inset ring-fuchsia-500 shadow-[inset_0_0_8px_rgba(217,70,239,0.5)]";
                     
@@ -1536,9 +1517,169 @@
                 for(let i=1; i<=rem; i++) html += `<div class="bg-[#11141c] text-center py-2 flex items-center justify-center text-gray-700 opacity-50">${i}</div>`;
                 grid.innerHTML += html + `</div></div>`;
             });
+        }
+
+        // --- MANAGE HOLIDAYS MODAL ---
+        window.openHolidayModal = () => {
+            const m = document.getElementById('holidayModal');
+            renderHolidayGrid();
+            m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('holidayContent').classList.remove('scale-95'); }, 10);
+        };
+        window.closeHolidayModal = () => {
+            const m = document.getElementById('holidayModal');
+            m.classList.add('opacity-0'); document.getElementById('holidayContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
+        };
+        
+        function renderHolidayGrid() {
+            const grid = document.getElementById('hm_grid'); grid.innerHTML = '';
+            const year = new Date().getFullYear();
+            ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].forEach((month, index) => {
+                const days = new Date(year, index+1, 0).getDate();
+                let html = `<div class="bg-[#0b0e14] border border-gray-800 rounded p-2"><h4 class="text-xs font-bold text-white mb-2">${month}</h4><div class="flex flex-wrap gap-1 justify-center">`;
+                for(let d=1; d<=days; d++) {
+                    const dt = `${year}-${String(index+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    // Only exclude weekends from being selectable custom holidays
+                    const dateObj = new Date(year, index, d);
+                    const isWknd = dateObj.getDay() === 0 || (dateObj.getDay() === 6 && (Math.ceil(d/7) === 2 || Math.ceil(d/7) === 4));
+                    if(!isWknd) {
+                        const isHol = window.marketHolidays.includes(dt);
+                        html += `<button onclick="window.toggleHoliday('${dt}')" class="w-6 h-6 rounded text-[9px] font-bold ${isHol?'bg-neonRed text-white':'bg-[#1f2433] text-gray-400 hover:text-white'} transition-colors">${d}</button>`;
+                    }
+                }
+                grid.innerHTML += html + `</div></div>`;
+            });
+        }
+        
+        window.toggleHoliday = async (dt) => {
+            if(window.marketHolidays.includes(dt)) window.marketHolidays = window.marketHolidays.filter(d => d !== dt);
+            else window.marketHolidays.push(dt);
+            renderHolidayGrid();
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
+            if(activeView === 'calendar') renderCalendar();
         };
 
-        // --- CUSTOM DATE/TIME PICKER MODAL ---
+        // --- TARGETS ENGINE ---
+        window.changeTargetYear = (dir) => {
+            window.targetViewYear += dir;
+            window.renderTargetsView();
+        };
+
+        window.renderTargetsView = () => {
+            document.getElementById('targetYearDisplay').innerText = window.targetViewYear;
+            const grid = document.getElementById('targetsGrid'); grid.innerHTML = '';
+            
+            const st = getStats();
+            const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthIndex = now.getMonth();
+
+            months.forEach((mName, index) => {
+                const monthKey = `${window.targetViewYear}-${String(index+1).padStart(2,'0')}`;
+                const target = window.monthlyTargets[monthKey] || 0;
+                const pnl = st.byMonth[monthKey] || 0;
+                
+                const isPast = window.targetViewYear < currentYear || (window.targetViewYear === currentYear && index < currentMonthIndex);
+                const isCurrent = window.targetViewYear === currentYear && index === currentMonthIndex;
+                
+                let progress = target > 0 ? Math.max(0, Math.min(100, (pnl / target) * 100)) : 0;
+                let remAmt = target - pnl;
+                
+                let reqStr = '-';
+                let remStr = '-';
+                let statusCls = 'border-gray-800 opacity-60';
+                
+                if (isCurrent) {
+                    statusCls = 'border-neonGreen shadow-[0_0_15px_rgba(0,242,142,0.1)]';
+                    if (target > 0) {
+                        if (remAmt <= 0) {
+                            remStr = 'Target Hit!'; reqStr = 'Done';
+                        } else {
+                            remStr = `${fINR(remAmt)} left`;
+                            const remDays = getRemainingMarketDays(window.targetViewYear, index);
+                            reqStr = remDays > 0 ? `${fINR(remAmt/remDays)}/day` : 'No days left';
+                        }
+                    } else {
+                        remStr = 'Not set';
+                    }
+                } else if (isPast) {
+                    if (target > 0) {
+                        if (remAmt <= 0) { remStr = 'Completed 🎯'; reqStr = '-'; } 
+                        else { remStr = 'Missed ❌'; reqStr = '-'; }
+                    } else { remStr = 'Not set'; }
+                } else { // Future
+                    statusCls = 'border-gray-800 opacity-80';
+                    if (target > 0) {
+                        remStr = `${fINR(remAmt)} pending`;
+                        const totalDays = getTotalMarketDays(window.targetViewYear, index);
+                        reqStr = totalDays > 0 ? `${fINR(remAmt/totalDays)}/day` : '-';
+                    } else { remStr = 'Not set'; }
+                }
+
+                grid.innerHTML += `
+                <div class="glass-panel p-5 rounded-xl border transition-all ${statusCls}">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-white text-lg">${mName}</h3>
+                        <button onclick="window.openTargetModal('${monthKey}', '${mName}')" class="text-textMuted hover:text-neonGreen p-1 bg-gray-800/50 rounded"><i class="ph-bold ph-pencil-simple"></i></button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[10px] text-textMuted uppercase tracking-wider mb-0.5">Target Goal</p>
+                            <p class="text-xl font-bold font-mono ${target > 0 ? 'text-white' : 'text-gray-500'}">${target > 0 ? fINR(target) : '₹0.00'}</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1">
+                                <span class="text-textMuted">Achieved</span>
+                                <span class="text-neonGreen font-bold">${progress.toFixed(1)}%</span>
+                            </div>
+                            <div class="progress-bar-bg h-2"><div class="progress-bar-fill bg-neonGreen" style="width: ${progress}%"></div></div>
+                            <p class="text-xs font-mono font-bold mt-1 ${pnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}">${fINR(pnl)}</p>
+                        </div>
+                        <div class="bg-bgDark p-3 rounded-lg border border-gray-800 flex justify-between items-center">
+                            <div>
+                                <p class="text-[9px] text-textMuted uppercase tracking-wider">Required / Day</p>
+                                <p class="text-sm font-bold font-mono ${isCurrent && remAmt>0 ? 'text-white' : 'text-gray-500'} mt-0.5">${reqStr}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[9px] text-textMuted uppercase tracking-wider">Status</p>
+                                <p class="text-xs font-bold font-mono ${remAmt <= 0 && target > 0 ? 'text-neonGreen' : 'text-gray-300'} mt-0.5">${remStr}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        };
+
+        window.openTargetModal = (monthKey, monthName) => {
+            document.getElementById('tm_monthKey').value = monthKey;
+            document.getElementById('tm_monthStr').innerText = `${monthName} ${window.targetViewYear}`;
+            document.getElementById('tm_amount').value = window.monthlyTargets[monthKey] || '';
+            const m = document.getElementById('targetModal');
+            m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('targetModalContent').classList.remove('scale-95'); }, 10);
+            document.getElementById('tm_amount').focus();
+        };
+
+        window.closeTargetModal = () => {
+            const m = document.getElementById('targetModal');
+            m.classList.add('opacity-0'); document.getElementById('targetModalContent').classList.add('scale-95');
+            setTimeout(()=> m.classList.add('hidden'), 200);
+        };
+
+        window.saveMonthlyTarget = async () => {
+            const key = document.getElementById('tm_monthKey').value;
+            const amt = parseFloat(document.getElementById('tm_amount').value) || 0;
+            window.monthlyTargets[key] = amt;
+            window.closeTargetModal();
+            window.renderTargetsView();
+            
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) {
+                await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
+            }
+        };
+
+        // --- CUSTOM DATE PICKER MODAL ---
         let dtPickerTarget = '';
         let dtpCurDate = new Date();
         
@@ -1567,7 +1708,7 @@
             for(let i=0; i<first; i++) grid.innerHTML += `<div></div>`;
             for(let d=1; d<=days; d++) {
                 const dtStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isWknd = new Date(y, m, d).getDay() === 0 || new Date(y, m, d).getDay() === 6;
+                const isWknd = isWeekendOrHoliday(y, m, d);
                 const isHol = window.marketHolidays.includes(dtStr);
                 const isSel = document.getElementById(dtPickerTarget).value === dtStr;
                 let cls = isSel ? 'bg-neonGreen text-black font-bold' : 'text-gray-300 hover:bg-gray-800 cursor-pointer';
@@ -1586,129 +1727,137 @@
 
         window.applyDateTimePicker = () => window.closeDateTimePicker();
 
-        // --- TIME PICKER ---
-        let tpTarget = '';
-        let tpHourScrollTmt = null;
-        let tpMinScrollTmt = null;
+        // --- CUSTOM TIME PICKER MODAL ---
+        window.tpState = { target: '', h: '09', m: '15' };
         
-        function populateTimeScroller(id, start, end, step = 1) {
-            const container = document.getElementById(id);
-            container.innerHTML = '<div class="time-item pointer-events-none"></div>'; 
-            for(let i=start; i<=end; i+=step) {
-                const val = String(i).padStart(2, '0');
-                container.innerHTML += `<div class="time-item" id="${id}_${val}" onclick="window.snapTimeScroller('${id}', '${val}')">${val}</div>`;
+        window.openTimePicker = (targetId) => {
+            window.tpState.target = targetId;
+            let val = document.getElementById(targetId).value;
+            if(!val || val.length !== 5) val = "09:15";
+            window.tpState.h = val.split(':')[0];
+            window.tpState.m = val.split(':')[1];
+            
+            renderTpLists();
+            const m = document.getElementById('timePickerModal');
+            m.classList.remove('hidden'); 
+            setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('timePickerContent').classList.remove('scale-95'); }, 10);
+        };
+        
+        window.closeTimePicker = () => {
+            const m = document.getElementById('timePickerModal'); 
+            m.classList.add('opacity-0'); document.getElementById('timePickerContent').classList.add('scale-95'); 
+            setTimeout(()=> m.classList.add('hidden'), 300);
+        };
+
+        window.selectHour = (hour) => {
+            window.tpState.h = hour;
+            // Validate minute constraints immediately based on new hour
+            const numH = parseInt(hour, 10);
+            const numM = parseInt(window.tpState.m, 10);
+            if (numH === 9 && numM < 15) window.tpState.m = '15';
+            if (numH === 15 && numM > 30) window.tpState.m = '30';
+            renderTpLists();
+        };
+
+        window.selectMinute = (min) => {
+            window.tpState.m = min;
+            renderTpLists();
+        };
+
+        function renderTpLists() {
+            const hCont = document.getElementById('tp_hours'); hCont.innerHTML = '';
+            const mCont = document.getElementById('tp_mins'); mCont.innerHTML = '';
+            
+            const curH = window.tpState.h;
+            const curM = window.tpState.m;
+            document.getElementById('tp_preview').innerText = `${curH}:${curM}`;
+
+            // Build Hours (09 to 15)
+            for (let i = 9; i <= 15; i++) {
+                const hStr = String(i).padStart(2, '0');
+                const isSel = hStr === curH;
+                const cls = isSel ? 'bg-neonGreen text-black font-bold' : 'bg-bgDark text-gray-400 hover:text-white hover:bg-[#1f2433]';
+                hCont.innerHTML += `<button type="button" onclick="window.selectHour('${hStr}')" class="py-2 text-center rounded text-sm transition-colors ${cls}">${hStr}</button>`;
             }
-            container.innerHTML += '<div class="time-item pointer-events-none"></div>'; 
+
+            // Build Minutes (00 to 55 in 5 min intervals)
+            const numH = parseInt(curH, 10);
+            for (let i = 0; i <= 55; i += 5) {
+                const mStr = String(i).padStart(2, '0');
+                
+                // Block times outside 09:15 - 15:30
+                let isBlocked = false;
+                if (numH === 9 && i < 15) isBlocked = true;
+                if (numH === 15 && i > 30) isBlocked = true;
+
+                if (isBlocked) {
+                    mCont.innerHTML += `<button type="button" class="py-2 text-center rounded text-sm text-gray-700 cursor-not-allowed bg-transparent">${mStr}</button>`;
+                } else {
+                    const isSel = mStr === curM;
+                    const cls = isSel ? 'bg-neonGreen text-black font-bold' : 'bg-bgDark text-gray-400 hover:text-white hover:bg-[#1f2433]';
+                    mCont.innerHTML += `<button type="button" onclick="window.selectMinute('${mStr}')" class="py-2 text-center rounded text-sm transition-colors ${cls}">${mStr}</button>`;
+                }
+            }
         }
 
-        window.snapTimeScroller = (containerId, val) => {
-            const el = document.getElementById(`${containerId}_${val}`);
-            if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        };
-
-        window.handleTimeScroll = (type) => {
-            const containerId = type === 'hr' ? 'tp_hours' : 'tp_minutes';
-            const container = document.getElementById(containerId);
-            const tmt = type === 'hr' ? tpHourScrollTmt : tpMinScrollTmt;
-            clearTimeout(tmt);
-            
-            const action = setTimeout(() => {
-                const items = container.querySelectorAll('.time-item:not(.pointer-events-none)');
-                const containerCenter = container.getBoundingClientRect().top + (container.getBoundingClientRect().height / 2);
-                
-                let closest = null; let minDiff = Infinity;
-                items.forEach(item => {
-                    const rect = item.getBoundingClientRect();
-                    const itemCenter = rect.top + (rect.height / 2);
-                    const diff = Math.abs(containerCenter - itemCenter);
-                    if(diff < minDiff) { minDiff = diff; closest = item; }
-                    item.classList.remove('active');
-                });
-
-                if(closest) {
-                    closest.classList.add('active');
-                    const hrEl = document.querySelector('#tp_hours .active');
-                    const minEl = document.querySelector('#tp_minutes .active');
-                    if(hrEl && minEl) {
-                        const h = parseInt(hrEl.innerText); const m = parseInt(minEl.innerText);
-                        if(h === 9 && m < 15) window.snapTimeScroller('tp_minutes', '15');
-                        if(h === 15 && m > 30) window.snapTimeScroller('tp_minutes', '30');
-                    }
-                }
-            }, 100);
-            if(type === 'hr') tpHourScrollTmt = action; else tpMinScrollTmt = action;
-        };
-
-        window.openTimePicker = (targetId) => {
-            tpTarget = targetId;
-            populateTimeScroller('tp_hours', 9, 15);
-            populateTimeScroller('tp_minutes', 0, 59, 1);
-            
-            const curVal = document.getElementById(targetId).value || "09:15";
-            const [h, m] = curVal.split(':');
-            
-            const mEl = document.getElementById('timePickerModal');
-            mEl.classList.remove('hidden'); 
-            setTimeout(()=> { 
-                mEl.classList.remove('opacity-0'); 
-                document.getElementById('timePickerContent').classList.remove('scale-95');
-                document.getElementById(`tp_hours_${h}`).scrollIntoView({ block: 'center' });
-                document.getElementById(`tp_minutes_${m}`).scrollIntoView({ block: 'center' });
-                window.handleTimeScroll('hr'); window.handleTimeScroll('min');
-            }, 10);
-        };
-
-        window.closeTimePicker = () => {
-            const m = document.getElementById('timePickerModal'); m.classList.add('opacity-0'); document.getElementById('timePickerContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
-        };
-
         window.applyTimePicker = () => {
-            const hrEl = document.querySelector('#tp_hours .active');
-            const minEl = document.querySelector('#tp_minutes .active');
-            if(!hrEl || !minEl) return;
-            
-            let h = parseInt(hrEl.innerText); let m = parseInt(minEl.innerText);
-            if(h < 9 || (h === 9 && m < 15)) { h = 9; m = 15; }
-            if(h > 15 || (h === 15 && m > 30)) { h = 15; m = 30; }
-
-            const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-            document.getElementById(tpTarget).value = timeStr;
-            document.getElementById(tpTarget+'Disp').innerText = timeStr;
-            document.getElementById(tpTarget+'Disp').className = "text-white";
-            
+            const el = document.getElementById(window.tpState.target);
+            el.value = `${window.tpState.h}:${window.tpState.m}`;
             window.calcPrev();
             window.closeTimePicker();
         };
 
-        // --- EDIT TRADE MODAL LOGIC ---
+        // --- TRADE MODAL LOGIC (RESTORED) ---
         window.openTradeModal = () => {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('entryDate').value = today; document.getElementById('exitDate').value = today;
-            document.getElementById('entryDateDisp').innerText = "Select Date"; document.getElementById('exitDateDisp').innerText = "Select Date";
-            document.getElementById('entryDateDisp').className = "text-textMuted"; document.getElementById('exitDateDisp').className = "text-textMuted";
-            document.getElementById('entryTime').value = "09:15"; document.getElementById('exitTime').value = "15:30";
-            document.getElementById('entryTimeDisp').innerText = "09:15"; document.getElementById('exitTimeDisp').innerText = "15:30";
+            document.getElementById('entryDate').value = today;
+            document.getElementById('exitDate').value = today;
+            document.getElementById('entryDateDisp').innerText = today; document.getElementById('entryDateDisp').className = "text-white";
+            document.getElementById('exitDateDisp').innerText = today; document.getElementById('exitDateDisp').className = "text-white";
+            
+            // Set default valid market time if current time is outside hours
+            const now = new Date();
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+            let currentStr = `${String(istTime.getHours()).padStart(2, '0')}:${String(istTime.getMinutes()).padStart(2, '0')}`;
+            
+            const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=930; };
+            if (checkT(currentStr)) {
+                document.getElementById('entryTime').value = currentStr;
+                document.getElementById('exitTime').value = currentStr;
+            } else {
+                document.getElementById('entryTime').value = "09:15";
+                document.getElementById('exitTime').value = "15:30";
+            }
+            
             document.getElementById('formErrorAlert').classList.add('hidden');
-            document.getElementById('tradeModal').classList.remove('hidden');
-            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
+            
+            // Reset state
+            editingTradeId = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="ph-fill ph-plus-circle text-neonGreen"></i> Log New Trade';
+            document.getElementById('saveTradeBtn').innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
+            window.setTradeStructure('Naked');
+            document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false);
+            window.calcPrev();
+
+            const modal = document.getElementById('tradeModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('modalContent').classList.remove('scale-95');
+            }, 10);
         };
 
         window.closeTradeModal = () => {
-            document.getElementById('tradeModal').classList.add('opacity-0'); document.getElementById('modalContent').classList.add('scale-95');
-            setTimeout(()=> { 
-                document.getElementById('tradeModal').classList.add('hidden'); 
-                document.getElementById('addTradeForm').reset(); 
-                document.getElementById('legsWrapper').innerHTML=window.createLegHTML(false); 
-                document.getElementById('previewPnl').innerText='₹0.00'; 
-                document.getElementById('formErrorAlert').classList.add('hidden');
+            const modal = document.getElementById('tradeModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('modalContent').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('addTradeForm').reset();
                 editingTradeId = null;
+                document.getElementById('formErrorAlert').classList.add('hidden');
             }, 300);
-        };
-
-        window.syncExitDate = () => {
-            const ent = document.getElementById('entryDate').value;
-            const ext = document.getElementById('exitDate');
-            if(!ext.value || ext.value < ent) { ext.value = ent; document.getElementById('exitDateDisp').innerText = ent; document.getElementById('exitDateDisp').className = "text-white"; }
         };
 
         window.setTradeStructure = (type) => {
@@ -1717,19 +1866,43 @@
             document.getElementById('btnNaked').className = `flex-1 text-xs rounded transition-all ${isNaked?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
             document.getElementById('btnHedged').className = `flex-1 text-xs rounded transition-all ${!isNaked?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
             document.getElementById('addLegBtn').classList.toggle('hidden', isNaked);
-            if(isNaked) { const w = document.getElementById('legsWrapper'); const fl = w.firstElementChild; w.innerHTML=''; if(fl) w.appendChild(fl); else w.innerHTML=window.createLegHTML(false); }
+            
+            if (isNaked) {
+                const w = document.getElementById('legsWrapper');
+                const fl = w.firstElementChild;
+                w.innerHTML = '';
+                if(fl) w.appendChild(fl); else w.innerHTML = window.createLegHTML(false);
+            }
             document.querySelectorAll('.hedged-only').forEach(el => el.classList.toggle('hidden', isNaked));
         };
 
         window.createLegHTML = (showDel) => {
             return `<div class="leg-row bg-[#0b0e14] p-3 rounded-xl border border-gray-800 relative group">
-                ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><i class="ph-bold ph-x text-xs"></i></button>`:''}
-                <div class="grid grid-cols-5 gap-3">
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
-                    <div class="hedged-only hidden col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Strike</label><input type="text" class="leg-strike w-full input-dark rounded py-1 px-1 text-xs uppercase"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeypress="return event.charCode >= 48 && event.charCode <= 57"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit</label><input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs"></div>
+                ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10 hover:bg-red-600 transition-colors"><i class="ph-bold ph-x text-[10px]"></i></button>`:''}
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase tracking-wider">Direction</label>
+                        <select class="leg-dir w-full input-dark rounded py-1.5 px-2 text-xs">
+                            <option value="Long">Buy / Long</option>
+                            <option value="Short">Sell / Short</option>
+                        </select>
+                    </div>
+                    <div class="hedged-only hidden col-span-2 md:col-span-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase tracking-wider">Strike</label>
+                        <input type="text" class="leg-strike w-full input-dark rounded py-1.5 px-2 text-xs uppercase" placeholder="e.g. 22500 CE">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase tracking-wider">Qty</label>
+                        <input type="number" min="1" class="leg-qty w-full input-dark rounded py-1.5 px-2 text-xs" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase tracking-wider">Entry (₹)</label>
+                        <input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1.5 px-2 text-xs" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase tracking-wider">Exit (₹)</label>
+                        <input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1.5 px-2 text-xs" placeholder="0.00">
+                    </div>
                 </div>
             </div>`;
         };
@@ -1742,51 +1915,31 @@
         window.calcPrev = () => {
             let pnl = 0;
             document.querySelectorAll('.leg-row').forEach(r => {
-                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0, ex=parseFloat(r.querySelector('.leg-ex').value)||0;
-                pnl += (r.querySelector('.leg-dir').value==='Long') ? (ex-en)*q : (en-ex)*q;
+                const q = parseFloat(r.querySelector('.leg-qty').value) || 0;
+                const en = parseFloat(r.querySelector('.leg-en').value) || 0;
+                const ex = parseFloat(r.querySelector('.leg-ex').value) || 0;
+                pnl += (r.querySelector('.leg-dir').value === 'Long') ? (ex - en) * q : (en - ex) * q;
             });
             const pEl = document.getElementById('previewPnl');
-            pEl.innerText = fINR(pnl); pEl.className = `text-2xl font-bold font-mono ${pnl>0?'text-neonGreen':(pnl<0?'text-neonRed':'text-gray-400')}`;
+            pEl.innerText = fINR(pnl); 
+            pEl.className = `text-2xl font-bold font-mono ${pnl > 0 ? 'text-neonGreen' : (pnl < 0 ? 'text-neonRed' : 'text-gray-400')}`;
             return pnl;
         };
 
-        document.getElementById('addTradeForm').addEventListener('input', () => window.calcPrev());
-
-        const showFormError = (msg) => { const err = document.getElementById('formErrorAlert'); document.getElementById('formErrorMsg').innerText = msg; err.classList.remove('hidden'); };
-
-        window.saveTrade = async () => {
-            if(!useLocalStorage && !currentUser) { showFormError("Must be connected to Database to save."); return; }
-            const cat = document.getElementById('tradeCategory').value; if(!cat) { showFormError("Please select a Strategy Category."); return; }
-            const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
-            if(!ed || !xd) { showFormError("Please select valid Entry and Exit dates."); return; }
-            if(new Date(`${xd}T${xt}`) < new Date(`${ed}T${et}`)) { showFormError("Exit date/time cannot be before Entry date/time."); return; }
-            
-            document.getElementById('formErrorAlert').classList.add('hidden');
-            const btn = document.getElementById('saveTradeBtn'); btn.disabled = true; btn.innerHTML = '<div class="spinner w-4 h-4"></div> Saving...';
-
-            const legs = []; let totalVal = 0;
-            document.querySelectorAll('.leg-row').forEach(r => {
-                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
-                legs.push({ direction:r.querySelector('.leg-dir').value, strike:r.querySelector('.leg-strike').value, qty:q, entry:en, exit:parseFloat(r.querySelector('.leg-ex').value)||0 });
-                totalVal += q * en;
-            });
-            
-            const tid = editingTradeId || Date.now().toString();
-            const tradeObj = { entryDate:ed, exitDate:xd, symbol:document.getElementById('tradeSymbol').value.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:cat, entryTime:et, exitTime:xt, legs, pnl:window.calcPrev(), holdTime:Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000), entryValue: totalVal, timestamp: Date.now() };
-
-            if(useLocalStorage) {
-                if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
-                else window.trades.push({id:tid, ...tradeObj});
-                saveLocal(); window.closeTradeModal(); window.renderActiveView();
-            } else {
-                try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', tid), tradeObj);
-                    window.closeTradeModal();
-                } catch (e) { console.error("Save Error:", e); showFormError("Error saving trade to cloud database."); }
+        window.syncExitDate = () => {
+            const ent = document.getElementById('entryDate').value;
+            const ext = document.getElementById('exitDate');
+            if(!ext.value || ext.value < ent) {
+                ext.value = ent;
+                document.getElementById('exitDateDisp').innerText = ent;
+                document.getElementById('exitDateDisp').className = "text-white";
             }
-            btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
         };
 
+        // Attach live calculation to form inputs
+        document.getElementById('addTradeForm').addEventListener('input', window.calcPrev);
+
+        // --- EDIT TRADE ---
         window.editTrade = (id) => {
             const t = window.trades.find(x => x.id === id); if(!t) return;
             editingTradeId = id;
@@ -1797,8 +1950,8 @@
             document.getElementById('exitDate').value = t.exitDate; document.getElementById('exitDateDisp').innerText = t.exitDate; document.getElementById('exitDateDisp').className = "text-white";
             document.getElementById('tradeSymbol').value = t.symbol;
             document.getElementById('tradeCategory').value = t.category;
-            document.getElementById('entryTime').value = t.entryTime; document.getElementById('entryTimeDisp').innerText = t.entryTime; document.getElementById('entryTimeDisp').className = "text-white";
-            document.getElementById('exitTime').value = t.exitTime; document.getElementById('exitTimeDisp').innerText = t.exitTime; document.getElementById('exitTimeDisp').className = "text-white";
+            document.getElementById('entryTime').value = t.entryTime;
+            document.getElementById('exitTime').value = t.exitTime;
             
             window.setTradeStructure(t.structure);
             const w = document.getElementById('legsWrapper'); w.innerHTML = '';
@@ -1817,13 +1970,50 @@
             window.calcPrev();
         };
 
+        // --- FIRESTORE SAVE & DELETE ---
+        window.saveTrade = async () => {
+            const err = (msg) => { const e=document.getElementById('formErrorAlert'); document.getElementById('formErrorMsg').innerText=msg; e.classList.remove('hidden'); };
+            if(!useLocalStorage && !currentUser) { err("Connecting to database. Please wait."); return; }
+            
+            const cat = document.getElementById('tradeCategory').value; if(!cat) { err("Please select a Strategy Category."); return; }
+            const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
+            
+            const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=930; };
+            if(!checkT(et) || !checkT(xt)) { err("Time must be during Indian market hours (09:15 - 15:30)."); return; }
+            if(new Date(`${xd}T${xt}`) < new Date(`${ed}T${et}`)) { err("Exit date/time cannot be before Entry date/time."); return; }
+            
+            document.getElementById('formErrorAlert').classList.add('hidden');
+            const btn = document.getElementById('saveTradeBtn'); btn.disabled = true; btn.innerHTML = '<div class="spinner w-4 h-4"></div> Saving...';
+
+            const legs = []; let totalVal = 0;
+            document.querySelectorAll('.leg-row').forEach(r => {
+                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
+                legs.push({ direction:r.querySelector('.leg-dir').value, strike:r.querySelector('.leg-strike').value, qty:q, entry:en, exit:parseFloat(r.querySelector('.leg-ex').value)||0 });
+                totalVal += q * en;
+            });
+            
+            const tid = editingTradeId || Date.now().toString();
+            const tradeObj = { entryDate:ed, exitDate:xd, symbol:document.getElementById('tradeSymbol').value.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:cat, entryTime:et, exitTime:xt, legs, pnl:window.calcPrev(), holdTime:Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000), entryValue: totalVal, timestamp: Date.now() };
+
+            if(useLocalStorage) {
+                if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
+                else window.trades.push({id:tid, ...tradeObj});
+                saveLocal(); window.closeTradeModal(); renderActiveView();
+            } else {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', tid), tradeObj);
+                    window.closeTradeModal();
+                } catch (e) { err("Error saving trade to cloud."); console.error(e); }
+            }
+            btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
+            editingTradeId = null;
+        };
+
         window.deleteTrade = async (id) => {
-            if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); window.renderActiveView(); return; }
+            if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); renderActiveView(); return; }
             if(!currentUser) return;
             try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); } catch(e) { console.error("Delete error:", e); }
         };
-
-        window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); };
 
     </script>
 </body>
