@@ -452,6 +452,17 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ================= VIEW: CALENDAR ================= -->
+            <div id="view-calendar" class="view-section space-y-4">
+                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                     <h2 class="text-xl font-bold flex items-center gap-2">
+                        <span id="calYearTitle">2026</span> <span class="text-sm text-neonGreen font-mono" id="calTotalLabel"></span>
+                    </h2>
+                    <button onclick="window.openHolidayModal()" class="bg-panelLighter hover:bg-gray-700 text-white border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Manage Holidays</button>
+                 </div>
+                <div id="calendarGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
             
         </div>
     </main>
@@ -1142,47 +1153,6 @@
         };
 
         // --- VIEWS ---
-        window.switchView = (viewId) => {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
-            const activeBtn = document.getElementById(`nav-${viewId}`);
-            if(activeBtn) activeBtn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
-            
-            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
-            if(viewId === 'dashboard' || viewId === 'analytics') document.getElementById('topnav-overview').classList.add('active', 'bg-panelLighter', 'text-white');
-
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewId}`).classList.add('active');
-            activeView = viewId;
-            window.renderActiveView();
-            if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('-translate-x-full'), document.getElementById('mobileOverlay').classList.add('hidden');
-        };
-
-        window.switchTopNav = (subViewId) => {
-            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
-            document.getElementById(`topnav-${subViewId}`).classList.add('active', 'bg-panelLighter', 'text-white');
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            
-            if(subViewId === 'overview') {
-                document.getElementById('view-analytics').classList.add('active'); activeView = 'analytics';
-                document.getElementById('nav-analytics').classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
-            } else {
-                document.getElementById(`view-${subViewId}`).classList.add('active'); activeView = subViewId;
-            }
-            window.renderActiveView();
-        };
-
-        window.toggleMobileMenu = () => { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('mobileOverlay').classList.toggle('hidden'); };
-
-        function createChart(ctxId, config) {
-            if (charts[ctxId]) charts[ctxId].destroy();
-            const ctx = document.getElementById(ctxId); if(!ctx) return;
-            Chart.defaults.color = '#8b94a5'; Chart.defaults.font.family = 'Inter';
-            charts[ctxId] = new Chart(ctx.getContext('2d'), config);
-        }
-
-        function getMiniGauge(value, max, color) { return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; }
-
         window.renderActiveView = () => {
             if (activeView === 'dashboard') window.updateDashboard();
             else if (activeView === 'analytics') window.updateAnalytics();
@@ -1190,6 +1160,62 @@
             else if (activeView === 'calendar') window.renderCalendar();
             else if (activeView === 'instruments') window.renderInstrumentsTable();
             else if (activeView === 'tags') window.renderTagsTable();
+        };
+
+        window.switchView = (viewId) => {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) activeBtn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
+            
+            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
+            const topnavOverview = document.getElementById('topnav-overview');
+            if((viewId === 'dashboard' || viewId === 'analytics') && topnavOverview) {
+                topnavOverview.classList.add('active', 'bg-panelLighter', 'text-white');
+            }
+
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const targetView = document.getElementById(`view-${viewId}`);
+            if(targetView) {
+                targetView.classList.add('active');
+                activeView = viewId;
+                window.renderActiveView();
+            }
+            
+            if(window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobileOverlay');
+                if(sidebar) sidebar.classList.add('-translate-x-full');
+                if(overlay) overlay.classList.add('hidden');
+            }
+        };
+
+        window.switchTopNav = (subViewId) => {
+            document.querySelectorAll('.top-nav-item').forEach(el => el.classList.remove('active', 'bg-panelLighter', 'text-white'));
+            const subNav = document.getElementById(`topnav-${subViewId}`);
+            if(subNav) subNav.classList.add('active', 'bg-panelLighter', 'text-white');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            
+            if(subViewId === 'overview') {
+                const viewAn = document.getElementById('view-analytics');
+                if(viewAn) viewAn.classList.add('active');
+                activeView = 'analytics';
+                const navAn = document.getElementById('nav-analytics');
+                if(navAn) navAn.classList.add('active', 'bg-neonGreen/10', 'text-neonGreen', 'border-neonGreen/20', 'border');
+            } else {
+                const viewSub = document.getElementById(`view-${subViewId}`);
+                if(viewSub) viewSub.classList.add('active');
+                activeView = subViewId;
+            }
+            window.renderActiveView();
+        };
+
+        window.toggleMobileMenu = () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if(sidebar) sidebar.classList.toggle('-translate-x-full');
+            if(overlay) overlay.classList.toggle('hidden');
         };
 
         window.updateDashboard = () => {
