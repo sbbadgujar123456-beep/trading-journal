@@ -802,6 +802,8 @@
             }
         }
 
+        initAuth();
+
         if(!useLocalStorage) {
             onAuthStateChanged(auth, (user) => {
                 if (user) {
@@ -810,6 +812,7 @@
                     listenToData();
                 } else {
                     currentUser = null;
+                    document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-warning-circle text-neonRed"></i> Disconnected';
                     if(unsubscribeTrades) unsubscribeTrades();
                     if(unsubscribeDailyStats) unsubscribeDailyStats();
                     if(unsubscribeHolidays) unsubscribeHolidays();
@@ -821,30 +824,24 @@
 
         function listenToData() {
             if (!currentUser) return;
-            const baseRef = collection(db, 'artifacts', APP_ID, 'public', 'data');
             
-            unsubscribeTrades = onSnapshot(collection(baseRef, 'shubham_journal', 'trades'), (snap) => {
+            unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
                 window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderActiveView();
             });
             
-            unsubscribeDailyStats = onSnapshot(collection(baseRef, 'shubham_journal', 'daily_stats'), (snap) => {
+            unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
                 window.dailyStats = {};
                 snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
                 renderActiveView();
             });
 
-            unsubscribeHolidays = onSnapshot(doc(baseRef, 'shubham_journal_settings'), (docSnap) => {
+            unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
                 if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
                 renderActiveView();
             });
 
-            unsubscribeHolidays = onSnapshot(doc(baseRef, 'shubham_journal_settings', 'config'), (docSnap) => {
-                if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
-                renderActiveView();
-            });
-
-            unsubscribeTargets = onSnapshot(doc(baseRef, 'shubham_journal_targets', 'all'), (docSnap) => {
+            unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                 if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
                 if(activeView === 'targets') window.renderTargetsView();
             });
@@ -1456,7 +1453,7 @@
             else window.marketHolidays.push(dt);
             renderHolidayGrid();
             if(useLocalStorage) saveLocal();
-            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_journal_settings'), { holidays: window.marketHolidays });
+            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
             if(activeView === 'calendar') renderCalendar();
         };
 
@@ -1576,8 +1573,7 @@
             
             if(useLocalStorage) saveLocal();
             else if(currentUser) {
-                const baseRef = collection(db, 'artifacts', APP_ID, 'public', 'data');
-                await setDoc(doc(baseRef, 'shubham_journal_targets', 'all'), { targets: window.monthlyTargets });
+                await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
             }
         };
 
@@ -1837,7 +1833,7 @@
             window.dailyStats[dt] = val;
             window.closeDayModal();
             if(useLocalStorage) saveLocal();
-            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_journal', 'daily_stats', dt), { pnl: val });
+            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl: val });
             renderActiveView();
         };
 
@@ -1872,7 +1868,7 @@
                 saveLocal(); window.closeTradeModal(); renderActiveView();
             } else {
                 try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_journal', 'trades', tid), tradeObj);
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', tid), tradeObj);
                     window.closeTradeModal();
                 } catch (e) { err("Error saving trade to cloud."); console.error(e); }
             }
@@ -1883,7 +1879,7 @@
         window.deleteTrade = async (id) => {
             if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); renderActiveView(); return; }
             if(!currentUser) return;
-            try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_journal', 'trades', id)); } catch(e) { console.error("Delete error:", e); }
+            try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); } catch(e) { console.error("Delete error:", e); }
         };
 
     </script>
