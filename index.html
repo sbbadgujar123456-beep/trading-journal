@@ -77,16 +77,11 @@
         
         .modal-overlay { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); }
         
-        /* Time Input Dark Theme Overrides */
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            opacity: 0.5;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        input[type="time"]::-webkit-calendar-picker-indicator:hover {
-            opacity: 1;
-        }
+        /* Time Scroller Styles */
+        .time-scroller { scroll-snap-type: y mandatory; overflow-y: auto; height: 120px; }
+        .time-scroller::-webkit-scrollbar { display: none; }
+        .time-item { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b94a5; transition: all 0.2s; }
+        .time-item.active { color: #00f28e; font-weight: bold; font-size: 1.25rem; }
     </style>
 </head>
 <body class="flex h-screen relative">
@@ -119,10 +114,10 @@
                     <i class="ph ph-calendar text-xl"></i> Calendar
                 </button>
                 <button onclick="window.switchView('targets')" id="nav-targets" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-crosshair text-xl"></i> Targets
+                    <i class="ph ph-target text-xl"></i> Targets
                 </button>
                 <button onclick="window.switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-list-numbers text-xl"></i> Trades
+                    <i class="ph ph-list-numbers text-xl"></i> Past Trades
                 </button>
             </nav>
         </div>
@@ -149,18 +144,15 @@
             </div>
             
             <div class="flex items-center gap-6">
-                 <!-- Global Missing PNL Warning Icon -->
-                <div id="navWarningIcon" class="hidden text-orange-400 group relative cursor-help">
-                    <i class="ph-fill ph-warning text-xl animate-pulse"></i>
-                    <div class="absolute right-0 top-8 w-48 bg-[#1f2433] text-white text-xs p-2 rounded shadow-xl hidden group-hover:block z-50 border border-gray-700">
-                        Missing manual Net P&L for some trading days. Check dashboard.
-                    </div>
-                </div>
-
                 <!-- Clock & Countdown -->
                 <div class="hidden sm:flex flex-col items-end">
                     <p class="text-xs font-bold text-white font-mono tracking-widest" id="topClock">--:--:-- IST</p>
                     <p class="text-[9px] text-gray-500 font-medium tracking-wide mt-0.5" id="topCountdown">Market opens in --:--</p>
+                </div>
+                
+                <!-- Missing PnL Warning Icon -->
+                <div id="navWarningIcon" class="hidden text-neonRed animate-pulse cursor-pointer" onclick="window.switchView('dashboard')" title="Missing Daily P&L">
+                    <i class="ph-fill ph-warning-circle text-2xl"></i>
                 </div>
                 
                 <button onclick="window.openTradeModal()" class="bg-neonGreen text-black font-bold px-4 py-2 md:px-5 rounded-lg flex items-center gap-2 hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,242,142,0.2)]">
@@ -175,15 +167,14 @@
             <div id="view-dashboard" class="view-section active space-y-4">
                 
                 <!-- Missing PnL Warning Banner -->
-                <div id="missingPnlWarning" class="hidden bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 flex items-center justify-between shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                <div id="missingPnlWarning" class="hidden bg-neonRed/10 border border-neonRed/30 rounded-xl p-3 flex items-center justify-between shadow-[0_0_15px_rgba(255,59,105,0.1)]">
                     <div class="flex items-center gap-3">
-                        <i class="ph-fill ph-warning-circle text-2xl text-orange-500 shrink-0"></i>
+                        <i class="ph-fill ph-warning-circle text-2xl text-neonRed shrink-0"></i>
                         <div>
-                            <p class="text-xs font-bold text-white uppercase tracking-wider">Temporary Gross P&L Active</p>
-                            <p class="text-[10px] text-textMuted mt-0.5">Please finalize your Broker Net P&L for: <span id="missingDatesList" class="font-bold text-orange-400"></span>. Click dates on the <a href="#" onclick="window.switchView('calendar')" class="text-orange-400 hover:underline">Calendar</a> to update.</p>
+                            <p class="text-xs font-bold text-white uppercase tracking-wider">Missing Daily Net P&L</p>
+                            <p class="text-[10px] text-textMuted mt-0.5" id="missingPnlText">You have un-finalized trading days. Click dates on the <a href="#" onclick="window.switchView('calendar')" class="text-neonRed hover:underline font-bold">Calendar</a> to enter your final broker P&L.</p>
                         </div>
                     </div>
-                    <button onclick="document.getElementById('missingPnlWarning').classList.add('hidden')" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x"></i></button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -224,6 +215,12 @@
                             </div>
                         </div>
 
+                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-center items-center">
+                            <p class="text-[10px] text-textMuted mb-1 text-center">Trade Win %</p>
+                            <h3 class="text-xl font-bold font-mono mb-1 text-white" id="d_winPerc">0.00%</h3>
+                            <div class="w-full progress-bar-bg mb-1"><div id="d_winBar" class="progress-bar-fill bg-neonGreen w-0"></div></div>
+                            <span class="text-[9px] text-textMuted" id="d_winRatioCount">0 W / 0 L</span>
+                        </div>
                         <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
                             <div>
                                 <p class="text-[10px] text-textMuted mb-2">Profit Factor</p>
@@ -231,14 +228,6 @@
                             </div>
                             <div class="w-10 h-10 relative"><canvas id="c_pfGauge"></canvas></div>
                         </div>
-
-                        <div class="glass-panel p-4 rounded-xl flex flex-col justify-center items-center">
-                            <p class="text-[10px] text-textMuted mb-1 text-center">Trade Win %</p>
-                            <h3 class="text-xl font-bold font-mono mb-1 text-white" id="d_winPerc">0.00%</h3>
-                            <div class="w-full progress-bar-bg mb-1"><div id="d_winBar" class="progress-bar-fill bg-neonGreen w-0"></div></div>
-                            <span class="text-[9px] text-textMuted" id="d_winRatioCount">0 W / 0 L</span>
-                        </div>
-                        
                         <div class="glass-panel p-4 rounded-xl text-center flex flex-col items-center justify-center">
                             <p class="text-[10px] text-textMuted mb-1">Trading Score</p>
                             <h3 class="text-2xl font-bold font-mono text-neonGreen" id="d_tiqsVal">0.0</h3>
@@ -430,25 +419,6 @@
                 </div>
             </div>
 
-            <!-- ================= VIEW: PAST TRADES ================= -->
-            <div id="view-trades" class="view-section space-y-4">
-                <h2 class="text-xl font-bold">Past Trades</h2>
-                
-                <!-- Toggle to switch views inside Past Trades -->
-                <div class="flex p-1 bg-bgDark rounded-lg border border-gray-800 w-fit mb-4">
-                    <button id="btnClosedTrades" onclick="window.switchTradeTab('closed')" class="px-4 py-1.5 text-xs rounded bg-panelLighter text-white shadow transition-all">Closed Trades</button>
-                    <button id="btnOpenTrades" onclick="window.switchTradeTab('open')" class="px-4 py-1.5 text-xs rounded text-textMuted hover:text-white transition-all">Open Positions <span id="openCountBadge" class="ml-1 bg-neonRed text-white px-1.5 rounded-full text-[9px] hidden">0</span></button>
-                </div>
-
-                <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[800px]">
-                            <tbody id="fullTradesTableBody" class="text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             <!-- ================= VIEW: CALENDAR ================= -->
             <div id="view-calendar" class="view-section space-y-4">
                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -462,8 +432,29 @@
 
             <!-- ================= VIEW: TARGETS ================= -->
             <div id="view-targets" class="view-section space-y-4">
-                <h2 class="text-xl font-bold mb-4">Monthly Profit Targets</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2"><i class="ph-fill ph-target text-neonGreen"></i> Monthly Profit Targets</h2>
+                    <div class="text-xs text-gray-400">Set and track your monthly goals</div>
+                </div>
                 <div id="targetsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- ================= VIEW: PAST TRADES ================= -->
+            <div id="view-trades" class="view-section space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <h2 class="text-xl font-bold">Past Trades</h2>
+                    <div class="flex gap-2">
+                        <button onclick="window.switchTradeTab('open')" id="tabOpen" class="px-4 py-2 rounded-lg text-xs font-bold bg-[#1f2433] text-gray-400 hover:text-white transition-colors relative">Open Positions <span id="otBadge" class="absolute -top-1 -right-1 bg-neonRed text-white text-[9px] px-1.5 py-0.5 rounded-full hidden">0</span></button>
+                        <button onclick="window.switchTradeTab('closed')" id="tabClosed" class="px-4 py-2 rounded-lg text-xs font-bold bg-neonGreen/20 text-neonGreen border border-neonGreen/30 relative">Closed Trades <span id="ctBadge" class="absolute -top-1 -right-1 bg-gray-600 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow border border-gray-500">0</span></button>
+                    </div>
+                </div>
+                <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <tbody id="fullTradesTableBody" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
         </div>
@@ -485,6 +476,10 @@
                         <i class="ph-fill ph-warning-circle text-lg shrink-0"></i><span id="formErrorMsg">Please check your inputs.</span>
                     </div>
 
+                    <div id="openTradeWarning" class="hidden mb-4 bg-blue-500/10 border border-blue-500/30 text-blue-400 p-3 rounded-lg text-xs flex items-center gap-2">
+                        <i class="ph-fill ph-info text-lg shrink-0"></i><span>Exit details empty. This will be saved as an <b>Open Position</b>.</span>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div>
                             <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Entry Date</label>
@@ -496,9 +491,7 @@
                             </div>
                         </div>
                         <div>
-                            <label class="flex justify-between text-[11px] text-textMuted mb-1 font-medium uppercase">
-                                Exit Date <span class="text-[9px] text-gray-500 normal-case">(Optional)</span>
-                            </label>
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Exit Date <span class="text-gray-600 font-normal normal-case">(Opt)</span></label>
                             <div class="relative cursor-pointer group" onclick="window.openDateTimePicker('exitDate')">
                                 <div class="w-full input-dark rounded-lg p-2 text-sm flex items-center justify-between group-hover:border-neonGreen transition-colors">
                                     <span id="exitDateDisp">Select Date</span> <i class="ph-bold ph-calendar-blank text-gray-500"></i>
@@ -529,10 +522,10 @@
                                 <option value="Short from Overbought">Short from Overbought</option>
                                 <option value="Algo">Algo</option>
                                 <option value="FOMO">FOMO</option>
+                                <option value="Over Quantity Risk">Over Quantity Risk</option>
                                 <option value="Normal">Normal</option>
                                 <option value="Zee">Zee</option>
                                 <option value="Liquide">Liquide</option>
-                                <option value="Over Quantity Risk">Over Quantity Risk</option>
                             </select>
                         </div>
                         <div>
@@ -540,11 +533,17 @@
                             <div class="flex gap-2">
                                 <div class="flex-1 relative">
                                     <span class="block text-[9px] text-gray-500 mb-0.5">Entry (09:15-15:30)</span>
-                                    <input type="time" id="entryTime" required value="09:15" class="w-full input-dark rounded-lg p-2 text-sm font-mono flex items-center justify-between hover:border-neonGreen transition-colors" onchange="window.validateFormTime()">
+                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('entryTime')">
+                                        <span id="entryTimeDisp" class="text-gray-500">--:--</span> <i class="ph-bold ph-clock text-gray-500"></i>
+                                    </div>
+                                    <input type="hidden" id="entryTime" required>
                                 </div>
                                 <div class="flex-1 relative">
-                                    <span class="block text-[9px] text-gray-500 mb-0.5">Exit (Optional)</span>
-                                    <input type="time" id="exitTime" class="w-full input-dark rounded-lg p-2 text-sm font-mono flex items-center justify-between hover:border-neonGreen transition-colors" onchange="window.validateFormTime()">
+                                    <span class="block text-[9px] text-gray-500 mb-0.5">Exit (Opt)</span>
+                                    <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('exitTime')">
+                                        <span id="exitTimeDisp" class="text-gray-500">--:--</span> <i class="ph-bold ph-clock text-gray-500"></i>
+                                    </div>
+                                    <input type="hidden" id="exitTime">
                                 </div>
                             </div>
                         </div>
@@ -560,10 +559,7 @@
 
                     <div class="mt-6 bg-[#0b0e14] border border-gray-800 rounded-lg p-4 flex justify-between items-center shadow-inner">
                         <div><p class="text-[11px] text-textMuted uppercase font-medium">Gross Legs P&L</p></div>
-                        <div class="text-right">
-                            <span id="previewPnl" class="text-2xl font-bold font-mono text-gray-400">₹0.00</span>
-                            <p id="openTradeWarn" class="hidden text-xs text-neonRed mt-1 italic font-medium"><i class="ph-bold ph-warning"></i> Open Trade (Exit details missing)</p>
-                        </div>
+                        <div class="text-right"><span id="previewPnl" class="text-2xl font-bold font-mono text-gray-400">₹0.00</span></div>
                     </div>
                 </form>
             </div>
@@ -573,6 +569,32 @@
                 <button type="button" id="saveTradeBtn" onclick="window.saveTrade()" class="bg-neonGreen text-black hover:brightness-110 px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="ph-bold ph-floppy-disk"></i> Save Trade
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM TIME PICKER MODAL -->
+    <div id="timePickerModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTimePicker()">
+        <div class="bg-[#1a1d27] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-[280px]" id="timePickerContent">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 shrink-0">
+                <h3 class="font-bold text-gray-200 flex items-center gap-2"><i class="ph-bold ph-clock text-neonGreen"></i> Select Time</h3>
+                <button type="button" onclick="window.closeTimePicker()" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+            <div class="p-6 flex justify-center items-center gap-4 shrink-0 relative">
+                <div class="absolute top-1/2 left-0 right-0 h-10 bg-gray-800/30 border-y border-gray-700 -translate-y-1/2 pointer-events-none"></div>
+                <div class="flex flex-col items-center z-10">
+                    <span class="text-[9px] text-gray-500 font-bold mb-2 tracking-widest">HOUR</span>
+                    <div id="tp_hours" class="time-scroller w-16 text-center" onscroll="window.handleTimeScroll('hr')"></div>
+                </div>
+                <span class="text-xl font-bold text-gray-500 pb-2 z-10">:</span>
+                <div class="flex flex-col items-center z-10">
+                    <span class="text-[9px] text-gray-500 font-bold mb-2 tracking-widest">MIN</span>
+                    <div id="tp_minutes" class="time-scroller w-16 text-center" onscroll="window.handleTimeScroll('min')"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-800 flex justify-end items-center bg-[#151822] rounded-b-xl shrink-0 gap-2">
+                <button type="button" onclick="window.closeTimePicker()" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5">Cancel</button>
+                <button type="button" onclick="window.applyTimePicker()" class="bg-neonGreen/20 text-neonGreen border border-neonGreen/30 hover:bg-neonGreen hover:text-black px-4 py-1.5 rounded-lg text-xs font-bold">Apply</button>
             </div>
         </div>
     </div>
@@ -588,7 +610,7 @@
                 <input type="hidden" id="dayModalDate">
                 <div class="mb-4">
                     <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Manual Net P&L (₹)</label>
-                    <input type="number" id="dayModalNet" step="0.01" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="0.00" onfocus="this.select()">
+                    <input type="number" id="dayModalNet" step="0.01" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="0.00" onkeydown="if(['e','E','+'].includes(event.key)) event.preventDefault();">
                 </div>
                 <div class="bg-[#0b0e14] border border-gray-800 p-3 rounded-lg flex justify-between items-center text-xs">
                     <span class="text-gray-400">Calculated Gross:</span>
@@ -684,6 +706,68 @@
         </div>
     </div>
 
+    <!-- TARGET EDIT MODAL -->
+    <div id="targetModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTargetModal()">
+        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-sm" id="targetModalContent">
+            <div class="p-5 border-b border-gray-800">
+                <h3 class="font-bold text-white text-lg">Set Monthly Target</h3>
+                <p class="text-xs text-textMuted mt-1" id="tm_subtitle">Enter your profit goal for this month.</p>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="tm_monthKey">
+                <div class="mb-4">
+                    <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Target Amount (₹)</label>
+                    <input type="number" id="tm_amount" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="0" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl">
+                <button type="button" onclick="window.closeTargetModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button type="button" onclick="window.saveMonthlyTarget()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Target</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DAY TRADES MODAL (Calendar Click) -->
+    <div id="dayTradesModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeDayTradesModal()">
+        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-2xl max-h-[85vh]" id="dayTradesContent">
+            <div class="p-5 border-b border-gray-800 bg-[#0b0e14] rounded-t-xl flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-bold text-white text-lg" id="dtm_title">Date</h3>
+                    <p class="text-xs text-textMuted mt-0.5"><span id="dtm_tradeCount" class="text-white font-bold">0</span> Trades Executed</p>
+                </div>
+                <button onclick="window.closeDayTradesModal()" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+            
+            <div class="p-5 border-b border-gray-800 shrink-0">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-[#1f2433] p-3 rounded-lg border border-gray-700">
+                        <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Calculated Gross</p>
+                        <p class="text-lg font-bold font-mono text-white" id="dtm_gross">₹0.00</p>
+                    </div>
+                    <div class="bg-[#0b0e14] p-3 rounded-lg border border-neonGreen/30 relative">
+                        <div class="absolute -top-2 -right-2 bg-neonGreen text-black text-[9px] font-bold px-2 py-0.5 rounded shadow">EDIT</div>
+                        <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Actual Broker Net</p>
+                        <input type="number" id="dtm_net" step="0.01" class="w-full bg-transparent text-lg font-bold font-mono text-neonGreen outline-none" placeholder="0.00" onkeydown="if(['e','E','+'].includes(event.key)) event.preventDefault();">
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-[#1f2433] sticky top-0 border-b border-gray-800 text-[10px] uppercase text-textMuted shadow-sm z-10">
+                        <tr><th class="p-3 pl-5">Time</th><th class="p-3">Symbol</th><th class="p-3 text-right">P&L</th><th class="p-3 text-center">Action</th></tr>
+                    </thead>
+                    <tbody id="dtm_tbody" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+
+            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl shrink-0">
+                <button type="button" onclick="window.closeDayTradesModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
+                <button type="button" id="dtm_saveBtn" onclick="window.saveDayTradesPnl()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Data</button>
+            </div>
+        </div>
+    </div>
+
     <!-- CUSTOM CONFIRM MODAL -->
     <div id="confirmModal" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center hidden opacity-0 transition-opacity duration-200 px-4" onclick="if(event.target === this) window.closeConfirm()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-200 w-full max-w-sm p-6 text-center" id="confirmContent">
@@ -693,24 +777,6 @@
             <div class="flex gap-3 justify-center">
                 <button onclick="window.closeConfirm()" class="px-5 py-2 rounded-lg bg-gray-800 text-white text-xs font-bold hover:bg-gray-700 transition-colors">Cancel</button>
                 <button id="cm_btn" class="px-5 py-2 rounded-lg bg-neonRed text-white text-xs font-bold hover:brightness-110 transition-colors">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TARGET MODAL -->
-    <div id="targetModal" class="fixed inset-0 modal-overlay z-[65] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeTargetModal()">
-        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-sm" id="targetModalContent">
-            <div class="p-5 border-b border-gray-800">
-                <h3 class="font-bold text-white text-lg" id="tm_title">Set Target</h3>
-            </div>
-            <div class="p-5">
-                <input type="hidden" id="tm_monthKey">
-                <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Target Amount (₹)</label>
-                <input type="number" id="tm_amount" step="1" class="w-full input-dark rounded-lg p-3 text-lg font-mono font-bold" placeholder="50000">
-            </div>
-            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl">
-                <button type="button" onclick="window.closeTargetModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
-                <button type="button" onclick="window.saveMonthlyTarget()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Target</button>
             </div>
         </div>
     </div>
@@ -726,7 +792,9 @@
         window.dailyStats = {}; 
         window.marketHolidays = []; 
         window.monthlyTargets = {};
+        window.monthlyTargetVal = 0;
         window.activeTradeTab = 'closed';
+        window.dtm_currentDate = null;
         
         let activeView = 'dashboard';
         let charts = {}; 
@@ -734,6 +802,7 @@
         let unsubscribeTrades = null;
         let unsubscribeDailyStats = null;
         let unsubscribeHolidays = null;
+        let unsubscribeTargets = null;
         let editingTradeId = null;
         let confirmActionCb = null;
 
@@ -772,14 +841,14 @@
         }
 
         // --- FORMATTERS ---
-        const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+        const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
         const formatK = (val) => {
-            if (val === 0) return '0';
+            if (!val || val === 0) return '0';
             if (Math.abs(val) >= 1000) return (val / 1000).toFixed(2) + ' K';
             return val.toFixed(2);
         };
         const formatHoldTime = (mins) => {
-            if(mins <= 0) return '0 Mins';
+            if(mins == null || mins <= 0) return '0 Mins';
             let d = Math.floor(mins / 1440);
             let h = Math.floor((mins % 1440) / 60);
             let m = mins % 60;
@@ -806,15 +875,11 @@
             h = h % 12; h = h ? h : 12; 
             document.getElementById('topClock').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ampm} IST`;
 
-            // Calculate next market open (09:15)
             let nextOpen = new Date(ist);
             nextOpen.setHours(9, 15, 0, 0);
-            
             if (ist.getHours() > 9 || (ist.getHours() === 9 && ist.getMinutes() >= 15)) {
                 nextOpen.setDate(nextOpen.getDate() + 1);
             }
-            
-            // Skip weekends and holidays
             while (nextOpen.getDay() === 0 || nextOpen.getDay() === 6 || window.marketHolidays.includes(nextOpen.toISOString().split('T')[0])) {
                 nextOpen.setDate(nextOpen.getDate() + 1);
             }
@@ -842,11 +907,10 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.warn("Silent Firebase Auth fail, using Local Storage.");
+                console.warn("Silent Firebase Auth fail, using Local Storage.", error);
                 useLocalStorage = true; loadLocal();
             }
         }
-
         initAuth();
 
         if(!useLocalStorage) {
@@ -861,7 +925,8 @@
                     if(unsubscribeTrades) unsubscribeTrades();
                     if(unsubscribeDailyStats) unsubscribeDailyStats();
                     if(unsubscribeHolidays) unsubscribeHolidays();
-                    window.trades = []; window.dailyStats = {}; window.marketHolidays = [];
+                    if(unsubscribeTargets) unsubscribeTargets();
+                    window.trades = []; window.dailyStats = {}; window.marketHolidays = []; window.monthlyTargets = {};
                     window.renderActiveView();
                 }
             });
@@ -869,7 +934,6 @@
 
         function listenToData() {
             if (!currentUser) return;
-            
             try {
                 unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
                     window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -887,8 +951,10 @@
                     window.renderActiveView();
                 }, e => {});
 
-                onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
+                unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                     if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
+                    window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
+                    if(activeView === 'dashboard') window.updateDashboard();
                     if(activeView === 'targets') window.renderTargetsView();
                 }, e => {});
             } catch(e) {
@@ -903,6 +969,7 @@
             window.dailyStats = JSON.parse(localStorage.getItem('tr_daily') || '{}');
             window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
             window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets') || '{}');
+            window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
             window.renderActiveView();
         }
 
@@ -914,6 +981,117 @@
         }
 
         const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
+
+        // --- TARGETS VIEW LOGIC ---
+        window.renderTargetsView = () => {
+            const grid = document.getElementById('targetsGrid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            const year = new Date().getFullYear();
+            const currentMonth = new Date().getMonth();
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            months.forEach((month, index) => {
+                const key = `${year}-${String(index+1).padStart(2,'0')}`;
+                const tgtAmt = window.monthlyTargets[key] || 0;
+                
+                let pnl = 0;
+                // Calculate PnL for this specific month
+                Object.keys(window.dailyStats).forEach(dt => {
+                    if(dt.startsWith(key)) pnl += window.dailyStats[dt];
+                });
+                
+                // Add un-finalized gross PnLs
+                window.trades.forEach(t => {
+                    if(t.exitDate && t.exitDate.startsWith(key) && window.dailyStats[t.exitDate] === undefined) {
+                        if(t.pnl) pnl += t.pnl;
+                    }
+                });
+
+                const isCurrent = index === currentMonth;
+                const isPast = index < currentMonth;
+                
+                let perc = tgtAmt > 0 ? Math.max(0, Math.min(100, (pnl / tgtAmt) * 100)) : 0;
+                let remAmt = tgtAmt - pnl;
+                let reqDayStr = '-';
+                
+                if(isCurrent && tgtAmt > 0) {
+                    if(remAmt <= 0) reqDayStr = "Target Hit! 🎯";
+                    else {
+                        const remDays = getRemainingMarketDays(year, index);
+                        reqDayStr = remDays > 0 ? `${fINR(remAmt/remDays)} / day req` : "No days left";
+                    }
+                } else if (tgtAmt > 0 && remAmt <= 0) {
+                    reqDayStr = "Target Hit! 🎯";
+                }
+
+                let borderCls = isCurrent ? "border-neonGreen shadow-[0_0_15px_rgba(0,242,142,0.15)]" : "border-gray-800";
+                let opacityCls = isPast && !isCurrent ? "opacity-60 grayscale" : "";
+                
+                grid.innerHTML += `
+                <div class="glass-panel rounded-xl p-5 border ${borderCls} ${opacityCls} flex flex-col relative group">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-white uppercase tracking-wider">${month} ${year}</h3>
+                        ${(isCurrent || index > currentMonth) ? `<button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>` : ''}
+                    </div>
+                    
+                    <div class="flex items-end justify-between mb-2">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase">Target</p>
+                            <p class="text-lg font-bold font-mono text-white">${tgtAmt > 0 ? fINR(tgtAmt) : 'Not Set'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-gray-500 uppercase">Current P&L</p>
+                            <p class="text-sm font-bold font-mono ${pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(pnl)}</p>
+                        </div>
+                    </div>
+
+                    <div class="w-full bg-[#0b0e14] h-2 rounded-full mb-2 overflow-hidden border border-gray-800">
+                        <div class="bg-neonGreen h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,242,142,0.6)]" style="width: ${perc}%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-auto">
+                        <p class="text-[10px] font-bold ${perc >= 100 ? 'text-neonGreen' : 'text-gray-400'}">${perc.toFixed(1)}%</p>
+                        <p class="text-[10px] text-textMuted">${reqDayStr}</p>
+                    </div>
+                </div>`;
+            });
+        };
+
+        window.openTargetModal = (monthKey) => {
+            document.getElementById('tm_monthKey').value = monthKey;
+            
+            const [y, m] = monthKey.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            document.getElementById('tm_subtitle').innerText = `Enter your profit goal for ${months[parseInt(m)-1]} ${y}.`;
+            
+            const curVal = window.monthlyTargets[monthKey] || '';
+            document.getElementById('tm_amount').value = curVal;
+            
+            const mod = document.getElementById('targetModal');
+            mod.classList.remove('hidden'); setTimeout(()=> { mod.classList.remove('opacity-0'); document.getElementById('targetModalContent').classList.remove('scale-95'); document.getElementById('tm_amount').focus(); }, 10);
+        };
+
+        window.closeTargetModal = () => {
+            const m = document.getElementById('targetModal'); m.classList.add('opacity-0'); document.getElementById('targetModalContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
+        };
+
+        window.saveMonthlyTarget = async () => {
+            const key = document.getElementById('tm_monthKey').value;
+            const amt = parseFloat(document.getElementById('tm_amount').value) || 0;
+            window.monthlyTargets[key] = amt;
+            if(key === getCurrentMonthKey()) window.monthlyTargetVal = amt;
+
+            window.closeTargetModal();
+            window.renderTargetsView();
+            
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) {
+                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets }); } catch(e){}
+            }
+            if(activeView === 'dashboard') window.updateDashboard();
+        };
 
         function getRemainingMarketDays(year, month) {
              const now = new Date();
@@ -955,7 +1133,7 @@
                       shortWins: 0, shortLosses: 0, shortPnl: 0, shortGrossWin: 0, shortGrossLoss: 0,
                       byInstrument: {}, byTag: {}, byMonth: {}, dailyNet: {}, dailyGross: {}, dailyTradeCount: {}, 
                       timeStats: {}, durationStats: {}, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0,
-                      maxWinStr: 0, maxLossStr: 0, openTrades: 0
+                      maxWinStr: 0, maxLossStr: 0
             };
 
             const tBuckets = ['Pre-Market (Before 9:00)', 'Pre-Open (9:00-9:15)', 'Opening Hour (9:15-10:15)', 'Mid-Morning (10:15-11:30)', 'Mid-Day (11:30-13:30)', 'Early Afternoon (13:30-14:30)', 'Late Afternoon (14:30-15:30)', 'Closing (15:30-15:45)', 'Post-Market (After 15:45)'];
@@ -964,19 +1142,15 @@
             dBuckets.forEach(b => s.durationStats[b] = { trades: 0, pnl: 0 });
 
             const now = new Date();
-            let filteredTrades = window.trades;
+            let filteredTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null); // Only closed trades
+
             if(dateFilter !== 'all') {
                 const map = {'7d':7, '1m':30, '3m':90, '6m':180, '1y':365, '3y':1095, '5y':1825};
                 const cutoff = new Date(now.getTime() - (map[dateFilter] * 24 * 60 * 60 * 1000));
-                filteredTrades = window.trades.filter(t => new Date(t.entryDate) >= cutoff);
+                filteredTrades = filteredTrades.filter(t => new Date(t.exitDate) >= cutoff);
             }
 
             filteredTrades.forEach(t => {
-                if(!t.exitDate || !t.exitTime) {
-                    s.openTrades++;
-                    return; // Skip open trades for closed analytics
-                }
-
                 s.totalGross += t.pnl;
                 s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + t.pnl;
                 s.dailyTradeCount[t.exitDate] = (s.dailyTradeCount[t.exitDate] || 0) + 1;
@@ -998,18 +1172,20 @@
                 s.byTag[t.category].holdTime += t.holdTime;
                 if(t.pnl >= 0) s.byTag[t.category].wins++;
 
-                const [th, tm] = t.entryTime.split(':').map(Number);
-                const tMins = th * 60 + tm;
-                let tB = 'Post-Market (After 15:45)';
-                if (tMins < 540) tB = 'Pre-Market (Before 9:00)';
-                else if (tMins < 555) tB = 'Pre-Open (9:00-9:15)';
-                else if (tMins < 615) tB = 'Opening Hour (9:15-10:15)';
-                else if (tMins < 690) tB = 'Mid-Morning (10:15-11:30)';
-                else if (tMins < 810) tB = 'Mid-Day (11:30-13:30)';
-                else if (tMins < 870) tB = 'Early Afternoon (13:30-14:30)';
-                else if (tMins < 930) tB = 'Late Afternoon (14:30-15:30)';
-                else if (tMins < 945) tB = 'Closing (15:30-15:45)';
-                s.timeStats[tB].trades++; s.timeStats[tB].pnl += t.pnl;
+                if(t.entryTime) {
+                    const [th, tm] = t.entryTime.split(':').map(Number);
+                    const tMins = th * 60 + tm;
+                    let tB = 'Post-Market (After 15:45)';
+                    if (tMins < 540) tB = 'Pre-Market (Before 9:00)';
+                    else if (tMins < 555) tB = 'Pre-Open (9:00-9:15)';
+                    else if (tMins < 615) tB = 'Opening Hour (9:15-10:15)';
+                    else if (tMins < 690) tB = 'Mid-Morning (10:15-11:30)';
+                    else if (tMins < 810) tB = 'Mid-Day (11:30-13:30)';
+                    else if (tMins < 870) tB = 'Early Afternoon (13:30-14:30)';
+                    else if (tMins < 930) tB = 'Late Afternoon (14:30-15:30)';
+                    else if (tMins < 945) tB = 'Closing (15:30-15:45)';
+                    s.timeStats[tB].trades++; s.timeStats[tB].pnl += t.pnl;
+                }
 
                 const diffDays = Math.floor((new Date(t.exitDate) - new Date(t.entryDate)) / 86400000);
                 let dB = '2+ Weeks';
@@ -1027,7 +1203,6 @@
                 if(d !== todayStr && window.dailyStats[d] === undefined) s.missingPnlDays.push(d);
             });
 
-            // 2. Build Daily Net (Manual overrides Gross, defaults to Gross)
             Object.keys(s.dailyGross).forEach(d => {
                 s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? window.dailyStats[d] : s.dailyGross[d];
                 s.totalPnl += s.dailyNet[d];
@@ -1045,9 +1220,13 @@
             s.cagr = s.roi; 
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
-            let peak = 0, eq = 0; s.maxDrawdownAmt = 0;
+            let peak = 0, eq = 0; s.maxDrawdownAmt = 0; let maxDdPerc = 0;
             
             const sortedDays = Object.keys(s.dailyNet).sort();
+            s.avgDailyPnl = sortedDays.length > 0 ? (s.totalPnl / sortedDays.length) : 0;
+            
+            let varianceSum = 0;
+
             sortedDays.forEach(d => {
                 const dp = s.dailyNet[d];
                 eq += dp;
@@ -1055,18 +1234,28 @@
                 const dd = peak - eq;
                 if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
 
+                // Assuming 1L base capital for drawdown percentage
+                const peakCap = 100000 + peak;
+                const ddPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
+                if(ddPerc > maxDdPerc) maxDdPerc = ddPerc;
+
                 if(dp > maxDayProfit) maxDayProfit = dp;
                 if(dp < maxDayLoss) maxDayLoss = dp;
                 
                 if(dp > 0) { winDays++; cWs++; cLs=0; if(cWs>s.maxWinStr) s.maxWinStr=cWs; }
                 else if (dp < 0) { lossDays++; cLs++; cWs=0; if(cLs>s.maxLossStr) s.maxLossStr=cLs; }
                 else { beDays++; cWs=0; cLs=0; }
+
+                varianceSum += Math.pow(dp - s.avgDailyPnl, 2);
             });
+
+            s.maxDrawdownPerc = maxDdPerc;
+            const stdDev = sortedDays.length > 1 ? Math.sqrt(varianceSum / (sortedDays.length - 1)) : 0;
+            s.sharpeRatio = stdDev > 0 ? (s.avgDailyPnl / stdDev) * Math.sqrt(252) : (s.avgDailyPnl > 0 ? 9.99 : 0);
 
             s.winDays = winDays; s.lossDays = lossDays; s.beDays = beDays;
             s.maxDayProfit = maxDayProfit; s.maxDayLoss = maxDayLoss;
             s.dayWinPerc = sortedDays.length > 0 ? (winDays / sortedDays.length)*100 : 0;
-            s.avgDailyPnl = sortedDays.length > 0 ? (s.totalPnl / sortedDays.length) : 0;
             s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
             
             // League Points Engine
@@ -1144,15 +1333,10 @@
             if (activeView === 'dashboard') window.updateDashboard();
             else if (activeView === 'analytics') window.updateAnalytics();
             else if (activeView === 'trades') window.renderPastTrades();
-            else if (activeView === 'targets') window.renderTargetsView();
             else if (activeView === 'calendar') window.renderCalendar();
+            else if (activeView === 'targets') window.renderTargetsView();
             else if (activeView === 'instruments') window.renderInstrumentsTable();
             else if (activeView === 'tags') window.renderTagsTable();
-            
-            const st = getStats();
-            const navWarn = document.getElementById('navWarningIcon');
-            if(st.missingPnlDays.length > 0) navWarn.classList.remove('hidden');
-            else navWarn.classList.add('hidden');
         };
 
         window.switchView = (viewId) => {
@@ -1216,13 +1400,13 @@
             const st = getStats(filterVal);
             
             const warningEl = document.getElementById('missingPnlWarning');
+            const navWarn = document.getElementById('navWarningIcon');
             if(st.missingPnlDays.length > 0) {
-                warningEl.classList.remove('hidden');
-                let displayDays = st.missingPnlDays.slice(0, 3).map(d => { const dt = new Date(d); return `${dt.getDate()} ${dt.toLocaleString('default', {month:'short'})}`; }).join(', ');
-                if(st.missingPnlDays.length > 3) displayDays += ` +${st.missingPnlDays.length-3} more`;
-                document.getElementById('missingDatesList').innerText = displayDays;
+                if(warningEl) warningEl.classList.remove('hidden');
+                if(navWarn) navWarn.classList.remove('hidden');
             } else {
-                warningEl.classList.add('hidden');
+                if(warningEl) warningEl.classList.add('hidden');
+                if(navWarn) navWarn.classList.add('hidden');
             }
 
             document.getElementById('d_netPnl').innerText = fINR(st.totalPnl); 
@@ -1274,8 +1458,8 @@
             }
 
             const rl = document.getElementById('d_recentList'); rl.innerHTML = '';
-            const top5 = [...window.trades].sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate)).slice(0,6);
-            top5.forEach(t => {
+            const closedTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null).sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate)).slice(0,6);
+            closedTrades.forEach(t => {
                 rl.innerHTML += `<div class="flex justify-between items-center bg-[#1f2433] p-2.5 rounded-lg border border-gray-800"><div><p class="text-[9px] text-textMuted uppercase">${t.entryDate}</p><p class="font-bold text-xs">${t.symbol}</p></div><p class="font-mono text-xs font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}</p></div>`;
             });
         };
@@ -1313,11 +1497,11 @@
                 buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) +
                 buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
                 buildStatCell('Max Drawdown (Amt)', 'text-white', fINR(st.maxDrawdownAmt)) +
-                buildStatCell('Average Drawdown %', 'text-white', '0.40%') +
+                buildStatCell('Max Drawdown (%)', 'text-white', `${st.maxDrawdownPerc.toFixed(2)}%`) +
                 buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) +
                 buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) +
                 buildStatCell('Profit Factor', 'text-white', st.pf.toFixed(2)) +
-                buildStatCell('Sharpe Ratio', 'text-white', '0.81') +
+                buildStatCell('Sharpe Ratio', 'text-white', st.sharpeRatio.toFixed(2)) +
                 buildStatCell('Average Hold Time (Winning)', 'text-white', formatHoldTime(st.wins>0?Math.floor(st.totalHoldWin/st.wins):0)) +
                 buildStatCell('Average Hold Time (Losing)', 'text-white', formatHoldTime(st.losses>0?Math.floor(st.totalHoldLoss/st.losses):0)) +
                 buildStatCell('Trades Per Day', 'text-white', st.avgTradesDay.toFixed(1));
@@ -1325,7 +1509,8 @@
             document.getElementById('a_winStreak').innerText = st.maxWinStr;
             document.getElementById('a_loseStreak').innerText = st.maxLossStr;
 
-            const sortedTrades = [...window.trades].sort((a,b)=>b.pnl - a.pnl);
+            const closedTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null);
+            const sortedTrades = [...closedTrades].sort((a,b)=>b.pnl - a.pnl);
             const wList = document.getElementById('a_topWins'); wList.innerHTML='';
             sortedTrades.slice(0,5).forEach(t => { if(t.pnl>0) wList.innerHTML += `<div class="flex justify-between"><span>${t.symbol}</span><span class="text-neonGreen">${fINR(t.pnl)}</span></div>` });
             const lList = document.getElementById('a_topLosses'); lList.innerHTML='';
@@ -1402,40 +1587,85 @@
 
         window.switchTradeTab = (tab) => {
             window.activeTradeTab = tab;
-            document.getElementById('btnClosedTrades').className = `px-4 py-1.5 text-xs rounded transition-all ${tab==='closed'?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
-            document.getElementById('btnOpenTrades').className = `px-4 py-1.5 text-xs rounded transition-all flex items-center gap-1 ${tab==='open'?'bg-panelLighter text-white shadow':'text-textMuted hover:text-white'}`;
+            const openBtn = document.getElementById('tabOpen');
+            const closedBtn = document.getElementById('tabClosed');
+            
+            if(tab === 'open') {
+                openBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-neonGreen/20 text-neonGreen border border-neonGreen/30 relative";
+                closedBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-[#1f2433] text-gray-400 hover:text-white transition-colors relative";
+            } else {
+                closedBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-neonGreen/20 text-neonGreen border border-neonGreen/30 relative";
+                openBtn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-[#1f2433] text-gray-400 hover:text-white transition-colors relative";
+            }
             window.renderPastTrades();
+        };
+
+        window.toggleDayAccordion = (dateStr) => {
+            const el = document.getElementById(`acc_${dateStr}`);
+            const icon = document.getElementById(`acc_icon_${dateStr}`);
+            if(el) {
+                if(el.classList.contains('hidden')) { el.classList.remove('hidden'); if(icon) icon.className = "ph-bold ph-caret-up"; } 
+                else { el.classList.add('hidden'); if(icon) icon.className = "ph-bold ph-caret-down"; }
+            }
         };
 
         window.renderPastTrades = () => {
             const tbody = document.getElementById('fullTradesTableBody'); tbody.innerHTML = '';
+            
+            const openCount = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).length;
+            const closedCount = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null).length;
+            
+            const otBadge = document.getElementById('otBadge');
+            if(otBadge) { otBadge.innerText = openCount; otBadge.classList.toggle('hidden', openCount === 0); }
+            const ctBadge = document.getElementById('ctBadge');
+            if(ctBadge) { ctBadge.innerText = closedCount; ctBadge.classList.toggle('hidden', closedCount === 0); }
+
+            if(window.activeTradeTab === 'open') {
+                const openTrades = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate));
+                if(openTrades.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
+                
+                openTrades.forEach(t => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
+                            <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
+                            <td class="p-4 font-bold text-white">${t.symbol}</td>
+                            <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${t.category}</span></td>
+                            <td class="p-4 text-right font-mono font-bold text-gray-400">${fINR(t.entryValue || 0)}</td>
+                            <td class="p-4 text-center">
+                                <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="window.editTrade('${t.id}')" class="bg-blue-500/20 text-blue-400 px-3 py-1 text-xs font-bold rounded hover:bg-blue-500/40 transition-colors">Close</button>
+                                    <button onclick="window.openConfirm('Delete Trade', 'Permanently delete this open position?', 'Delete', () => window.deleteTrade('${t.id}'))" class="bg-red-500/20 text-red-400 px-2 py-1 text-xs font-bold rounded hover:bg-red-500/40 transition-colors"><i class="ph-bold ph-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                return;
+            }
+
             const st = getStats();
-            
-            document.getElementById('openCountBadge').innerText = st.openTrades;
-            document.getElementById('openCountBadge').classList.toggle('hidden', st.openTrades === 0);
-            
             const tradesByDate = {};
-            const filterTrades = window.trades.filter(t => window.activeTradeTab === 'closed' ? (t.exitDate && t.exitTime) : (!t.exitDate || !t.exitTime));
-            
-            filterTrades.forEach(t => {
-                const sortDate = window.activeTradeTab === 'closed' ? t.exitDate : t.entryDate;
-                const year = sortDate.substring(0,4);
-                const month = sortDate.substring(5,7);
+            const closedTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null);
+
+            closedTrades.forEach(t => {
+                const year = t.exitDate.substring(0,4);
+                const month = t.exitDate.substring(5,7);
                 if(!tradesByDate[year]) tradesByDate[year] = {};
                 if(!tradesByDate[year][month]) tradesByDate[year][month] = {};
-                if(!tradesByDate[year][month][sortDate]) tradesByDate[year][month][sortDate] = [];
-                tradesByDate[year][month][sortDate].push(t);
+                if(!tradesByDate[year][month][t.exitDate]) tradesByDate[year][month][t.exitDate] = [];
+                tradesByDate[year][month][t.exitDate].push(t);
             });
 
             const monthsArr = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const todayStr = new Date().toISOString().split('T')[0];
+            const ystStr = new Date(new Date().getTime() - 86400000).toISOString().split('T')[0];
 
             Object.keys(tradesByDate).sort((a,b)=>b-a).forEach(year => {
                 tbody.innerHTML += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
-                tbody.innerHTML += `<tr><td colspan="6" class="p-4 bg-gradient-to-r from-[#1f2433] to-transparent font-bold text-white text-lg rounded-t-xl"><i class="ph-fill ph-calendar text-neonGreen mr-2"></i> ${year}</td></tr>`;
+                tbody.innerHTML += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
                 
                 Object.keys(tradesByDate[year]).sort((a,b)=>b-a).forEach(monthStr => {
                     const monthName = monthsArr[parseInt(monthStr)-1];
-                    tbody.innerHTML += `<tr><td colspan="6" class="p-3 bg-[#11141c] border-l-4 border-gray-600 text-sm font-bold text-gray-300 uppercase tracking-widest pl-4"><i class="ph-fill ph-calendar-blank text-gray-500 mr-2"></i> ${monthName}</td></tr>`;
+                    tbody.innerHTML += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
 
                     Object.keys(tradesByDate[year][monthStr]).sort((a,b)=>new Date(b)-new Date(a)).forEach(dateStr => {
                         const dayPnl = st.dailyNet[dateStr] || 0;
@@ -1443,40 +1673,38 @@
                         const bgBadgeClass = dayPnl > 0 ? 'bg-neonGreen/10' : (dayPnl < 0 ? 'bg-neonRed/10' : 'bg-gray-800');
                         const dateObj = new Date(dateStr);
                         const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                        
-                        if(window.activeTradeTab === 'closed') {
-                            tbody.innerHTML += `
-                            <tr>
-                                <td colspan="6" class="p-0 border-none">
-                                    <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
-                                        <div class="flex items-center gap-3">
-                                            <span class="bg-[#1f2433] text-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm">${dayName}</span>
-                                            <span class="text-xs text-gray-400 font-medium">${dateStr}</span>
-                                        </div>
-                                        <span class="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full ${bgBadgeClass} ${dayClass}">${dayPnl>0?'+':''}${fINR(dayPnl)} Net</span>
-                                    </div>
-                                </td>
-                            </tr>`;
-                        } else {
-                            tbody.innerHTML += `<tr><td colspan="6" class="p-2 bg-[#11141c] ml-2 mt-2 mb-1 rounded text-xs font-bold text-gray-400">${dateStr}</td></tr>`;
-                        }
-                        
                         const dayTrades = tradesByDate[year][monthStr][dateStr].sort((a,b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
-                        dayTrades.forEach(t => {
-                            let retPerc = 0; if(t.entryValue > 0) retPerc = ((t.pnl / t.entryValue) * 100).toFixed(2);
-                            let retStr = t.pnl > 0 ? `+${retPerc}%` : `${retPerc}%`;
-                            let pnlCls = t.pnl >= 0 ? 'text-neonGreen' : 'text-neonRed';
+                        
+                        const isOpen = (dateStr === todayStr || dateStr === ystStr);
 
-                            tbody.innerHTML += `
+                        tbody.innerHTML += `
+                        <tr class="cursor-pointer hover:bg-[#11141c] transition-colors" onclick="window.toggleDayAccordion('${dateStr}')">
+                            <td colspan="6" class="p-0 border-none">
+                                <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
+                                    <div class="flex items-center gap-3">
+                                        <i id="acc_icon_${dateStr}" class="ph-bold ${isOpen?'ph-caret-up':'ph-caret-down'} text-gray-500"></i>
+                                        <span class="text-xs font-bold text-white">${dayName}, ${dateStr}</span>
+                                        <span class="bg-[#1f2433] text-gray-400 px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">${dayTrades.length} Trades</span>
+                                    </div>
+                                    <span class="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full ${bgBadgeClass} ${dayClass}">${dayPnl>0?'+':''}${fINR(dayPnl)} Net</span>
+                                </div>
+                            </td>
+                        </tr>`;
+                        
+                        let trsHtml = `<tbody id="acc_${dateStr}" class="${isOpen?'':'hidden'} transition-all">`;
+                        dayTrades.forEach(t => {
+                            let retPerc = '';
+                            if(t.entryValue && t.entryValue > 0 && t.pnl != null) {
+                                const p = (t.pnl / t.entryValue) * 100;
+                                retPerc = `<div class="text-[9px] mt-0.5 font-bold ${p>=0?'text-neonGreen':'text-neonRed'}">${p>=0?'+':''}${p.toFixed(2)}%</div>`;
+                            }
+                            trsHtml += `
                                 <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
-                                    <td class="p-4 pl-10"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
-                                    <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.exitDate||'--'}</div><div class="font-medium text-white">${t.exitTime||'--'}</div><div class="text-[9px] text-textMuted mt-1">${formatHoldTime(t.holdTime)}</div></td>
+                                    <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
+                                    <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
                                     <td class="p-4 font-bold text-white">${t.symbol}</td>
-                                    <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${t.category}</span></td>
-                                    <td class="p-4 text-right">
-                                        <div class="font-mono font-bold ${pnlCls}">${fINR(t.pnl)}</div>
-                                        <div class="text-[9px] font-medium mt-0.5 ${pnlCls}">${retStr}</div>
-                                    </td>
+                                    <td class="p-4"><span class="text-[10px] bg-[#1a1d27] border border-gray-700 px-2 py-1 rounded whitespace-nowrap text-gray-300">${t.category}</span></td>
+                                    <td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}${retPerc}</td>
                                     <td class="p-4 text-center">
                                         <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onclick="window.editTrade('${t.id}')" class="text-blue-400 p-1 hover:bg-blue-500/10 rounded transition-colors"><i class="ph-bold ph-pencil-simple"></i></button>
@@ -1485,10 +1713,12 @@
                                     </td>
                                 </tr>`;
                         });
+                        trsHtml += `</tbody>`;
+                        tbody.insertAdjacentHTML('beforeend', trsHtml);
                     });
                 });
             });
-            if(filterTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No trades found.</td></tr>`;
+            if(closedTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr>`;
         };
 
         window.renderCalendar = () => {
@@ -1531,10 +1761,9 @@
 
                     if(isToday) cls += " ring-1 ring-inset ring-fuchsia-500 shadow-[inset_0_0_8px_rgba(217,70,239,0.5)]";
                     
+                    const missingIndicator = isMissing ? `<div class="absolute top-1 right-1 w-1.5 h-1.5 bg-orange-500 rounded-full shadow-[0_0_5px_rgba(249,115,22,0.8)]"></div>` : '';
+                    
                     const clickEvt = (pnl !== undefined || isMissing) ? `onclick="window.openDayModal('${dt}', ${pnl||0})"` : `onclick="window.openDayModal('${dt}', 0)"`;
-                    
-                    let missingIndicator = isMissing ? `<div class="absolute top-1 right-1 w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(249,115,22,0.8)]"></div>` : '';
-                    
                     html += `<div class="${cls} text-center py-2 flex items-center justify-center relative group" ${clickEvt} title="${pnl?fINR(pnl):''}"><span class="${innerCls}">${d}</span>${missingIndicator}</div>`;
                 }
                 const rem = (7 - ((firstDay+daysInMonth)%7))%7;
@@ -1577,7 +1806,9 @@
             else window.marketHolidays.push(dt);
             renderHolidayGrid();
             if(useLocalStorage) saveLocal();
-            else if(currentUser) await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
+            else if(currentUser) {
+                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); } catch(e){}
+            }
             if(activeView === 'calendar') window.renderCalendar();
         };
 
@@ -1624,26 +1855,120 @@
             document.getElementById(dtPickerTarget+'Disp').innerText = dt;
             document.getElementById(dtPickerTarget+'Disp').className = "text-white";
             renderDtpCalendar();
-            if(dtPickerTarget === 'entryDate') window.syncExitDate();
         };
 
         window.applyDateTimePicker = () => window.closeDateTimePicker();
 
-        // --- EDIT TRADE MODAL LOGIC ---
+        // --- TIME PICKER ---
+        let tpTarget = '';
+        let tpHourScrollTmt = null;
+        let tpMinScrollTmt = null;
+        
+        function populateTimeScroller(id, start, end, step = 1) {
+            const container = document.getElementById(id);
+            container.innerHTML = '<div class="time-item pointer-events-none"></div>'; 
+            for(let i=start; i<=end; i+=step) {
+                const val = String(i).padStart(2, '0');
+                container.innerHTML += `<div class="time-item" id="${id}_${val}" onclick="window.snapTimeScroller('${id}', '${val}')">${val}</div>`;
+            }
+            container.innerHTML += '<div class="time-item pointer-events-none"></div>'; 
+        }
+
+        window.snapTimeScroller = (containerId, val) => {
+            const el = document.getElementById(`${containerId}_${val}`);
+            if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        window.handleTimeScroll = (type) => {
+            const containerId = type === 'hr' ? 'tp_hours' : 'tp_minutes';
+            const container = document.getElementById(containerId);
+            const tmt = type === 'hr' ? tpHourScrollTmt : tpMinScrollTmt;
+            clearTimeout(tmt);
+            
+            const action = setTimeout(() => {
+                const items = container.querySelectorAll('.time-item:not(.pointer-events-none)');
+                const containerCenter = container.getBoundingClientRect().top + (container.getBoundingClientRect().height / 2);
+                
+                let closest = null; let minDiff = Infinity;
+                items.forEach(item => {
+                    const rect = item.getBoundingClientRect();
+                    const itemCenter = rect.top + (rect.height / 2);
+                    const diff = Math.abs(containerCenter - itemCenter);
+                    if(diff < minDiff) { minDiff = diff; closest = item; }
+                    item.classList.remove('active');
+                });
+
+                if(closest) {
+                    closest.classList.add('active');
+                    const hrEl = document.querySelector('#tp_hours .active');
+                    const minEl = document.querySelector('#tp_minutes .active');
+                    if(hrEl && minEl) {
+                        const h = parseInt(hrEl.innerText); const m = parseInt(minEl.innerText);
+                        if(h === 9 && m < 15) window.snapTimeScroller('tp_minutes', '15');
+                        if(h === 15 && m > 30) window.snapTimeScroller('tp_minutes', '30');
+                    }
+                }
+            }, 100);
+            if(type === 'hr') tpHourScrollTmt = action; else tpMinScrollTmt = action;
+        };
+
+        window.openTimePicker = (targetId) => {
+            tpTarget = targetId;
+            populateTimeScroller('tp_hours', 9, 15);
+            populateTimeScroller('tp_minutes', 0, 59, 1);
+            
+            let curVal = document.getElementById(targetId).value;
+            if(!curVal) curVal = "09:15"; // default fallback for scroller start
+            
+            const [h, m] = curVal.split(':');
+            
+            const mEl = document.getElementById('timePickerModal');
+            mEl.classList.remove('hidden'); 
+            setTimeout(()=> { 
+                mEl.classList.remove('opacity-0'); 
+                document.getElementById('timePickerContent').classList.remove('scale-95');
+                document.getElementById(`tp_hours_${h}`).scrollIntoView({ block: 'center' });
+                document.getElementById(`tp_minutes_${m}`).scrollIntoView({ block: 'center' });
+                window.handleTimeScroll('hr'); window.handleTimeScroll('min');
+            }, 10);
+        };
+
+        window.closeTimePicker = () => {
+            const m = document.getElementById('timePickerModal'); m.classList.add('opacity-0'); document.getElementById('timePickerContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300);
+        };
+
+        window.applyTimePicker = () => {
+            const hrEl = document.querySelector('#tp_hours .active');
+            const minEl = document.querySelector('#tp_minutes .active');
+            if(!hrEl || !minEl) return;
+            
+            let h = parseInt(hrEl.innerText); let m = parseInt(minEl.innerText);
+            if(h < 9 || (h === 9 && m < 15)) { h = 9; m = 15; }
+            if(h > 15 || (h === 15 && m > 30)) { h = 15; m = 30; }
+
+            const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            document.getElementById(tpTarget).value = timeStr;
+            document.getElementById(tpTarget+'Disp').innerText = timeStr;
+            document.getElementById(tpTarget+'Disp').className = "text-white font-bold";
+            
+            window.calcPrev();
+            window.closeTimePicker();
+        };
+
+        // --- ADD/EDIT TRADE MODAL LOGIC ---
         window.openTradeModal = () => {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('entryDate').value = today; document.getElementById('exitDate').value = today;
-            document.getElementById('entryDateDisp').innerText = today; document.getElementById('exitDateDisp').innerText = today;
-            document.getElementById('entryDateDisp').className = "text-white"; document.getElementById('exitDateDisp').className = "text-white";
+            document.getElementById('entryDate').value = today; document.getElementById('entryDateDisp').innerText = today; document.getElementById('entryDateDisp').className = "text-white font-bold";
             
-            document.getElementById('entryTime').value = "09:15"; document.getElementById('exitTime').value = "15:30";
+            document.getElementById('exitDate').value = ''; document.getElementById('exitDateDisp').innerText = "Select Date"; document.getElementById('exitDateDisp').className = "text-gray-500";
+            document.getElementById('entryTime').value = ''; document.getElementById('entryTimeDisp').innerText = "--:--"; document.getElementById('entryTimeDisp').className = "text-gray-500";
+            document.getElementById('exitTime').value = ''; document.getElementById('exitTimeDisp').innerText = "--:--"; document.getElementById('exitTimeDisp').className = "text-gray-500";
             
             document.getElementById('formErrorAlert').classList.add('hidden');
-            document.getElementById('tradeModal').classList.remove('hidden');
-            document.getElementById('openTradeWarn').classList.add('hidden');
-            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
+            document.getElementById('openTradeWarning').classList.add('hidden');
             
-            window.validateFormTime();
+            document.getElementById('tradeModal').classList.remove('hidden');
+            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
         };
 
         window.closeTradeModal = () => {
@@ -1654,51 +1979,9 @@
                 document.getElementById('legsWrapper').innerHTML=window.createLegHTML(false); 
                 document.getElementById('previewPnl').innerText='₹0.00'; 
                 document.getElementById('formErrorAlert').classList.add('hidden');
+                document.getElementById('openTradeWarning').classList.add('hidden');
                 editingTradeId = null;
             }, 300);
-        };
-
-        window.syncExitDate = () => {
-            const ent = document.getElementById('entryDate').value;
-            const ext = document.getElementById('exitDate');
-            if(!ext.value || ext.value < ent) { ext.value = ent; document.getElementById('exitDateDisp').innerText = ent; document.getElementById('exitDateDisp').className = "text-white"; }
-        };
-
-        window.validateFormTime = () => {
-            const eEl = document.getElementById('entryTime');
-            const xEl = document.getElementById('exitTime');
-            const eTime = eEl.value;
-            const xTime = xEl.value;
-            const err = document.getElementById('formErrorAlert');
-            const btn = document.getElementById('saveTradeBtn');
-            const warn = document.getElementById('openTradeWarn');
-            
-            const check = (t, el) => { 
-                if(!t) return true; // Optional logic handler
-                const [h,m]=t.split(':').map(Number); 
-                const min=h*60+m; 
-                const valid = min>=555 && min<=930;
-                if(!valid && el) el.classList.add('border-neonRed');
-                else if(el) el.classList.remove('border-neonRed');
-                return valid; 
-            };
-
-            const eValid = check(eTime, eEl);
-            const xValid = check(xTime, xEl);
-            const bothValid = eValid && xValid;
-
-            if(!bothValid) {
-                document.getElementById('formErrorMsg').innerText = "Time must be during Indian market hours (09:15 - 15:30).";
-                err.classList.remove('hidden');
-            } else {
-                err.classList.add('hidden');
-            }
-            
-            const isMissingExit = (!document.getElementById('exitDate').value || !xTime);
-            warn.classList.toggle('hidden', !isMissingExit);
-
-            btn.disabled = !bothValid;
-            return bothValid;
         };
 
         window.setTradeStructure = (type) => {
@@ -1717,9 +2000,9 @@
                 <div class="grid grid-cols-5 gap-3">
                     <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
                     <div class="hedged-only hidden col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Strike</label><input type="text" class="leg-strike w-full input-dark rounded py-1 px-1 text-xs uppercase"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeypress="return event.charCode >= 48 && event.charCode <= 57"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit</label><input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit <span class="text-gray-600">(Opt)</span></label><input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
                 </div>
             </div>`;
         };
@@ -1730,17 +2013,34 @@
         };
 
         window.calcPrev = () => {
-            let pnl = 0;
+            let pnl = 0; let allExitsEntered = true; let emptyFields = false;
             document.querySelectorAll('.leg-row').forEach(r => {
-                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0, ex=parseFloat(r.querySelector('.leg-ex').value)||0;
+                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
+                const exStr = r.querySelector('.leg-ex').value;
+                if(!exStr) { allExitsEntered = false; emptyFields = true; }
+                const ex=parseFloat(exStr)||0;
                 pnl += (r.querySelector('.leg-dir').value==='Long') ? (ex-en)*q : (en-ex)*q;
             });
+            
+            const xd = document.getElementById('exitDate').value;
+            const xt = document.getElementById('exitTime').value;
+            if(!xd || !xt) emptyFields = true;
+
             const pEl = document.getElementById('previewPnl');
-            pEl.innerText = fINR(pnl); pEl.className = `text-2xl font-bold font-mono ${pnl>0?'text-neonGreen':(pnl<0?'text-neonRed':'text-gray-400')}`;
-            return pnl;
+            const warnEl = document.getElementById('openTradeWarning');
+            
+            if(emptyFields || !allExitsEntered) {
+                pEl.innerText = "OPEN TRADE"; pEl.className = `text-xl font-bold font-mono text-blue-400`;
+                warnEl.classList.remove('hidden');
+                return null;
+            } else {
+                pEl.innerText = fINR(pnl); pEl.className = `text-2xl font-bold font-mono ${pnl>0?'text-neonGreen':(pnl<0?'text-neonRed':'text-gray-400')}`;
+                warnEl.classList.add('hidden');
+                return pnl;
+            }
         };
 
-        document.getElementById('addTradeForm').addEventListener('input', () => { window.calcPrev(); window.validateFormTime(); });
+        document.getElementById('addTradeForm').addEventListener('input', () => window.calcPrev());
 
         const showFormError = (msg) => { const err = document.getElementById('formErrorAlert'); document.getElementById('formErrorMsg').innerText = msg; err.classList.remove('hidden'); };
 
@@ -1748,7 +2048,14 @@
             if(!useLocalStorage && !currentUser) { showFormError("Must be connected to Database to save."); return; }
             const cat = document.getElementById('tradeCategory').value; if(!cat) { showFormError("Please select a Strategy Category."); return; }
             const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
-            if(!ed) { showFormError("Please select a valid Entry date."); return; }
+            
+            if(!ed || !et) { showFormError("Entry Date and Entry Time are required."); return; }
+
+            // Validate Times if entered
+            const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=930; };
+            if(!checkT(et)) { showFormError("Entry Time must be during Indian market hours (09:15 - 15:30)."); return; }
+            if(xt && !checkT(xt)) { showFormError("Exit Time must be during Indian market hours (09:15 - 15:30)."); return; }
+            
             if(xd && xt && new Date(`${xd}T${xt}`) < new Date(`${ed}T${et}`)) { showFormError("Exit date/time cannot be before Entry date/time."); return; }
             
             document.getElementById('formErrorAlert').classList.add('hidden');
@@ -1757,17 +2064,16 @@
             const legs = []; let totalVal = 0;
             document.querySelectorAll('.leg-row').forEach(r => {
                 const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
-                legs.push({ direction:r.querySelector('.leg-dir').value, strike:r.querySelector('.leg-strike').value, qty:q, entry:en, exit:parseFloat(r.querySelector('.leg-ex').value)||0 });
+                const exStr = r.querySelector('.leg-ex').value;
+                legs.push({ direction:r.querySelector('.leg-dir').value, strike:r.querySelector('.leg-strike').value, qty:q, entry:en, exit:(exStr ? parseFloat(exStr) : null) });
                 totalVal += q * en;
             });
             
+            const calcPnl = window.calcPrev();
+            const ht = (xd && xt) ? Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000) : null;
+            
             const tid = editingTradeId || Date.now().toString();
-            
-            // Calculate Hold Time conditionally based on Open/Closed status
-            let ht = 0;
-            if(xd && xt) ht = Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000);
-            
-            const tradeObj = { entryDate:ed, exitDate:xd, symbol:document.getElementById('tradeSymbol').value.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:cat, entryTime:et, exitTime:xt, legs, pnl:window.calcPrev(), holdTime: ht, entryValue: totalVal, timestamp: Date.now() };
+            const tradeObj = { entryDate:ed, exitDate:(xd||null), symbol:document.getElementById('tradeSymbol').value.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:cat, entryTime:et, exitTime:(xt||null), legs, pnl:calcPnl, holdTime:ht, entryValue: totalVal, timestamp: Date.now() };
 
             if(useLocalStorage) {
                 if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
@@ -1788,19 +2094,12 @@
             document.getElementById('modalTitle').innerHTML = '<i class="ph-fill ph-pencil-simple text-blue-400"></i> Edit Trade';
             document.getElementById('saveTradeBtn').innerHTML = '<i class="ph-bold ph-check"></i> Update';
             
-            document.getElementById('entryDate').value = t.entryDate; document.getElementById('entryDateDisp').innerText = t.entryDate; document.getElementById('entryDateDisp').className = "text-white";
-            
-            if(t.exitDate) {
-                document.getElementById('exitDate').value = t.exitDate; document.getElementById('exitDateDisp').innerText = t.exitDate; document.getElementById('exitDateDisp').className = "text-white";
-            } else {
-                document.getElementById('exitDate').value = ""; document.getElementById('exitDateDisp').innerText = "Select Date"; document.getElementById('exitDateDisp').className = "text-textMuted";
-            }
-
+            document.getElementById('entryDate').value = t.entryDate; document.getElementById('entryDateDisp').innerText = t.entryDate; document.getElementById('entryDateDisp').className = "text-white font-bold";
+            document.getElementById('exitDate').value = t.exitDate || ''; document.getElementById('exitDateDisp').innerText = t.exitDate || "Select Date"; document.getElementById('exitDateDisp').className = t.exitDate ? "text-white font-bold" : "text-gray-500";
             document.getElementById('tradeSymbol').value = t.symbol;
             document.getElementById('tradeCategory').value = t.category;
-            
-            document.getElementById('entryTime').value = t.entryTime || "09:15"; 
-            document.getElementById('exitTime').value = t.exitTime || ""; 
+            document.getElementById('entryTime').value = t.entryTime || ''; document.getElementById('entryTimeDisp').innerText = t.entryTime || "--:--"; document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
+            document.getElementById('exitTime').value = t.exitTime || ''; document.getElementById('exitTimeDisp').innerText = t.exitTime || "--:--"; document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
             
             window.setTradeStructure(t.structure);
             const w = document.getElementById('legsWrapper'); w.innerHTML = '';
@@ -1811,13 +2110,13 @@
                 row.querySelector('.leg-strike').value = leg.strike;
                 row.querySelector('.leg-qty').value = leg.qty;
                 row.querySelector('.leg-en').value = leg.entry;
-                row.querySelector('.leg-ex').value = leg.exit;
+                row.querySelector('.leg-ex').value = leg.exit !== null ? leg.exit : '';
                 if(t.structure === 'Hedged') row.querySelector('.hedged-only').classList.remove('hidden');
             });
 
+            document.getElementById('formErrorAlert').classList.add('hidden');
             document.getElementById('tradeModal').classList.remove('hidden'); setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
             window.calcPrev();
-            window.validateFormTime();
         };
 
         window.deleteTrade = async (id) => {
@@ -1826,18 +2125,21 @@
             try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); } catch(e) { console.error("Delete error:", e); }
         };
 
-        // --- DAILY PNL MODAL ---
+        // --- DAILY PNL EDIT MODAL ---
         window.openDayModal = (dt, pnl) => {
             document.getElementById('dayModalDate').value = dt;
             const dp = new Date(dt).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
             document.getElementById('dayModalTitle').innerText = dp;
-            document.getElementById('dayModalNet').value = window.dailyStats[dt] !== undefined ? window.dailyStats[dt] : (pnl || 0);
             
-            let g = 0; window.trades.forEach(t => { if(t.exitDate === dt) g += t.pnl; });
+            const netInput = document.getElementById('dayModalNet');
+            netInput.value = window.dailyStats[dt] !== undefined ? window.dailyStats[dt] : (pnl || 0);
+            
+            let g = 0; window.trades.forEach(t => { if(t.exitDate === dt && t.pnl != null) g += t.pnl; });
             document.getElementById('dayModalGross').innerText = fINR(g);
             window.calcDayCharges();
             
-            const m = document.getElementById('dayModal'); m.classList.remove('hidden'); setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('dayModalContent').classList.remove('scale-95'); document.getElementById('dayModalNet').focus(); }, 10);
+            const m = document.getElementById('dayModal'); m.classList.remove('hidden'); 
+            setTimeout(()=> { m.classList.remove('opacity-0'); document.getElementById('dayModalContent').classList.remove('scale-95'); netInput.focus(); netInput.select(); }, 10);
         };
         
         window.closeDayModal = () => { const m = document.getElementById('dayModal'); m.classList.add('opacity-0'); document.getElementById('dayModalContent').classList.add('scale-95'); setTimeout(()=> m.classList.add('hidden'), 300); };
@@ -1849,6 +2151,7 @@
             const charges = g - net;
             document.getElementById('dayModalCharges').innerText = fINR(charges);
         };
+        
         document.getElementById('dayModalNet').addEventListener('input', window.calcDayCharges);
 
         window.saveDayPnl = async () => {
@@ -1858,7 +2161,9 @@
             window.closeDayModal();
             if(useLocalStorage) saveLocal();
             else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl: val }); } catch(e) { console.error("Error saving daily PNL", e); }
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl: val });
+                } catch(e) { console.error("Error saving daily PNL", e); }
             }
             window.renderActiveView();
         };
