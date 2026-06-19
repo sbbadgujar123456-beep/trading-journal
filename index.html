@@ -236,17 +236,6 @@
                     </div>
                 </div>
 
-                <!-- NEW: AI Trading Insights Panel -->
-                <div class="glass-panel p-4 md:p-5 rounded-xl flex flex-col border-l-2 border-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.05)]">
-                    <div class="flex items-center gap-2 mb-4 border-b border-gray-800 pb-2">
-                        <i class="ph-fill ph-magic-wand text-gold text-lg animate-pulse"></i>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">AI Trading Insights</h3>
-                    </div>
-                    <div id="d_insightsList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- Dynamic Insights will be populated here -->
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-3 grid grid-cols-1 gap-4">
                         <div class="glass-panel p-5 rounded-xl flex flex-col justify-center">
@@ -282,19 +271,19 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-4 glass-panel p-4 rounded-xl flex flex-col max-h-[300px]">
-                        <div class="flex gap-2 mb-4 border-b border-gray-800 pb-2 shrink-0">
-                            <span class="px-3 py-1 rounded-full border border-neonGreen text-neonGreen text-xs">Recent Trades</span>
-                        </div>
-                        <div class="overflow-y-auto flex-1 custom-scrollbar pr-2 space-y-2" id="d_recentList"></div>
+            <!-- ================= VIEW: ANALYTICS ================= -->
+            <div id="view-analytics" class="view-section space-y-6">
+
+                <!-- AI Trading Insights Panel (Moved to Analytics) -->
+                <div class="glass-panel p-4 md:p-5 rounded-xl flex flex-col border-l-2 border-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.05)]">
+                    <div class="flex items-center gap-2 mb-4 border-b border-gray-800 pb-2">
+                        <i class="ph-fill ph-magic-wand text-gold text-lg animate-pulse"></i>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">AI Trading Insights</h3>
                     </div>
-                    <div class="md:col-span-8 glass-panel p-4 rounded-xl flex flex-col">
-                        <p class="text-xs text-textMuted mb-2">Daily Net Curve</p>
-                        <div class="flex-1 relative w-full min-h-[250px]"><canvas id="c_dailyNetLine"></canvas></div>
+                    <div id="a_insightsList" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Dynamic Insights will be populated here -->
                     </div>
                 </div>
-            </div>
-
-            <div id="view-analytics" class="view-section space-y-6">
                 
                 <div class="glass-panel p-4 md:p-6 rounded-xl">
                     <div class="flex items-center gap-4 mb-6 border-b border-gray-800 pb-4">
@@ -1228,37 +1217,10 @@
             if(document.getElementById('d_tiqsVal')) document.getElementById('d_tiqsVal').innerText = st.tiqsScore.toFixed(1);
 
             const badge = getLeague(st.leaguePoints);
-            if(document.getElementById('badgeTitle')) document.getElementById('badgeTitle').innerText = badge.title;
-            if(document.getElementById('badgeIcon')) document.getElementById('badgeIcon').className = `ph-fill ${badge.icon} text-4xl mb-1 drop-shadow-md transition-all duration-500 group-hover:scale-110 ${badge.color}`;
-            if(document.getElementById('badgeTitle')) document.getElementById('badgeTitle').className = `text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${badge.color}`;
+            const badgeTitle = document.getElementById('badgeTitle'); if(badgeTitle) { badgeTitle.innerText = badge.title; badgeTitle.className = `text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${badge.color}`; }
+            const badgeIcon = document.getElementById('badgeIcon'); if(badgeIcon) badgeIcon.className = `ph-fill ${badge.icon} text-4xl mb-1 drop-shadow-md transition-all duration-500 group-hover:scale-110 ${badge.color}`;
 
-            // AI Insights Generation
-            const insightsContainer = document.getElementById('d_insightsList');
-            if(insightsContainer) {
-                let insights = [];
-                if(st.totalTrades < 5) {
-                    insights.push({ icon: 'ph-info', color: 'text-blue-400', title: 'Not Enough Data', desc: 'Log more trades to unlock personalized AI insights and league progression.' });
-                } else {
-                    if(st.pf < 1.2) insights.push({ icon: 'ph-warning-circle', color: 'text-neonRed', title: 'Low Profit Factor', desc: 'Your PF is ' + st.pf.toFixed(2) + '. Focus on increasing your risk-reward ratio or cutting losers much faster.' });
-                    else if(st.pf >= 2) insights.push({ icon: 'ph-trend-up', color: 'text-neonGreen', title: 'Strong Edge', desc: 'Excellent Profit Factor (' + st.pf.toFixed(2) + '). Your strategy is maintaining a highly profitable mathematical edge.' });
-                    
-                    if(st.winPerc < 40) insights.push({ icon: 'ph-target', color: 'text-orange-400', title: 'Win Rate Check', desc: 'Win rate is currently ' + st.winPerc.toFixed(1) + '%. Refine your entry criteria to prioritize higher probability setups.' });
-                    
-                    if(st.avgTradesDay > 4) insights.push({ icon: 'ph-stop-circle', color: 'text-neonRed', title: 'Overtrading Risk', desc: 'You average ' + st.avgTradesDay.toFixed(1) + ' trades/day. Valuing quality over quantity will rapidly boost your League Score.' });
-                    
-                    if(st.totalHoldLoss > st.totalHoldWin) insights.push({ icon: 'ph-clock-counter-clockwise', color: 'text-orange-400', title: 'Hold Time Imbalance', desc: 'You are holding losing trades longer than winners. Respect your stop losses immediately to protect capital.' });
-                    else if (st.totalHoldWin > 0) insights.push({ icon: 'ph-check-circle', color: 'text-neonGreen', title: 'Elite Trade Management', desc: 'You are actively cutting losers faster than you hold winners. This is the hallmark of professional trading.' });
-
-                    if(st.maxDrawdownPerc > 10) insights.push({ icon: 'ph-chart-line-down', color: 'text-neonRed', title: 'High Drawdown', desc: 'Your peak drawdown hit ' + st.maxDrawdownPerc.toFixed(1) + '%. Reduce your position sizing during losing streaks to stabilize equity.' });
-                }
-                
-                insightsContainer.innerHTML = '';
-                // Only show top 3 insights to keep UI clean
-                insights.slice(0, 3).forEach(ins => {
-                    insightsContainer.innerHTML += `<div class="bg-[#1f2433] border border-gray-800 rounded-lg p-3.5 flex gap-3 items-start shadow-sm"><i class="ph-fill ${ins.icon} text-2xl ${ins.color} shrink-0"></i><div><h4 class="text-xs font-bold text-white mb-1 uppercase tracking-wide">${ins.title}</h4><p class="text-[10px] text-textMuted leading-relaxed">${ins.desc}</p></div></div>`;
-                });
-            }
-
+            window.createChart('c_avgTradesGauge', window.getMiniGauge(Math.min(st.avgTradesDay, 10), 10, '#00f28e'));
             window.createChart('c_pfGauge', window.getMiniGauge(Math.min(st.pf, 5), 5, '#00f28e'));
             
             window.createChart('c_edgeRadar', {
@@ -1417,6 +1379,34 @@
         window.updateAnalytics = () => {
             const st = getStats();
             
+            // AI Insights Generation (Simplified Language & Improvement Focused)
+            const insightsContainer = document.getElementById('a_insightsList');
+            if(insightsContainer) {
+                let insights = [];
+                if(st.totalTrades < 5) {
+                    insights.push({ icon: 'ph-info', color: 'text-blue-400', title: 'Not Enough Data', desc: 'Log a few more trades so we can start finding ways to improve your edge.' });
+                } else {
+                    if(st.pf < 1.2) insights.push({ icon: 'ph-warning-circle', color: 'text-neonRed', title: 'Small Wins, Big Losses', desc: 'You are losing more money on bad trades than you make on good ones. Try to catch bigger moves or cut your losses quicker.' });
+                    
+                    if(st.winPerc < 40) insights.push({ icon: 'ph-target', color: 'text-orange-400', title: 'Low Win Rate', desc: 'Your win rate is low (' + st.winPerc.toFixed(1) + '%). Try to be more patient and only take the very best setups.' });
+                    
+                    if(st.avgTradesDay > 4) insights.push({ icon: 'ph-stop-circle', color: 'text-neonRed', title: 'Taking Too Many Trades', desc: 'You take around ' + st.avgTradesDay.toFixed(1) + ' trades a day. Trading less often but focusing on better setups will rapidly help your score.' });
+                    
+                    if(st.totalHoldLoss > st.totalHoldWin) insights.push({ icon: 'ph-clock-counter-clockwise', color: 'text-orange-400', title: 'Holding Losers Too Long', desc: 'You hold onto losing trades longer than winning ones. Close bad trades quickly so they don\'t drain your account.' });
+
+                    if(st.maxDrawdownPerc > 10) insights.push({ icon: 'ph-chart-line-down', color: 'text-neonRed', title: 'Large Account Drop', desc: 'Your account took a big dip recently (' + st.maxDrawdownPerc.toFixed(1) + '%). Try trading with much smaller amounts when you are on a losing streak.' });
+                }
+                
+                if (insights.length === 0 && st.totalTrades >= 5) {
+                     insights.push({ icon: 'ph-check-circle', color: 'text-neonGreen', title: 'Looking Stable', desc: 'No major warnings right now. Keep sticking to your rules and managing your risk well!' });
+                }
+
+                insightsContainer.innerHTML = '';
+                insights.slice(0, 3).forEach(ins => {
+                    insightsContainer.innerHTML += `<div class="bg-[#1f2433] border border-gray-800 rounded-lg p-3.5 flex gap-3 items-start shadow-sm"><i class="ph-fill ${ins.icon} text-2xl ${ins.color} shrink-0"></i><div><h4 class="text-xs font-bold text-white mb-1 uppercase tracking-wide">${ins.title}</h4><p class="text-[10px] text-textMuted leading-relaxed">${ins.desc}</p></div></div>`;
+                });
+            }
+
             let bestMoVal = 0, lowMoVal = 0, bestMo='', lowMo='';
             Object.entries(st.byMonth).forEach(([m, pnl]) => {
                 if(bestMo==='' || pnl > bestMoVal) { bestMoVal = pnl; bestMo = m; }
