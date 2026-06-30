@@ -1168,10 +1168,12 @@
                 const tgtAmt = window.monthlyTargets[key] || 0;
                 
                 let pnl = 0;
+                // Calculate PnL for this specific month
                 Object.keys(window.dailyStats).forEach(dt => {
                     if(dt.startsWith(key)) pnl += window.dailyStats[dt];
                 });
                 
+                // Add un-finalized gross PnLs
                 window.trades.forEach(t => {
                     if(t.exitDate && t.exitDate.startsWith(key) && window.dailyStats[t.exitDate] === undefined) {
                         if(t.pnl) pnl += t.pnl;
@@ -1199,10 +1201,10 @@
                 let opacityCls = isPast && !isCurrent ? "opacity-60 grayscale" : "";
                 
                 grid.innerHTML += `
-                <div class="glass-panel rounded-xl p-5 border ${borderCls} ${opacityCls} flex flex-col relative group">
+                <div class="glass-panel rounded-xl p-5 border ${borderCls} ${opacityCls} flex flex-col relative group hover:grayscale-0 hover:opacity-100 transition-all duration-300">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-white uppercase tracking-wider">${month} ${year}</h3>
-                        ${(isCurrent || index > currentMonth) ? `<button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>` : ''}
+                        <button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>
                     </div>
                     
                     <div class="flex items-end justify-between mb-2">
@@ -2040,7 +2042,13 @@
                     if(pnl > 0) cls = "bg-[#00f28e]/10 text-neonGreen font-bold border border-[#00f28e]/30 shadow-[inset_0_0_10px_rgba(0,242,142,0.1)] hover:bg-[#00f28e]/20 cursor-pointer transition-colors";
                     else if(pnl < 0) cls = "bg-[#ff3b69]/10 text-neonRed font-bold border border-[#ff3b69]/30 shadow-[inset_0_0_10px_rgba(255,59,105,0.1)] hover:bg-[#ff3b69]/20 cursor-pointer transition-colors";
                     else if(pnl === 0) cls = "bg-gray-500/20 text-white cursor-pointer hover:bg-gray-500/40 transition-colors";
-                    else if(isWeekend || isHol) { cls = "bg-[#11141c] text-gray-700"; if(isHol) innerCls="line-through"; }
+                    else if(isWeekend || isHol) { 
+                        cls = "bg-[#11141c] text-gray-700"; 
+                        if(isHol) {
+                            innerCls="line-through text-orange-500/70 font-bold";
+                            cls += " bg-orange-500/5";
+                        }
+                    }
 
                     if(isToday) cls += " ring-1 ring-inset ring-fuchsia-500 shadow-[inset_0_0_8px_rgba(217,70,239,0.5)]";
                     
