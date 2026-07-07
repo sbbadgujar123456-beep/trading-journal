@@ -127,15 +127,9 @@
                 <button onclick="window.switchView('trades')" id="nav-trades" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
                     <i class="ph ph-list-numbers text-xl"></i> Past Trades
                 </button>
-                
-                <div class="mt-8 mb-2 px-4 text-[10px] font-bold uppercase text-gray-500 tracking-wider">Data Management</div>
-                <button onclick="window.exportTrades()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-export text-xl"></i> Export CSV
+                <button onclick="window.switchView('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-gear text-xl"></i> Settings & Data
                 </button>
-                <button onclick="document.getElementById('importInput').click()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-import text-xl"></i> Import CSV
-                </button>
-                <input type="file" id="importInput" class="hidden" accept=".csv" onchange="window.importTrades(event)">
             </nav>
         </div>
         
@@ -325,22 +319,24 @@
             <!-- ================= VIEW: ANALYTICS ================= -->
             <div id="view-analytics" class="view-section space-y-6">
                 
-                <!-- Positive Highlights Widget -->
-                <div id="analyticsPraises" class="hidden mb-6 bg-panelDark border border-gray-800 p-5 rounded-xl shadow-lg border-l-4 border-l-neonGreen">
-                    <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
-                        <i class="ph-fill ph-check-circle text-neonGreen text-2xl"></i>
-                        <h3 class="text-base font-bold text-white tracking-wide">Trading Highlights</h3>
+                <!-- Smart Feedback Container -->
+                <div id="smartFeedbackContainer" class="hidden mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Highlights -->
+                    <div id="highlightBox" class="bg-panelDark border border-gray-800 p-5 rounded-xl border-l-4 border-l-neonGreen hidden shadow-lg shadow-neonGreen/5">
+                        <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
+                            <i class="ph-fill ph-check-circle text-neonGreen text-xl"></i>
+                            <h3 class="text-sm font-bold text-white tracking-wide">Trading Highlights</h3>
+                        </div>
+                        <ul id="highlightList" class="space-y-3 text-xs text-gray-300"></ul>
                     </div>
-                    <ul id="praisesList" class="space-y-3 text-sm text-gray-300"></ul>
-                </div>
-
-                <!-- Actionable Feedback Widget -->
-                <div id="analyticsFeedback" class="hidden mb-6 bg-panelDark border border-gray-800 p-5 rounded-xl shadow-lg border-l-4 border-l-neonRed">
-                    <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
-                        <i class="ph-fill ph-target text-neonRed text-2xl"></i>
-                        <h3 class="text-base font-bold text-white tracking-wide">Areas to Improve</h3>
+                    <!-- Improvements -->
+                    <div id="improvementBox" class="bg-panelDark border border-gray-800 p-5 rounded-xl border-l-4 border-l-neonRed hidden shadow-lg shadow-neonRed/5">
+                        <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
+                            <i class="ph-fill ph-warning-circle text-neonRed text-xl"></i>
+                            <h3 class="text-sm font-bold text-white tracking-wide">Areas to Improve</h3>
+                        </div>
+                        <ul id="improvementList" class="space-y-3 text-xs text-gray-300"></ul>
                     </div>
-                    <ul id="feedbackList" class="space-y-3 text-sm text-gray-300"></ul>
                 </div>
 
                 <div class="glass-panel p-4 md:p-6 rounded-xl">
@@ -514,8 +510,46 @@
                 </div>
             </div>
             
+            <!-- ================= VIEW: SETTINGS & BACKUP ================= -->
+            <div id="view-settings" class="view-section space-y-6">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2"><i class="ph-fill ph-gear text-neonGreen"></i> Data Management</h2>
+                    <p class="text-xs text-textMuted mt-1">Backup your journal or restore from a previous export.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Backup Card -->
+                    <div class="glass-panel p-6 rounded-xl border border-gray-800 flex flex-col items-center text-center">
+                        <div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                            <i class="ph-bold ph-download-simple text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 text-lg">Backup Data</h3>
+                        <p class="text-xs text-textMuted mb-6 flex-1">Download a complete backup of your trades, daily P&L, targets, and market holidays in JSON format. Keep this file safe.</p>
+                        <button onclick="window.exportData()" class="w-full bg-[#1f2433] hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors border border-gray-700 flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-file-arrow-down"></i> Download JSON Backup
+                        </button>
+                    </div>
+
+                    <!-- Import Card -->
+                    <div class="glass-panel p-6 rounded-xl border border-gray-800 flex flex-col items-center text-center">
+                        <div class="w-16 h-16 rounded-full bg-neonGreen/10 text-neonGreen flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(0,242,142,0.2)]">
+                            <i class="ph-bold ph-upload-simple text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 text-lg">Import Data</h3>
+                        <p class="text-xs text-textMuted mb-6 flex-1">Restore your data from a previously downloaded backup file. <br><span class="text-neonRed font-bold mt-1 inline-block">Warning: This will overwrite your current data.</span></p>
+                        <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="window.handleImport(event)">
+                        <button onclick="window.triggerImport()" class="w-full bg-neonGreen/20 hover:bg-neonGreen/30 text-neonGreen font-bold py-3 rounded-lg transition-colors border border-neonGreen/30 flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-file-arrow-up"></i> Upload Backup File
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
     <!-- ================= MODALS ================= -->
 
@@ -569,11 +603,11 @@
                                 <option value="Short from Overbought">Short from Overbought</option>
                                 <option value="Algo">Algo</option>
                                 <option value="FOMO">FOMO</option>
-                                <option value="FOMO">Liquide</option>
-                                <option value="FOMO">Zee</option>
-                                <option value="FOMO">TradeFinder</option>
-                                <option value="FOMO">Bolt Trade</option>
-                                <option value="FOMO">Normal</option>
+                                <option value="Liquide">Liquide</option>
+                                <option value="Zee">Zee</option>
+                                <option value="TradeFinder">TradeFinder</option>
+                                <option value="Bolt Trade">Bolt Trade</option>
+                                <option value="Normal">Normal</option>
                                 <option value="Over Quantity Risk">Over Quantity Risk</option>
                             </select>
                         </div>
@@ -761,47 +795,6 @@
         </div>
     </div>
 
-    <!-- DAY TRADES MODAL (Calendar Click) -->
-    <div id="dayTradesModal" class="fixed inset-0 modal-overlay z-[55] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 px-4" onclick="if(event.target === this) window.closeDayTradesModal()">
-        <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-300 w-full max-w-2xl max-h-[85vh]" id="dayTradesContent">
-            <div class="p-5 border-b border-gray-800 bg-[#0b0e14] rounded-t-xl flex justify-between items-center shrink-0">
-                <div>
-                    <h3 class="font-bold text-white text-lg" id="dtm_title">Date</h3>
-                    <p class="text-xs text-textMuted mt-0.5"><span id="dtm_tradeCount" class="text-white font-bold">0</span> Trades Executed</p>
-                </div>
-                <button onclick="window.closeDayTradesModal()" class="text-gray-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-            </div>
-            
-            <div class="p-5 border-b border-gray-800 shrink-0">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-[#1f2433] p-3 rounded-lg border border-gray-700">
-                        <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Calculated Gross</p>
-                        <p class="text-lg font-bold font-mono text-white" id="dtm_gross">₹0.00</p>
-                    </div>
-                    <div class="bg-[#0b0e14] p-3 rounded-lg border border-neonGreen/30 relative">
-                        <div class="absolute -top-2 -right-2 bg-neonGreen text-black text-[9px] font-bold px-2 py-0.5 rounded shadow">EDIT</div>
-                        <p class="text-[10px] text-textMuted uppercase tracking-wider mb-1">Actual Broker Net</p>
-                        <input type="number" id="dtm_net" step="0.01" class="w-full bg-transparent text-lg font-bold font-mono text-neonGreen outline-none" placeholder="0.00" onkeydown="if(['e','E','+'].includes(event.key)) event.preventDefault();">
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead class="bg-[#1f2433] sticky top-0 border-b border-gray-800 text-[10px] uppercase text-textMuted shadow-sm z-10">
-                        <tr><th class="p-3 pl-5">Time</th><th class="p-3">Symbol</th><th class="p-3 text-right">P&L</th><th class="p-3 text-center">Action</th></tr>
-                    </thead>
-                    <tbody id="dtm_tbody" class="divide-y divide-gray-800"></tbody>
-                </table>
-            </div>
-
-            <div class="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0b0e14] rounded-b-xl shrink-0">
-                <button type="button" onclick="window.closeDayTradesModal()" class="text-xs font-bold text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancel</button>
-                <button type="button" id="dtm_saveBtn" onclick="window.saveDayTradesPnl()" class="bg-neonGreen text-black font-bold px-5 py-2 rounded-lg text-xs hover:brightness-110">Save Data</button>
-            </div>
-        </div>
-    </div>
-
     <!-- CUSTOM CONFIRM MODAL -->
     <div id="confirmModal" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center hidden opacity-0 transition-opacity duration-200 px-4" onclick="if(event.target === this) window.closeConfirm()">
         <div class="bg-[#11141c] rounded-xl border border-gray-700 shadow-2xl flex flex-col transform scale-95 transition-transform duration-200 w-full max-w-sm p-6 text-center" id="confirmContent">
@@ -810,7 +803,7 @@
             <p class="text-xs text-gray-400 mb-6" id="cm_desc">Are you sure you want to proceed?</p>
             <div class="flex gap-3 justify-center">
                 <button onclick="window.closeConfirm()" class="px-5 py-2 rounded-lg bg-gray-800 text-white text-xs font-bold hover:bg-gray-700 transition-colors">Cancel</button>
-                <button id="cm_btn" class="px-5 py-2 rounded-lg bg-neonRed text-white text-xs font-bold hover:brightness-110 transition-colors">Delete</button>
+                <button id="cm_btn" class="px-5 py-2 rounded-lg bg-neonRed text-white text-xs font-bold hover:brightness-110 transition-colors">Proceed</button>
             </div>
         </div>
     </div>
@@ -828,7 +821,6 @@
         window.monthlyTargets = {};
         window.monthlyTargetVal = 0;
         window.activeTradeTab = 'closed';
-        window.dtm_currentDate = null;
         
         let activeView = 'dashboard';
         let charts = {}; 
@@ -873,6 +865,28 @@
             console.error("Firebase init failed, forcing Local Storage", e);
             useLocalStorage = true;
         }
+
+        // --- TOAST NOTIFICATIONS ---
+        window.showToast = (msg, isError = false) => {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = isError ? 'bg-neonRed/10 border-neonRed/30 text-neonRed shadow-[0_0_15px_rgba(255,59,105,0.2)]' : 'bg-neonGreen/10 border-neonGreen/30 text-neonGreen shadow-[0_0_15px_rgba(0,242,142,0.2)]';
+            const icon = isError ? 'ph-warning-circle' : 'ph-check-circle';
+            
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-md transform transition-all duration-300 translate-y-10 opacity-0 pointer-events-auto ${bgClass}`;
+            toast.innerHTML = `<i class="ph-fill ${icon} text-xl"></i><span class="text-sm font-bold">${msg}</span>`;
+            
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                setTimeout(() => { toast.classList.remove('translate-y-10', 'opacity-0'); }, 10);
+            });
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
 
         // --- FORMATTERS ---
         const fINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
@@ -927,7 +941,6 @@
             const topCountdownEl = document.getElementById('topCountdown');
 
             if (!isWeekend && !isHoliday && ist >= marketOpenTime && ist < marketCloseTime) {
-                // Market is OPEN
                 const diffMs = marketCloseTime - ist;
                 const cH = Math.floor(diffMs / (1000 * 60 * 60));
                 const cM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -935,7 +948,6 @@
                 topCountdownEl.classList.remove('text-gray-500');
                 topCountdownEl.classList.add('text-neonGreen', 'font-bold');
             } else {
-                // Market is CLOSED, find next open
                 let nextOpen = new Date(ist);
                 if (ist >= marketOpenTime) {
                     nextOpen.setDate(nextOpen.getDate() + 1);
@@ -1048,6 +1060,100 @@
 
         const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
 
+        // --- BACKUP AND IMPORT ENGINE ---
+        window.exportData = () => {
+            try {
+                const backupData = {
+                    version: 1,
+                    timestamp: new Date().toISOString(),
+                    trades: window.trades,
+                    dailyStats: window.dailyStats,
+                    marketHolidays: window.marketHolidays,
+                    monthlyTargets: window.monthlyTargets
+                };
+                
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tradology_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                window.showToast("Backup downloaded successfully!");
+            } catch (error) {
+                console.error("Backup failed", error);
+                window.showToast("Failed to create backup.", true);
+            }
+        };
+
+        window.triggerImport = () => document.getElementById('importFileInput').click();
+
+        window.handleImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.trades || !importedData.dailyStats) {
+                        window.showToast("Invalid backup file format.", true);
+                        return;
+                    }
+
+                    window.openConfirm(
+                        'Import Data', 
+                        'This will overwrite ALL your current data (Trades, Daily P&L, Targets, Holidays). This action cannot be undone. Proceed?', 
+                        'Yes, Overwrite & Import', 
+                        async () => {
+                            window.showToast("Importing data... Please wait.");
+                            
+                            window.trades = importedData.trades || [];
+                            window.dailyStats = importedData.dailyStats || {};
+                            window.marketHolidays = importedData.marketHolidays || [];
+                            window.monthlyTargets = importedData.monthlyTargets || {};
+                            window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
+
+                            if (useLocalStorage) {
+                                saveLocal();
+                                window.renderActiveView();
+                                window.showToast("Data imported successfully via Local Storage!");
+                            } else if (currentUser) {
+                                try {
+                                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
+                                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
+                                    
+                                    for (const [date, val] of Object.entries(window.dailyStats)) {
+                                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', date), { pnl: val });
+                                    }
+                                    
+                                    for (const t of window.trades) {
+                                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', t.id), t);
+                                    }
+                                    
+                                    window.showToast("Data imported successfully to the Cloud!");
+                                } catch (err) {
+                                    console.error("Cloud import error:", err);
+                                    window.showToast("Error syncing fully to cloud. Switched to Local Storage.", true);
+                                    useLocalStorage = true;
+                                    saveLocal();
+                                }
+                            }
+                            window.renderActiveView();
+                        }
+                    );
+                } catch (err) {
+                    console.error(err);
+                    window.showToast("Error parsing backup file. Ensure it is a valid JSON.", true);
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        };
+
         // --- TARGETS VIEW LOGIC ---
         window.renderTargetsView = () => {
             const grid = document.getElementById('targetsGrid');
@@ -1063,12 +1169,10 @@
                 const tgtAmt = window.monthlyTargets[key] || 0;
                 
                 let pnl = 0;
-                // Calculate PnL for this specific month
                 Object.keys(window.dailyStats).forEach(dt => {
                     if(dt.startsWith(key)) pnl += window.dailyStats[dt];
                 });
                 
-                // Add un-finalized gross PnLs
                 window.trades.forEach(t => {
                     if(t.exitDate && t.exitDate.startsWith(key) && window.dailyStats[t.exitDate] === undefined) {
                         if(t.pnl) pnl += t.pnl;
@@ -1099,7 +1203,7 @@
                 <div class="glass-panel rounded-xl p-5 border ${borderCls} ${opacityCls} flex flex-col relative group">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-white uppercase tracking-wider">${month} ${year}</h3>
-                        ${(isCurrent || index > currentMonth) ? `<button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>` : ''}
+                        <button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>
                     </div>
                     
                     <div class="flex items-end justify-between mb-2">
@@ -1151,6 +1255,7 @@
 
             window.closeTargetModal();
             window.renderTargetsView();
+            window.showToast(`Target set for ${key}`);
             
             if(useLocalStorage) saveLocal();
             else if(currentUser) {
@@ -1200,10 +1305,9 @@
                       byInstrument: {}, byTag: {}, byMonth: {}, dailyNet: {}, dailyGross: {}, dailyTradeCount: {}, 
                       timeStats: {}, durationStats: {}, totalHoldWin: 0, totalHoldLoss: 0, totalEntryVal: 0,
                       maxWinStr: 0, maxLossStr: 0,
-                      // New properties for suggestions
                       expiryTrades: 0, expiryLosses: 0, expiryPnl: 0,
                       highCapLossTrades: 0,
-                      instDayStats: {}, improvements: [], praises: []
+                      instDayStats: {}, improvements: [], highlights: []
             };
 
             const tBuckets = ['Pre-Market (Before 9:00)', 'Pre-Open (9:00-9:15)', 'Opening Hour (9:15-10:15)', 'Mid-Morning (10:15-11:30)', 'Mid-Day (11:30-13:30)', 'Early Afternoon (13:30-14:30)', 'Late Afternoon (14:30-15:30)', 'Closing (15:30-15:45)', 'Post-Market (After 15:45)'];
@@ -1214,7 +1318,7 @@
             const daysArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
             const now = new Date();
-            let filteredTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null); // Only closed trades
+            let filteredTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null);
 
             if(dateFilter !== 'all') {
                 const map = {'7d':7, '1m':30, '3m':90, '6m':180, '1y':365, '3y':1095, '5y':1825};
@@ -1231,19 +1335,16 @@
                 if (t.pnl >= 0) { s.wins++; s.grossWin += t.pnl; s.totalHoldWin += t.holdTime; } 
                 else { s.losses++; s.grossLoss += Math.abs(t.pnl); s.totalHoldLoss += t.holdTime; }
 
-                // Expiry Tracking
                 if(t.isExpiry) {
                     s.expiryTrades++;
                     s.expiryPnl += t.pnl;
                     if(t.pnl < 0) s.expiryLosses++;
                 }
 
-                // High Capital Loss Tracking (Excluding Algo)
                 if(t.entryValue > 100000 && t.category !== 'Algo' && t.pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
-                // Instrument + Day of Week tracking
                 if(t.entryDate) {
                     const dayOfWeek = new Date(t.entryDate).getDay();
                     const dName = daysArr[dayOfWeek];
@@ -1291,7 +1392,6 @@
                 s.durationStats[dB].trades++; s.durationStats[dB].pnl += t.pnl;
             });
 
-            // Missing PnL Detection
             s.missingPnlDays = [];
             const todayStr = now.toISOString().split('T')[0];
             Object.keys(s.dailyGross).forEach(d => {
@@ -1311,7 +1411,7 @@
             s.winPerc = s.totalTrades > 0 ? (s.wins/s.totalTrades*100) : 0;
             s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
             s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
-            s.roi = (s.totalPnl / 100000) * 100; // Assuming 1L base
+            s.roi = (s.totalPnl / 100000) * 100; 
             s.cagr = s.roi; 
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
@@ -1329,7 +1429,6 @@
                 const dd = peak - eq;
                 if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
 
-                // Assuming 1L base capital for drawdown percentage
                 const peakCap = 100000 + peak;
                 const ddPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if(ddPerc > maxDdPerc) maxDdPerc = ddPerc;
@@ -1353,105 +1452,97 @@
             s.dayWinPerc = sortedDays.length > 0 ? (winDays / sortedDays.length)*100 : 0;
             s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
             
-            // --- GENERATE SUGGESTIONS / IMPROVEMENTS / PRAISES ---
+            // --- SMART DYNAMIC FEEDBACK ENGINE ---
             if (s.totalTrades < 5) {
-                s.improvements.push("Please log at least 5 complete trades to unlock your personalized improvement suggestions.");
+                s.improvements.push("Log at least 5 complete trades to unlock your personalized AI insights.");
             } else {
-                // --- POSITIVE FEEDBACK (PRAISES) ---
-                const todayStr2 = new Date().toISOString().split('T')[0];
-                const todayTrades = s.dailyTradeCount[todayStr2] || 0;
+                const tradedDays = Object.keys(s.dailyTradeCount).sort();
                 
-                // Rule: Overtrading fixed
-                if (todayTrades > 0 && todayTrades <= 2 && s.avgTradesDay > 3) {
-                    s.praises.push(`Congrats! You only took ${todayTrades} trade${todayTrades>1?'s':''} today compared to your historical average of ${s.avgTradesDay.toFixed(1)}. That's a significant improvement, you are a disciplined trader now!`);
-                } else if (todayTrades > 0 && todayTrades <= 2) {
-                    s.praises.push(`Great discipline today taking only ${todayTrades} trade${todayTrades>1?'s':''}. Quality over quantity!`);
+                // 1. Current Active Streak Analysis
+                if (tradedDays.length > 0) {
+                    let currentStreakType = null;
+                    let currentStreakCount = 0;
+                    for (let i = tradedDays.length - 1; i >= 0; i--) {
+                        const dp = s.dailyNet[tradedDays[i]];
+                        if (dp > 0) {
+                            if (currentStreakType === 'loss') break;
+                            currentStreakType = 'win';
+                            currentStreakCount++;
+                        } else if (dp < 0) {
+                            if (currentStreakType === 'win') break;
+                            currentStreakType = 'loss';
+                            currentStreakCount++;
+                        } else {
+                            break; 
+                        }
+                    }
+
+                    if (currentStreakType === 'win' && currentStreakCount >= 2) {
+                        s.highlights.push(`You are currently on a ${currentStreakCount}-day winning streak! Great momentum. Keep your sizing strict to protect these gains.`);
+                    } else if (currentStreakType === 'loss' && currentStreakCount >= 2) {
+                        s.improvements.push(`You are on a ${currentStreakCount}-day losing streak right now. The market might be out of sync with your edge. Consider halving your size or taking a day off.`);
+                    }
                 }
 
-                // Rule: Good Profit Factor
-                if (s.pf >= 1.5 && s.grossLoss > 0) {
-                    s.praises.push(`Excellent Profit Factor of ${s.pf.toFixed(2)}. Your winners are significantly outperforming your losers! Keep holding winners.`);
-                } else if (s.pf >= 99 && s.wins > 0) {
-                    s.praises.push(`Perfect Profit Factor! You haven't taken any losses in this period. Outstanding performance.`);
+                // 2. Discipline / Overtrading Improvement Over Time
+                if (tradedDays.length >= 8) {
+                    const recentCount = Math.min(7, Math.floor(tradedDays.length / 2));
+                    const recentSlice = tradedDays.slice(-recentCount);
+                    const pastSlice = tradedDays.slice(0, -recentCount);
+                    
+                    let recentTradesTotal = 0; recentSlice.forEach(d => recentTradesTotal += s.dailyTradeCount[d]);
+                    let pastTradesTotal = 0; pastSlice.forEach(d => pastTradesTotal += s.dailyTradeCount[d]);
+                    
+                    const recentAvg = recentTradesTotal / recentCount;
+                    const pastAvg = pastTradesTotal / pastSlice.length;
+
+                    if (recentAvg <= 3 && pastAvg >= 5) {
+                        s.highlights.push(`Noticeable improvement! Over the last ${recentCount} active days, you've reduced your daily trades to ${recentAvg.toFixed(1)}/day (down from your historical ${pastAvg.toFixed(1)}/day). Perfect discipline.`);
+                    } else if (recentAvg > 5 && recentAvg > pastAvg + 1.5) {
+                        s.improvements.push(`Overtrading alert: You are averaging ${recentAvg.toFixed(1)} trades/day recently, up from your historical ${pastAvg.toFixed(1)}. Remember: less is more.`);
+                    }
                 }
 
-                // Rule: Good Win Rate
-                if (s.winPerc >= 55) {
-                    s.praises.push(`Solid win rate of ${s.winPerc.toFixed(1)}%. You are consistently finding high-probability setups.`);
+                // 3. Today's Specific Execution
+                if (tradedDays.length > 0 && tradedDays[tradedDays.length - 1] === todayStr) {
+                    const todayTrades = s.dailyTradeCount[todayStr];
+                    const todayPnl = s.dailyNet[todayStr];
+                    if (todayTrades > 0 && todayTrades <= 3 && todayPnl > 0) {
+                        s.highlights.push(`Solid session today. You stayed disciplined with just ${todayTrades} trade(s) and locked in a green day. Respecting your rules pays off.`);
+                    } else if (todayTrades >= 6 && todayPnl < 0) {
+                        s.improvements.push(`Revenge trading warning for today. You took ${todayTrades} trades and closed red. Stop for the day and review your setups tomorrow.`);
+                    }
                 }
 
-                // Rule: Streaks
-                if (s.maxWinStr >= 3) {
-                    s.praises.push(`You hit a win streak of ${s.maxWinStr} days! Incredible momentum and consistency.`);
-                }
-
-                // --- NEGATIVE FEEDBACK (IMPROVEMENTS) ---
-                // Rule 1: Win Rate Check
-                if (s.winPerc < 45) {
-                    s.improvements.push("You lose more often than you win. Wait for clear setups instead of jumping into trades randomly.");
-                }
-                
-                // Rule 2: Risk/Reward Check
-                const avgW = s.wins > 0 ? s.grossWin / s.wins : 0;
-                const avgL = s.losses > 0 ? s.grossLoss / s.losses : 0;
-                if (avgL > 0 && (avgW / avgL) < 1) {
-                    s.improvements.push("When you lose, you lose more money than when you win. You need to cut your losing trades much faster and hold your winning trades longer.");
-                }
-                
-                // Rule 3: Overtrading Check
-                if (s.avgTradesDay > 5) {
-                    s.improvements.push(`You are taking a lot of trades every day (${s.avgTradesDay.toFixed(1)} avg). Try to slow down and pick only the best 1 or 2 opportunities.`);
-                }
-                
-                // Rule 4: Losing Streaks
-                if (s.maxLossStr >= 3) {
-                    s.improvements.push("You have had streaks of losing 3 or more days in a row. Take a break after 2 losing days to clear your head.");
-                }
-
-                // Rule 5: Time of Day
+                // 4. Historical Weaknesses
                 let worstTime = null;
                 let minPnl = 0;
                 Object.entries(s.timeStats).forEach(([bucket, data]) => {
-                    if(data.pnl < minPnl) { minPnl = data.pnl; worstTime = bucket; }
+                    if(data.pnl < minPnl && data.trades >= 3) { minPnl = data.pnl; worstTime = bucket; }
                 });
-                if (worstTime && minPnl < 0) {
-                    s.improvements.push(`You lose the most money during ${worstTime}. Avoid trading during this time or be extremely careful.`);
+                if (worstTime && minPnl < 0 && s.improvements.length < 3) {
+                    s.improvements.push(`Historical leak: You lose the most money during ${worstTime}. Avoid setups during this window.`);
                 }
 
-                // Rule 6: Expiry Day Risk
-                if (s.expiryLosses >= 2 && s.expiryPnl < 0) {
-                    s.improvements.push("You are losing money on Expiry day trades. Avoid trading on expiry days entirely, or heavily reduce your quantity.");
+                // Risk Reward Check
+                const avgW = s.wins > 0 ? s.grossWin / s.wins : 0;
+                const avgL = s.losses > 0 ? s.grossLoss / s.losses : 0;
+                if (avgL > 0 && (avgW / avgL) < 1 && s.improvements.length < 3) {
+                    s.improvements.push("Your average losing trade is larger than your average winning trade. Focus on cutting losers earlier.");
                 }
-
-                // Rule 7: High Capital Risk
-                if (s.highCapLossTrades >= 2) {
-                    s.improvements.push("You are taking big losses when investing over ₹1 Lakh in a single trade. Keep your position size smaller to lower your risk until you find consistency.");
-                }
-
-                // Rule 8: Instrument + Day combo
-                let worstInstDay = null;
-                let worstInstDayPnl = 0;
-                Object.keys(s.instDayStats).forEach(sym => {
-                    Object.keys(s.instDayStats[sym]).forEach(dName => {
-                        const stat = s.instDayStats[sym][dName];
-                        if(stat.pnl < worstInstDayPnl && stat.losses >= 2) {
-                            worstInstDayPnl = stat.pnl;
-                            worstInstDay = { sym, dName };
-                        }
-                    });
-                });
-                if(worstInstDay) {
-                    s.improvements.push(`You are repeatedly losing money trading ${worstInstDay.sym} on ${worstInstDay.dName}s. Avoid this combination or reduce your lot size.`);
+                
+                // General Positive Edge
+                if(s.highlights.length === 0 && s.winPerc >= 50 && s.pf >= 1.5) {
+                     s.highlights.push(`Your overall edge is very strong with a ${s.pf.toFixed(2)} Profit Factor. Stay patient and wait for A+ setups.`);
                 }
             }
 
-            // League Points Engine
-            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 100000) * 10)); // up to 10pts for 1L
-            const pts_vol = Math.min(20, (s.avgTradesDay / 5) * 20); // ideal 5 trades
+            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 100000) * 10)); 
+            const pts_vol = Math.min(20, (s.avgTradesDay / 5) * 20); 
             const pts_wr = (s.winPerc / 100) * 15;
             const pts_pf = Math.min(15, (s.pf / 3) * 15);
             const pts_rr = Math.min(25, ((s.grossWin/Math.max(1,s.wins)) / Math.max(1, (s.grossLoss/Math.max(1,s.losses))) / 3) * 25);
-            const pts_mwl = Math.min(15, (s.maxDayProfit / Math.max(1, Math.abs(s.maxDayLoss))) * 5); // Rough proxy
+            const pts_mwl = Math.min(15, (s.maxDayProfit / Math.max(1, Math.abs(s.maxDayLoss))) * 5); 
             s.leaguePoints = s.totalTrades < 5 ? 0 : Math.min(100, pts_pnl + pts_vol + pts_wr + pts_pf + pts_rr + pts_mwl);
             s.pts_pnl = pts_pnl; s.pts_vol = pts_vol; s.pts_wr = pts_wr; s.pts_pf = pts_pf; s.pts_rr = pts_rr; s.pts_mwl = pts_mwl;
             s.tiqsScore = s.leaguePoints; 
@@ -1524,6 +1615,7 @@
             else if (activeView === 'targets') window.renderTargetsView();
             else if (activeView === 'instruments') window.renderInstrumentsTable();
             else if (activeView === 'tags') window.renderTagsTable();
+            // Settings has no specific JS render update needed
         };
 
         window.switchView = (viewId) => {
@@ -1586,7 +1678,6 @@
             const filterVal = document.getElementById('dashDateRange') ? document.getElementById('dashDateRange').value : 'all';
             const st = getStats(filterVal);
             
-            // Dashboard Status Widget Update
             const statusWidget = document.getElementById('dashStatusWidget');
             const statusIcon = document.getElementById('dashStatusIcon');
             const statusTitle = document.getElementById('dashStatusTitle');
@@ -1594,22 +1685,34 @@
             
             if(statusWidget) {
                 statusWidget.classList.remove('hidden');
-                if (st.improvements.length === 0 || (st.improvements.length === 1 && st.totalTrades < 5)) {
-                    // Good status
-                    statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-neonGreen bg-neonGreen/5";
-                    statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-neonGreen/20 text-neonGreen shrink-0";
-                    statusIcon.innerHTML = '<i class="ph-bold ph-check text-xl"></i>';
-                    statusTitle.innerText = "System On Track";
-                    statusTitle.className = "text-sm font-bold text-neonGreen";
-                    statusDesc.innerText = "Everything looks solid. Keep following your rules.";
-                } else {
-                    // Needs Improvement status
+                if (st.improvements.length > 0 && (st.improvements[0].includes("losing streak") || st.improvements[0].includes("Revenge trading"))) {
                     statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-neonRed bg-neonRed/5";
                     statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-neonRed/20 text-neonRed shrink-0";
                     statusIcon.innerHTML = '<i class="ph-bold ph-warning-circle text-xl"></i>';
-                    statusTitle.innerText = "Needs Improvement";
+                    statusTitle.innerText = "Caution Advised";
                     statusTitle.className = "text-sm font-bold text-neonRed";
-                    statusDesc.innerText = `Found ${st.improvements.length} areas to work on to fix leaks in your edge.`;
+                    statusDesc.innerText = st.improvements[0];
+                } else if (st.highlights && st.highlights.length > 0) {
+                    statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-neonGreen bg-neonGreen/5";
+                    statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-neonGreen/20 text-neonGreen shrink-0";
+                    statusIcon.innerHTML = '<i class="ph-bold ph-star text-xl"></i>';
+                    statusTitle.innerText = "System On Track";
+                    statusTitle.className = "text-sm font-bold text-neonGreen";
+                    statusDesc.innerText = st.highlights[0];
+                } else if (st.improvements.length > 0) {
+                    statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-orange-500 bg-orange-500/5";
+                    statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/20 text-orange-500 shrink-0";
+                    statusIcon.innerHTML = '<i class="ph-bold ph-wrench text-xl"></i>';
+                    statusTitle.innerText = "Minor Leaks Detected";
+                    statusTitle.className = "text-sm font-bold text-orange-500";
+                    statusDesc.innerText = st.improvements[0];
+                } else {
+                    statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-gray-500";
+                    statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-gray-800 text-white shrink-0";
+                    statusIcon.innerHTML = '<i class="ph-bold ph-chart-line-up text-xl"></i>';
+                    statusTitle.innerText = "Not Enough Data";
+                    statusTitle.className = "text-sm font-bold text-white";
+                    statusDesc.innerText = "Log more trades to unlock AI insights.";
                 }
             }
 
@@ -1685,39 +1788,34 @@
         window.updateAnalytics = () => {
             const st = getStats();
             
-            // Generate Feedback / Suggestions
-            const fList = document.getElementById('feedbackList');
-            const fContainer = document.getElementById('analyticsFeedback');
-            fList.innerHTML = '';
+            const fContainer = document.getElementById('smartFeedbackContainer');
+            const hBox = document.getElementById('highlightBox');
+            const hList = document.getElementById('highlightList');
+            const iBox = document.getElementById('improvementBox');
+            const iList = document.getElementById('improvementList');
+            
+            if (hList) hList.innerHTML = '';
+            if (iList) iList.innerHTML = '';
 
-            const pList = document.getElementById('praisesList');
-            const pContainer = document.getElementById('analyticsPraises');
-            pList.innerHTML = '';
-
-            // Handle Praises
-            if (st.praises && st.praises.length > 0) {
-                st.praises.forEach(msg => {
-                    pList.innerHTML += `<li class="flex items-start gap-2"><i class="ph-bold ph-star text-neonGreen mt-1 shrink-0"></i> <span>${msg}</span></li>`;
-                });
-                pContainer.classList.remove('hidden');
+            if ((!st.highlights || st.highlights.length === 0) && st.improvements.length === 0) {
+                if (fContainer) fContainer.classList.add('hidden');
             } else {
-                pContainer.classList.add('hidden');
+                if (fContainer) fContainer.classList.remove('hidden');
+                
+                if (st.highlights && st.highlights.length > 0) {
+                    if (hBox) hBox.classList.remove('hidden');
+                    st.highlights.forEach(msg => { hList.innerHTML += `<li class="flex items-start gap-2"><i class="ph-bold ph-star text-neonGreen mt-0.5 shrink-0 text-sm"></i> <span>${msg}</span></li>`; });
+                } else {
+                    if (hBox) hBox.classList.add('hidden');
+                }
+                
+                if (st.improvements && st.improvements.length > 0) {
+                    if (iBox) iBox.classList.remove('hidden');
+                    st.improvements.forEach(msg => { iList.innerHTML += `<li class="flex items-start gap-2"><i class="ph-bold ph-warning text-neonRed mt-0.5 shrink-0 text-sm"></i> <span>${msg}</span></li>`; });
+                } else {
+                    if (iBox) iBox.classList.add('hidden');
+                }
             }
-
-            // Handle Improvements
-            if (st.improvements.length > 0 && !(st.improvements.length === 1 && st.totalTrades < 5)) {
-                st.improvements.forEach(msg => { 
-                    fList.innerHTML += `<li class="flex items-start gap-2"><i class="ph-bold ph-caret-right text-neonRed mt-1"></i> <span>${msg}</span></li>`; 
-                });
-                fContainer.classList.remove('hidden');
-            } else if (st.totalTrades < 5) {
-                fList.innerHTML = `<li class="flex items-start gap-2"><i class="ph-bold ph-info text-blue-400 mt-1"></i> <span>${st.improvements[0]}</span></li>`;
-                fContainer.classList.remove('hidden');
-                fContainer.className = "mb-6 bg-panelDark border border-gray-800 p-5 rounded-xl shadow-lg border-l-4 border-l-blue-400";
-            } else {
-                fContainer.classList.add('hidden');
-            }
-
 
             let bestMoVal = 0, lowMoVal = 0, bestMo='', lowMo='';
             Object.entries(st.byMonth).forEach(([m, pnl]) => {
@@ -1969,6 +2067,7 @@
             if(closedTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr>`;
         };
 
+        // --- CALENDAR VIEW ---
         window.renderCalendar = () => {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
             const st = getStats();
@@ -2005,7 +2104,8 @@
                     if(pnl > 0) cls = "bg-[#00f28e]/10 text-neonGreen font-bold border border-[#00f28e]/30 shadow-[inset_0_0_10px_rgba(0,242,142,0.1)] hover:bg-[#00f28e]/20 cursor-pointer transition-colors";
                     else if(pnl < 0) cls = "bg-[#ff3b69]/10 text-neonRed font-bold border border-[#ff3b69]/30 shadow-[inset_0_0_10px_rgba(255,59,105,0.1)] hover:bg-[#ff3b69]/20 cursor-pointer transition-colors";
                     else if(pnl === 0) cls = "bg-gray-500/20 text-white cursor-pointer hover:bg-gray-500/40 transition-colors";
-                    else if(isWeekend || isHol) { cls = "bg-[#11141c] text-gray-700"; if(isHol) innerCls="line-through"; }
+                    else if(isHol) { cls = "bg-orange-500/10 text-orange-500"; innerCls="line-through"; }
+                    else if(isWeekend) { cls = "bg-[#11141c] text-gray-700"; }
 
                     if(isToday) cls += " ring-1 ring-inset ring-fuchsia-500 shadow-[inset_0_0_8px_rgba(217,70,239,0.5)]";
                     
@@ -2119,7 +2219,7 @@
             populateTimeScroller('tp_minutes', 0, 59, 1);
             
             let curVal = document.getElementById(targetId).value;
-            if(!curVal) curVal = "09:15"; // default fallback for scroller start
+            if(!curVal) curVal = "09:15"; 
             
             const [h, m] = curVal.split(':');
             
@@ -2265,7 +2365,6 @@
             
             if(!ed || !et) { showFormError("Entry Date and Entry Time are required."); return; }
 
-            // Validate Times if entered
             const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=930; };
             if(!checkT(et)) { showFormError("Entry Time must be during Indian market hours (09:15 - 15:30)."); return; }
             if(xt && !checkT(xt)) { showFormError("Exit Time must be during Indian market hours (09:15 - 15:30)."); return; }
@@ -2293,10 +2392,12 @@
                 if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
                 else window.trades.push({id:tid, ...tradeObj});
                 saveLocal(); window.closeTradeModal(); window.renderActiveView();
+                window.showToast("Trade saved locally.");
             } else {
                 try {
                     await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', tid), tradeObj);
                     window.closeTradeModal();
+                    window.showToast("Trade saved to Cloud.");
                 } catch (e) { console.error("Save Error:", e); showFormError("Error saving trade to cloud database."); }
             }
             btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
@@ -2334,9 +2435,12 @@
         };
 
         window.deleteTrade = async (id) => {
-            if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); window.renderActiveView(); return; }
+            if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); window.renderActiveView(); window.showToast("Trade deleted."); return; }
             if(!currentUser) return;
-            try { await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); } catch(e) { console.error("Delete error:", e); }
+            try { 
+                await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); 
+                window.showToast("Trade deleted.");
+            } catch(e) { console.error("Delete error:", e); }
         };
 
         // --- DAILY PNL EDIT MODAL ---
@@ -2373,6 +2477,8 @@
             const val = parseFloat(document.getElementById('dayModalNet').value) || 0;
             window.dailyStats[dt] = val;
             window.closeDayModal();
+            window.showToast(`Daily P&L saved for ${dt}`);
+            
             if(useLocalStorage) saveLocal();
             else if(currentUser) {
                 try {
@@ -2380,124 +2486,6 @@
                 } catch(e) { console.error("Error saving daily PNL", e); }
             }
             window.renderActiveView();
-        };
-
-        // --- IMPORT / EXPORT DATA LOGIC ---
-        window.showToast = (msg, isError = false) => {
-            const t = document.createElement('div');
-            t.className = `fixed top-4 left-1/2 -translate-x-1/2 p-3 px-6 rounded-lg shadow-xl z-[100] text-xs font-bold transition-all duration-300 transform -translate-y-10 opacity-0 ${isError?'bg-red-500/90 border border-red-500 text-white':'bg-neonGreen/90 border border-neonGreen text-black'}`;
-            t.innerHTML = `<div class="flex items-center gap-2"><i class="ph-bold ${isError?'ph-warning-circle':'ph-check-circle'} text-lg"></i> ${msg}</div>`;
-            document.body.appendChild(t);
-            setTimeout(() => { t.classList.remove('-translate-y-10', 'opacity-0'); }, 10);
-            setTimeout(() => { t.classList.add('-translate-y-10', 'opacity-0'); setTimeout(()=>t.remove(), 300); }, 3000);
-        };
-
-        window.exportTrades = () => {
-            if (!window.trades || window.trades.length === 0) { window.showToast("No trades available to export.", true); return; }
-            
-            let keys = new Set();
-            window.trades.forEach(t => Object.keys(t).forEach(k => keys.add(k)));
-            const headers = Array.from(keys);
-            const csvRows = [headers.join(",")];
-            
-            window.trades.forEach(t => {
-                const row = headers.map(header => {
-                    let val = t[header];
-                    if (val === null || val === undefined) val = '';
-                    if (typeof val === 'object') val = JSON.stringify(val).replace(/"/g, '""');
-                    if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) return `"${val}"`;
-                    return val;
-                });
-                csvRows.push(row.join(","));
-            });
-            
-            const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `Tradology_Trades_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.showToast("Trades exported successfully!");
-        };
-
-        window.importTrades = async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const text = e.target.result;
-                const rows = [];
-                let currentRow = [];
-                let currentCell = '';
-                let inQuotes = false;
-                
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    if (inQuotes) {
-                        if (char === '"') {
-                            if (text[i + 1] === '"') { currentCell += '"'; i++; }
-                            else { inQuotes = false; }
-                        } else { currentCell += char; }
-                    } else {
-                        if (char === '"') { inQuotes = true; }
-                        else if (char === ',') { currentRow.push(currentCell); currentCell = ''; }
-                        else if (char === '\n' || char === '\r') {
-                            currentRow.push(currentCell);
-                            if (currentRow.join('').trim() !== '') rows.push(currentRow);
-                            currentRow = []; currentCell = '';
-                            if (char === '\r' && text[i + 1] === '\n') i++;
-                        } else { currentCell += char; }
-                    }
-                }
-                if (currentCell || currentRow.length > 0) { currentRow.push(currentCell); rows.push(currentRow); }
-
-                if (rows.length < 2) { window.showToast("Invalid or empty CSV file.", true); document.getElementById('importInput').value = ''; return; }
-                
-                const headers = rows[0];
-                let importedCount = 0;
-                
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i];
-                    if (cols.length !== headers.length) continue;
-                    
-                    let newTrade = {};
-                    headers.forEach((header, index) => {
-                        let val = cols[index];
-                        if (val === 'true') val = true;
-                        else if (val === 'false') val = false;
-                        else if (val === '') val = null;
-                        else if (!isNaN(val) && val !== null && val.trim() !== '') val = parseFloat(val);
-                        else {
-                            try { if (val && (val.startsWith('{') || val.startsWith('['))) val = JSON.parse(val); } catch (err) {}
-                        }
-                        newTrade[header] = val;
-                    });
-                    
-                    if (!newTrade.id) newTrade.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                    if (!newTrade.legs) newTrade.legs = [];
-                    
-                    const existingIndex = window.trades.findIndex(t => t.id === newTrade.id);
-                    if (existingIndex >= 0) window.trades[existingIndex] = newTrade;
-                    else window.trades.push(newTrade);
-                    
-                    importedCount++;
-                    
-                    if (!useLocalStorage && currentUser) {
-                        try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', newTrade.id), newTrade); }
-                        catch (err) { console.error("Error saving imported trade", err); }
-                    }
-                }
-                
-                if (useLocalStorage) saveLocal();
-                document.getElementById('importInput').value = '';
-                window.showToast(`${importedCount} trades imported successfully!`);
-                window.renderActiveView();
-            };
-            reader.readAsText(file);
         };
 
         window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); };
