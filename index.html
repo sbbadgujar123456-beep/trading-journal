@@ -90,6 +90,10 @@
         .info-tooltip .tooltip-text { visibility: hidden; opacity: 0; width: max-content; max-width: 220px; background-color: #1f2433; color: #fff; text-align: left; border-radius: 8px; padding: 10px; position: absolute; z-index: 50; bottom: 140%; left: 50%; transform: translateX(-50%) translateY(5px); transition: all 0.2s ease; font-size: 11px; font-weight: normal; border: 1px solid #3f4a63; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); text-transform: none; line-height: 1.5; pointer-events: none; }
         .info-tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #3f4a63 transparent transparent transparent; }
         .info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Checkbox Custom Styles */
+        .custom-checkbox input:checked + div { background-color: rgba(0, 242, 142, 0.2); border-color: #00f28e; }
+        .custom-checkbox input:checked + div i { opacity: 1; }
     </style>
 </head>
 <body class="flex h-screen relative">
@@ -561,7 +565,7 @@
                 <button type="button" onclick="window.closeTradeModal()" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors"><i class="ph-bold ph-x text-lg"></i></button>
             </div>
 
-            <div class="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+            <div class="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar" id="modalScrollArea">
                 <form id="addTradeForm" onsubmit="event.preventDefault(); window.saveTrade();">
                     <div id="formErrorAlert" class="hidden mb-4 bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-lg text-xs flex items-center gap-2">
                         <i class="ph-fill ph-warning-circle text-lg shrink-0"></i><span id="formErrorMsg">Please check your inputs.</span>
@@ -595,22 +599,20 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6 pb-6 border-b border-gray-800">
-                        <div>
-                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Category</label>
-                            <select id="tradeCategory" required class="w-full input-dark rounded-lg p-2 text-sm text-white">
-                                <option value="" disabled selected>Select Category...</option>
-                                <option value="Long from Oversold">Long from Oversold</option>
-                                <option value="Short from Overbought">Short from Overbought</option>
-                                <option value="Algo">Algo</option>
-                                <option value="FOMO">FOMO</option>
-                                <option value="Liquide">Liquide</option>
-                                <option value="Zee">Zee</option>
-                                <option value="TradeFinder">TradeFinder</option>
-                                <option value="Bolt Trade">Bolt Trade</option>
-                                <option value="Normal">Normal</option>
-                                <option value="Over Quantity Risk">Over Quantity Risk</option>
-                            </select>
+                        <!-- Multi-Select Category -->
+                        <div class="relative">
+                            <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Categories</label>
+                            <div class="w-full input-dark rounded-lg p-2 text-sm text-white cursor-pointer min-h-[38px] flex items-center justify-between" onclick="document.getElementById('catDropdown').classList.toggle('hidden')">
+                                <div id="selectedCategories" class="flex flex-wrap gap-1">Select Categories...</div>
+                                <i class="ph-bold ph-caret-down text-gray-500"></i>
+                            </div>
+                            <div id="catDropdown" class="hidden absolute top-full left-0 w-full mt-1 bg-[#1a1d27] border border-gray-700 rounded-lg shadow-xl z-50 p-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                <div class="grid grid-cols-1 gap-1" id="catCheckboxList">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
                         </div>
+                        
                         <div>
                             <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Expiry Trade?</label>
                             <div class="flex items-center gap-3 h-[38px] px-2">
@@ -831,6 +833,13 @@
         let unsubscribeTargets = null;
         let editingTradeId = null;
         let confirmActionCb = null;
+        
+        // Multi-Select Categories State
+        const CATEGORIES = [
+            "Long from Oversold", "Short from Overbought", "Algo", "FOMO", 
+            "Liquide", "Zee", "TradeFinder", "Bolt Trade", "Normal", "Over Quantity Risk"
+        ];
+        let selectedCategories = [];
 
         window.createChart = function(ctxId, config) {
             if (charts[ctxId]) charts[ctxId].destroy();
@@ -1203,7 +1212,7 @@
                 <div class="glass-panel rounded-xl p-5 border ${borderCls} ${opacityCls} flex flex-col relative group">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-white uppercase tracking-wider">${month} ${year}</h3>
-                        <button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>
+                        ${(isCurrent || index > currentMonth || isPast) ? `<button onclick="window.openTargetModal('${key}')" class="text-[10px] text-neonGreen bg-neonGreen/10 px-2 py-1 rounded hover:bg-neonGreen/30 transition-colors"><i class="ph-bold ph-pencil-simple"></i> Set</button>` : ''}
                     </div>
                     
                     <div class="flex items-end justify-between mb-2">
@@ -1255,7 +1264,6 @@
 
             window.closeTargetModal();
             window.renderTargetsView();
-            window.showToast(`Target set for ${key}`);
             
             if(useLocalStorage) saveLocal();
             else if(currentUser) {
@@ -1363,10 +1371,17 @@
                 s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
                 if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
 
-                if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0, holdTime:0 };
-                s.byTag[t.category].trades++; s.byTag[t.category].pnl += t.pnl;
-                s.byTag[t.category].holdTime += t.holdTime;
-                if(t.pnl >= 0) s.byTag[t.category].wins++;
+                // Handle Array of Categories or single Category String
+                let cats = Array.isArray(t.category) ? t.category : [t.category];
+                if (cats.length === 0) cats = ["Normal"]; // Fallback
+                
+                cats.forEach(cat => {
+                    if(!s.byTag[cat]) s.byTag[cat] = { trades:0, wins:0, pnl:0, holdTime:0 };
+                    // Distribute stats if multiple categories exist (simple +1 per cat for trades)
+                    s.byTag[cat].trades++; s.byTag[cat].pnl += t.pnl;
+                    s.byTag[cat].holdTime += t.holdTime;
+                    if(t.pnl >= 0) s.byTag[cat].wins++;
+                });
 
                 if(t.entryTime) {
                     const [th, tm] = t.entryTime.split(':').map(Number);
@@ -1458,7 +1473,6 @@
             } else {
                 const tradedDays = Object.keys(s.dailyTradeCount).sort();
                 
-                // 1. Current Active Streak Analysis
                 if (tradedDays.length > 0) {
                     let currentStreakType = null;
                     let currentStreakCount = 0;
@@ -1484,7 +1498,6 @@
                     }
                 }
 
-                // 2. Discipline / Overtrading Improvement Over Time
                 if (tradedDays.length >= 8) {
                     const recentCount = Math.min(7, Math.floor(tradedDays.length / 2));
                     const recentSlice = tradedDays.slice(-recentCount);
@@ -1503,7 +1516,6 @@
                     }
                 }
 
-                // 3. Today's Specific Execution
                 if (tradedDays.length > 0 && tradedDays[tradedDays.length - 1] === todayStr) {
                     const todayTrades = s.dailyTradeCount[todayStr];
                     const todayPnl = s.dailyNet[todayStr];
@@ -1514,7 +1526,6 @@
                     }
                 }
 
-                // 4. Historical Weaknesses
                 let worstTime = null;
                 let minPnl = 0;
                 Object.entries(s.timeStats).forEach(([bucket, data]) => {
@@ -1524,14 +1535,12 @@
                     s.improvements.push(`Historical leak: You lose the most money during ${worstTime}. Avoid setups during this window.`);
                 }
 
-                // Risk Reward Check
                 const avgW = s.wins > 0 ? s.grossWin / s.wins : 0;
                 const avgL = s.losses > 0 ? s.grossLoss / s.losses : 0;
                 if (avgL > 0 && (avgW / avgL) < 1 && s.improvements.length < 3) {
                     s.improvements.push("Your average losing trade is larger than your average winning trade. Focus on cutting losers earlier.");
                 }
                 
-                // General Positive Edge
                 if(s.highlights.length === 0 && s.winPerc >= 50 && s.pf >= 1.5) {
                      s.highlights.push(`Your overall edge is very strong with a ${s.pf.toFixed(2)} Profit Factor. Stay patient and wait for A+ setups.`);
                 }
@@ -1971,11 +1980,12 @@
                 if(openTrades.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
                 
                 openTrades.forEach(t => {
+                    const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
                     tbody.innerHTML += `
                         <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
                             <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
                             <td class="p-4 font-bold text-white">${t.symbol}</td>
-                            <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${t.category}</span></td>
+                            <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${catString}</span></td>
                             <td class="p-4 text-right font-mono font-bold text-gray-400">${fINR(t.entryValue || 0)}</td>
                             <td class="p-4 text-center">
                                 <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2044,12 +2054,13 @@
                                 const p = (t.pnl / t.entryValue) * 100;
                                 retPerc = `<div class="text-[9px] mt-0.5 font-bold ${p>=0?'text-neonGreen':'text-neonRed'}">${p>=0?'+':''}${p.toFixed(2)}%</div>`;
                             }
+                            const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
                             trsHtml += `
                                 <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
                                     <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
                                     <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
                                     <td class="p-4 font-bold text-white">${t.symbol}</td>
-                                    <td class="p-4"><span class="text-[10px] bg-[#1a1d27] border border-gray-700 px-2 py-1 rounded whitespace-nowrap text-gray-300">${t.category}</span></td>
+                                    <td class="p-4"><span class="text-[10px] bg-[#1a1d27] border border-gray-700 px-2 py-1 rounded text-gray-300 line-clamp-1 max-w-[150px] inline-block" title="${catString}">${catString}</span></td>
                                     <td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}${retPerc}</td>
                                     <td class="p-4 text-center">
                                         <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2067,7 +2078,6 @@
             if(closedTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr>`;
         };
 
-        // --- CALENDAR VIEW ---
         window.renderCalendar = () => {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
             const st = getStats();
@@ -2252,20 +2262,88 @@
             document.getElementById(tpTarget+'Disp').innerText = timeStr;
             document.getElementById(tpTarget+'Disp').className = "text-white font-bold";
             
+            // Auto fill exit time + 1 min if setting entry time and exit is empty
+            if (tpTarget === 'entryTime') {
+                const exTimeVal = document.getElementById('exitTime').value;
+                if (!exTimeVal) {
+                    let ex_m = m + 1;
+                    let ex_h = h;
+                    if (ex_m > 59) { ex_m = 0; ex_h += 1; }
+                    if (ex_h < 15 || (ex_h === 15 && ex_m <= 30)) {
+                         const exTimeStr = `${String(ex_h).padStart(2,'0')}:${String(ex_m).padStart(2,'0')}`;
+                         document.getElementById('exitTime').value = exTimeStr;
+                         document.getElementById('exitTimeDisp').innerText = exTimeStr;
+                         document.getElementById('exitTimeDisp').className = "text-white font-bold";
+                    }
+                }
+            }
+
             window.calcPrev();
             window.closeTimePicker();
         };
+
+        // --- MULTI SELECT CATEGORY LOGIC ---
+        window.renderCategoryDropdown = () => {
+            const container = document.getElementById('catCheckboxList');
+            container.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const isChecked = selectedCategories.includes(cat);
+                container.innerHTML += `
+                    <label class="custom-checkbox flex items-center p-2 hover:bg-gray-800 rounded cursor-pointer group">
+                        <input type="checkbox" value="${cat}" class="hidden" onchange="window.toggleCategory(this)" ${isChecked ? 'checked' : ''}>
+                        <div class="w-4 h-4 border border-gray-600 rounded flex items-center justify-center mr-3 group-hover:border-gray-400 transition-colors">
+                            <i class="ph-bold ph-check text-[10px] text-neonGreen opacity-0 transition-opacity"></i>
+                        </div>
+                        <span class="text-xs text-gray-300 group-hover:text-white transition-colors">${cat}</span>
+                    </label>
+                `;
+            });
+            updateCategoryDisplay();
+        };
+
+        window.toggleCategory = (checkbox) => {
+            const val = checkbox.value;
+            if (checkbox.checked) {
+                if (!selectedCategories.includes(val)) selectedCategories.push(val);
+            } else {
+                selectedCategories = selectedCategories.filter(c => c !== val);
+            }
+            updateCategoryDisplay();
+            window.calcPrev(); // trigger validation
+        };
+
+        function updateCategoryDisplay() {
+            const display = document.getElementById('selectedCategories');
+            if (selectedCategories.length === 0) {
+                display.innerHTML = '<span class="text-gray-500">Select Categories...</span>';
+            } else {
+                display.innerHTML = selectedCategories.map(c => `<span class="bg-[#1f2433] px-2 py-0.5 rounded text-[10px] text-white border border-gray-700">${c}</span>`).join('');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('catDropdown');
+            const trigger = dropdown.previousElementSibling;
+            if (!dropdown.contains(e.target) && !trigger.contains(e.target) && !dropdown.classList.contains('hidden')) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
 
         // --- ADD/EDIT TRADE MODAL LOGIC ---
         window.openTradeModal = () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('entryDate').value = today;
-            document.getElementById('exitDate').value = ''; 
+            document.getElementById('exitDate').value = today; // Auto-fill exit date
             
             document.getElementById('tradeSymbol').value = '';
             document.getElementById('tradeExpiry').checked = false;
             document.getElementById('expiryLabelText').innerText = 'No';
             document.getElementById('expiryLabelText').className = 'text-xs text-gray-400';
+            
+            selectedCategories = [];
+            window.renderCategoryDropdown();
             
             window.setTradeStructure('Naked');
             document.getElementById('entryTime').value = ''; document.getElementById('entryTimeDisp').innerText = "--:--"; document.getElementById('entryTimeDisp').className = "text-gray-500";
@@ -2287,6 +2365,7 @@
                 document.getElementById('previewPnl').innerText='₹0.00'; 
                 document.getElementById('formErrorAlert').classList.add('hidden');
                 document.getElementById('openTradeWarning').classList.add('hidden');
+                document.getElementById('catDropdown').classList.add('hidden');
                 editingTradeId = null;
             }, 300);
         };
@@ -2305,12 +2384,12 @@
             }
         };
 
-        window.createLegHTML = (showDel) => {
+        window.createLegHTML = (showDel, defaultQty = '') => {
             return `<div class="leg-row bg-[#0b0e14] p-3 rounded-xl border border-gray-800 relative group">
                 ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><i class="ph-bold ph-x text-xs"></i></button>`:''}
                 <div class="grid grid-cols-4 gap-3">
                     <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
+                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" value="${defaultQty}" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
                     <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
                     <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit <span class="text-gray-600">(Opt)</span></label><input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
                 </div>
@@ -2318,7 +2397,15 @@
         };
 
         window.addLeg = () => {
-            document.getElementById('legsWrapper').insertAdjacentHTML('beforeend', window.createLegHTML(true));
+            // Get quantity from the first leg to auto-fill
+            const firstLegQtyInput = document.querySelector('.leg-row .leg-qty');
+            const defaultQty = firstLegQtyInput ? firstLegQtyInput.value : '';
+            
+            document.getElementById('legsWrapper').insertAdjacentHTML('beforeend', window.createLegHTML(true, defaultQty));
+            
+            // Scroll modal to bottom
+            const scrollArea = document.getElementById('modalScrollArea');
+            if(scrollArea) setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 10);
         };
 
         window.calcPrev = () => {
@@ -2359,7 +2446,8 @@
             const sym = document.getElementById('tradeSymbol').value.trim();
             if(!sym) { showFormError("Symbol cannot be empty."); return; }
 
-            const cat = document.getElementById('tradeCategory').value; if(!cat) { showFormError("Please select a Strategy Category."); return; }
+            if(selectedCategories.length === 0) { showFormError("Please select at least one Strategy Category."); return; }
+            
             const isExpiry = document.getElementById('tradeExpiry').checked;
             const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
             
@@ -2386,7 +2474,8 @@
             const ht = (xd && xt) ? Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000) : null;
             
             const tid = editingTradeId || Date.now().toString();
-            const tradeObj = { entryDate:ed, exitDate:(xd||null), symbol:sym.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:cat, isExpiry:isExpiry, entryTime:et, exitTime:(xt||null), legs, pnl:calcPnl, holdTime:ht, entryValue: totalVal, timestamp: Date.now() };
+            // Note: category is now an array
+            const tradeObj = { entryDate:ed, exitDate:(xd||null), symbol:sym.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:selectedCategories, isExpiry:isExpiry, entryTime:et, exitTime:(xt||null), legs, pnl:calcPnl, holdTime:ht, entryValue: totalVal, timestamp: Date.now() };
 
             if(useLocalStorage) {
                 if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
@@ -2409,7 +2498,10 @@
             document.getElementById('entryDate').value = t.entryDate;
             document.getElementById('exitDate').value = t.exitDate || '';
             document.getElementById('tradeSymbol').value = t.symbol;
-            document.getElementById('tradeCategory').value = t.category;
+            
+            // Handle legacy single string category or array
+            selectedCategories = Array.isArray(t.category) ? t.category : [t.category];
+            window.renderCategoryDropdown();
             
             document.getElementById('tradeExpiry').checked = t.isExpiry === true;
             document.getElementById('expiryLabelText').innerText = t.isExpiry ? 'Yes' : 'No';
