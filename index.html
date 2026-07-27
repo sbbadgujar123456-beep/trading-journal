@@ -129,16 +129,13 @@
                 </button>
                 
                 <div class="mt-8 mb-2 px-4 text-[10px] font-bold uppercase text-gray-500 tracking-wider">Data Management</div>
-                <button onclick="window.exportDataJSON()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-download-simple text-xl"></i> Backup (JSON)
+                <button onclick="window.exportTrades()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-export text-xl"></i> Export CSV
                 </button>
-                <button onclick="document.getElementById('importJsonInput').click()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
-                    <i class="ph ph-upload-simple text-xl"></i> Restore (JSON)
+                <button onclick="document.getElementById('importInput').click()" class="w-full flex items-center gap-3 px-4 py-2 text-textMuted hover:text-white hover:bg-panelLighter rounded-lg transition-colors">
+                    <i class="ph ph-import text-xl"></i> Import CSV
                 </button>
-                <button onclick="window.confirmClearAllData()" class="w-full flex items-center gap-3 px-4 py-2 text-neonRed hover:text-white hover:bg-neonRed/10 rounded-lg transition-colors mt-2">
-                    <i class="ph ph-trash text-xl"></i> Erase All Data
-                </button>
-                <input type="file" id="importJsonInput" class="hidden" accept=".json" onchange="window.importDataJSON(event)">
+                <input type="file" id="importInput" class="hidden" accept=".csv" onchange="window.importTrades(event)">
             </nav>
         </div>
         
@@ -1019,7 +1016,7 @@
                 unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
                     if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
                     window.renderActiveView();
-                }, e => { console.error("Holidays fetch error:", e); });
+                }, e => {});
 
                 unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                     if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
@@ -1064,18 +1061,18 @@
 
             months.forEach((month, index) => {
                 const key = `${year}-${String(index+1).padStart(2,'0')}`;
-                const tgtAmt = Number(window.monthlyTargets[key]) || 0;
+                const tgtAmt = window.monthlyTargets[key] || 0;
                 
                 let pnl = 0;
                 // Calculate PnL for this specific month
                 Object.keys(window.dailyStats).forEach(dt => {
-                    if(dt.startsWith(key)) pnl += Number(window.dailyStats[dt] || 0);
+                    if(dt.startsWith(key)) pnl += window.dailyStats[dt];
                 });
                 
                 // Add un-finalized gross PnLs
                 window.trades.forEach(t => {
                     if(t.exitDate && t.exitDate.startsWith(key) && window.dailyStats[t.exitDate] === undefined) {
-                        if(t.pnl != null) pnl += Number(t.pnl);
+                        if(t.pnl) pnl += t.pnl;
                     }
                 });
 
@@ -1227,26 +1224,23 @@
             }
 
             filteredTrades.forEach(t => {
-                const pnl = Number(t.pnl) || 0;
-                const ev = Number(t.entryValue) || 0;
-                
-                s.totalGross += pnl;
-                s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + pnl;
+                s.totalGross += t.pnl;
+                s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + t.pnl;
                 s.dailyTradeCount[t.exitDate] = (s.dailyTradeCount[t.exitDate] || 0) + 1;
-                s.totalEntryVal += ev;
+                s.totalEntryVal += (t.entryValue || 0);
 
-                if (pnl >= 0) { s.wins++; s.grossWin += pnl; s.totalHoldWin += t.holdTime; } 
-                else { s.losses++; s.grossLoss += Math.abs(pnl); s.totalHoldLoss += t.holdTime; }
+                if (t.pnl >= 0) { s.wins++; s.grossWin += t.pnl; s.totalHoldWin += t.holdTime; } 
+                else { s.losses++; s.grossLoss += Math.abs(t.pnl); s.totalHoldLoss += t.holdTime; }
 
                 // Expiry Tracking
                 if(t.isExpiry) {
                     s.expiryTrades++;
-                    s.expiryPnl += pnl;
-                    if(pnl < 0) s.expiryLosses++;
+                    s.expiryPnl += t.pnl;
+                    if(t.pnl < 0) s.expiryLosses++;
                 }
 
                 // High Capital Loss Tracking (Excluding Algo)
-                if(ev > 100000 && t.category !== 'Algo' && pnl < 0) {
+                if(t.entryValue > 100000 && t.category !== 'Algo' && t.pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
@@ -1256,23 +1250,23 @@
                     const dName = daysArr[dayOfWeek];
                     if(!s.instDayStats[t.symbol]) s.instDayStats[t.symbol] = {};
                     if(!s.instDayStats[t.symbol][dName]) s.instDayStats[t.symbol][dName] = { pnl: 0, trades: 0, losses: 0 };
-                    s.instDayStats[t.symbol][dName].pnl += pnl;
+                    s.instDayStats[t.symbol][dName].pnl += t.pnl;
                     s.instDayStats[t.symbol][dName].trades++;
-                    if(pnl < 0) s.instDayStats[t.symbol][dName].losses++;
+                    if(t.pnl < 0) s.instDayStats[t.symbol][dName].losses++;
                 }
 
                 const dir = t.legs[0]?.direction || 'Long';
-                if(dir === 'Long') { s.longPnl += pnl; if(pnl>=0){ s.longWins++; s.longGrossWin += pnl; } else { s.longLosses++; s.longGrossLoss+=Math.abs(pnl); } } 
-                else { s.shortPnl += pnl; if(pnl>=0){ s.shortWins++; s.shortGrossWin += pnl; } else { s.shortLosses++; s.shortGrossLoss+=Math.abs(pnl); } }
+                if(dir === 'Long') { s.longPnl += t.pnl; if(t.pnl>=0){ s.longWins++; s.longGrossWin += t.pnl; } else { s.longLosses++; s.longGrossLoss+=Math.abs(t.pnl); } } 
+                else { s.shortPnl += t.pnl; if(t.pnl>=0){ s.shortWins++; s.shortGrossWin += t.pnl; } else { s.shortLosses++; s.shortGrossLoss+=Math.abs(t.pnl); } }
 
                 if(!s.byInstrument[t.symbol]) s.byInstrument[t.symbol] = { trades:0, wins:0, pnl:0 };
-                s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += pnl;
-                if(pnl >= 0) s.byInstrument[t.symbol].wins++;
+                s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
+                if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
 
                 if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0, holdTime:0 };
-                s.byTag[t.category].trades++; s.byTag[t.category].pnl += pnl;
+                s.byTag[t.category].trades++; s.byTag[t.category].pnl += t.pnl;
                 s.byTag[t.category].holdTime += t.holdTime;
-                if(pnl >= 0) s.byTag[t.category].wins++;
+                if(t.pnl >= 0) s.byTag[t.category].wins++;
 
                 if(t.entryTime) {
                     const [th, tm] = t.entryTime.split(':').map(Number);
@@ -1286,7 +1280,7 @@
                     else if (tMins < 870) tB = 'Early Afternoon (13:30-14:30)';
                     else if (tMins < 930) tB = 'Late Afternoon (14:30-15:30)';
                     else if (tMins < 945) tB = 'Closing (15:30-15:45)';
-                    s.timeStats[tB].trades++; s.timeStats[tB].pnl += pnl;
+                    s.timeStats[tB].trades++; s.timeStats[tB].pnl += t.pnl;
                 }
 
                 const diffDays = Math.floor((new Date(t.exitDate) - new Date(t.entryDate)) / 86400000);
@@ -1295,7 +1289,7 @@
                 else if (diffDays <= 3) dB = '1-3 Days';
                 else if (diffDays <= 7) dB = '4-7 Days';
                 else if (diffDays <= 14) dB = '1-2 Weeks';
-                s.durationStats[dB].trades++; s.durationStats[dB].pnl += pnl;
+                s.durationStats[dB].trades++; s.durationStats[dB].pnl += t.pnl;
             });
 
             // Missing PnL Detection
@@ -1305,13 +1299,12 @@
                 if(d !== todayStr && window.dailyStats[d] === undefined) s.missingPnlDays.push(d);
             });
 
-            const allDays = new Set([...Object.keys(s.dailyGross), ...Object.keys(window.dailyStats)]);
-            allDays.forEach(d => {
-                s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? Number(window.dailyStats[d]) : Number(s.dailyGross[d] || 0);
+            Object.keys(s.dailyGross).forEach(d => {
+                s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? window.dailyStats[d] : s.dailyGross[d];
                 s.totalPnl += s.dailyNet[d];
                 s.uniqueDays.add(d);
                 const month = d.substring(0,7);
-                s.byMonth[month] = (Number(s.byMonth[month]) || 0) + s.dailyNet[d];
+                s.byMonth[month] = (s.byMonth[month] || 0) + s.dailyNet[d];
             });
 
             s.totalTrades = s.wins + s.losses;
@@ -2061,16 +2054,9 @@
             if(window.marketHolidays.includes(dt)) window.marketHolidays = window.marketHolidays.filter(d => d !== dt);
             else window.marketHolidays.push(dt);
             renderHolidayGrid();
-            
-            if(useLocalStorage) {
-                saveLocal();
-            } else if(currentUser) {
-                try { 
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); 
-                } catch(e){
-                    console.error("Firebase Holiday Save Error:", e);
-                    window.showToast("Failed to save holiday to cloud.", true);
-                }
+            if(useLocalStorage) saveLocal();
+            else if(currentUser) {
+                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); } catch(e){}
             }
             if(activeView === 'calendar') window.renderCalendar();
         };
@@ -2397,7 +2383,7 @@
             window.renderActiveView();
         };
 
-        // --- IMPORT / EXPORT DATA LOGIC (JSON) & ERASE DATA ---
+        // --- IMPORT / EXPORT DATA LOGIC ---
         window.showToast = (msg, isError = false) => {
             const t = document.createElement('div');
             t.className = `fixed top-4 left-1/2 -translate-x-1/2 p-3 px-6 rounded-lg shadow-xl z-[100] text-xs font-bold transition-all duration-300 transform -translate-y-10 opacity-0 ${isError?'bg-red-500/90 border border-red-500 text-white':'bg-neonGreen/90 border border-neonGreen text-black'}`;
@@ -2407,102 +2393,112 @@
             setTimeout(() => { t.classList.add('-translate-y-10', 'opacity-0'); setTimeout(()=>t.remove(), 300); }, 3000);
         };
 
-        window.exportDataJSON = () => {
-            const data = {
-                trades: window.trades || [],
-                dailyStats: window.dailyStats || {},
-                marketHolidays: window.marketHolidays || [],
-                monthlyTargets: window.monthlyTargets || {}
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        window.exportTrades = () => {
+            if (!window.trades || window.trades.length === 0) { window.showToast("No trades available to export.", true); return; }
+            
+            let keys = new Set();
+            window.trades.forEach(t => Object.keys(t).forEach(k => keys.add(k)));
+            const headers = Array.from(keys);
+            const csvRows = [headers.join(",")];
+            
+            window.trades.forEach(t => {
+                const row = headers.map(header => {
+                    let val = t[header];
+                    if (val === null || val === undefined) val = '';
+                    if (typeof val === 'object') val = JSON.stringify(val).replace(/"/g, '""');
+                    if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) return `"${val}"`;
+                    return val;
+                });
+                csvRows.push(row.join(","));
+            });
+            
+            const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', `Tradology_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            a.setAttribute('download', `Tradology_Trades_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            window.showToast("Backup exported successfully!");
+            window.showToast("Trades exported successfully!");
         };
 
-        window.importDataJSON = async (event) => {
+        window.importTrades = async (event) => {
             const file = event.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
             reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    window.trades = data.trades || [];
-                    window.dailyStats = data.dailyStats || {};
-                    window.marketHolidays = data.marketHolidays || [];
-                    window.monthlyTargets = data.monthlyTargets || {};
-                    
-                    if (useLocalStorage) {
-                        saveLocal();
-                        window.showToast("Data restored successfully to local storage!");
-                    } else if (currentUser) {
-                        window.showToast("Restoring to cloud... Please wait.", false);
-                        
-                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
-                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
-                        
-                        for(const [dt, pnl] of Object.entries(window.dailyStats)) {
-                            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl });
-                        }
-                        
-                        for(const trade of window.trades) {
-                            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', trade.id), trade);
-                        }
-                        window.showToast("Data restored successfully to cloud!");
+                const text = e.target.result;
+                const rows = [];
+                let currentRow = [];
+                let currentCell = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    if (inQuotes) {
+                        if (char === '"') {
+                            if (text[i + 1] === '"') { currentCell += '"'; i++; }
+                            else { inQuotes = false; }
+                        } else { currentCell += char; }
+                    } else {
+                        if (char === '"') { inQuotes = true; }
+                        else if (char === ',') { currentRow.push(currentCell); currentCell = ''; }
+                        else if (char === '\n' || char === '\r') {
+                            currentRow.push(currentCell);
+                            if (currentRow.join('').trim() !== '') rows.push(currentRow);
+                            currentRow = []; currentCell = '';
+                            if (char === '\r' && text[i + 1] === '\n') i++;
+                        } else { currentCell += char; }
                     }
-                    window.renderActiveView();
-                } catch(err) {
-                    window.showToast("Invalid JSON backup file.", true);
-                    console.error("Import Error:", err);
                 }
-                document.getElementById('importJsonInput').value = '';
+                if (currentCell || currentRow.length > 0) { currentRow.push(currentCell); rows.push(currentRow); }
+
+                if (rows.length < 2) { window.showToast("Invalid or empty CSV file.", true); document.getElementById('importInput').value = ''; return; }
+                
+                const headers = rows[0];
+                let importedCount = 0;
+                
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i];
+                    if (cols.length !== headers.length) continue;
+                    
+                    let newTrade = {};
+                    headers.forEach((header, index) => {
+                        let val = cols[index];
+                        if (val === 'true') val = true;
+                        else if (val === 'false') val = false;
+                        else if (val === '') val = null;
+                        else if (!isNaN(val) && val !== null && val.trim() !== '') val = parseFloat(val);
+                        else {
+                            try { if (val && (val.startsWith('{') || val.startsWith('['))) val = JSON.parse(val); } catch (err) {}
+                        }
+                        newTrade[header] = val;
+                    });
+                    
+                    if (!newTrade.id) newTrade.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                    if (!newTrade.legs) newTrade.legs = [];
+                    
+                    const existingIndex = window.trades.findIndex(t => t.id === newTrade.id);
+                    if (existingIndex >= 0) window.trades[existingIndex] = newTrade;
+                    else window.trades.push(newTrade);
+                    
+                    importedCount++;
+                    
+                    if (!useLocalStorage && currentUser) {
+                        try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', newTrade.id), newTrade); }
+                        catch (err) { console.error("Error saving imported trade", err); }
+                    }
+                }
+                
+                if (useLocalStorage) saveLocal();
+                document.getElementById('importInput').value = '';
+                window.showToast(`${importedCount} trades imported successfully!`);
+                window.renderActiveView();
             };
             reader.readAsText(file);
-        };
-
-        window.confirmClearAllData = () => {
-            window.openConfirm(
-                'Erase All Data', 
-                'Are you absolutely sure? This will permanently delete ALL your trades, daily P&L entries, monthly targets, and holidays. This action cannot be undone unless you have a backup.', 
-                'Erase Everything', 
-                window.executeClearAllData
-            );
-        };
-
-        window.executeClearAllData = async () => {
-            if (useLocalStorage) {
-                window.trades = []; window.dailyStats = {}; window.marketHolidays = []; window.monthlyTargets = {};
-                localStorage.removeItem('tr_trades'); localStorage.removeItem('tr_daily');
-                localStorage.removeItem('tr_holidays'); localStorage.removeItem('tr_targets');
-                window.showToast("All data erased from local storage.");
-                window.renderActiveView();
-            } else if (currentUser) {
-                window.showToast("Erasing cloud data... Please wait.", false);
-                try {
-                    for(const trade of window.trades) {
-                        await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', trade.id));
-                    }
-                    for(const dt of Object.keys(window.dailyStats)) {
-                        await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt));
-                    }
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: [] });
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: {} });
-                    
-                    window.trades = []; window.dailyStats = {}; window.marketHolidays = []; window.monthlyTargets = {};
-                    window.showToast("All data erased from cloud.");
-                    window.renderActiveView();
-                } catch(e) {
-                    window.showToast("Error erasing cloud data.", true);
-                    console.error(e);
-                }
-            }
         };
 
         window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); };
