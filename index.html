@@ -569,16 +569,16 @@
                             <select id="tradeCategory" required class="w-full input-dark rounded-lg p-2 text-sm text-white">
                                 <option value="" disabled selected>Select Category...</option>
                                 <option value="Normal">Normal</option>
-                                <option value="Algo">Algo</option>
-                                <option value="TradeFinder">TradeFinder</option>
-                                <option value="Bold Trade">Bolt Trade</option>
-                                <option value="Over Quantity Risk">Over Quantity Risk</option>
-                                <option value="Long from Oversold">Long from Oversold</option>
-                                <option value="Short from Overbought">Short from Overbought</option>
-                                <option value="Breakout">Breakout</option>
-                                <option value="FOMO">FOMO</option>
-                                <option value="Liquide">Liquide</option>
-                                <option value="Zee">Zee</option>
+                                <option value="Algo">Algo</option>
+                                <option value="TradeFinder">TradeFinder</option>
+                                <option value="Bold Trade">Bolt Trade</option>
+                                <option value="Over Quantity Risk">Over Quantity Risk</option>
+                                <option value="Long from Oversold">Long from Oversold</option>
+                                <option value="Short from Overbought">Short from Overbought</option>
+                                <option value="Breakout">Breakout</option>
+                                <option value="FOMO">FOMO</option>
+                                <option value="Liquide">Liquide</option>
+                                <option value="Zee">Zee</option>
                             </select>
                         </div>
                         <div>
@@ -1019,7 +1019,7 @@
                 unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
                     if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
                     window.renderActiveView();
-                }, e => {});
+                }, e => { console.error("Holidays fetch error:", e); });
 
                 unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                     if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
@@ -1064,18 +1064,18 @@
 
             months.forEach((month, index) => {
                 const key = `${year}-${String(index+1).padStart(2,'0')}`;
-                const tgtAmt = window.monthlyTargets[key] || 0;
+                const tgtAmt = Number(window.monthlyTargets[key]) || 0;
                 
                 let pnl = 0;
                 // Calculate PnL for this specific month
                 Object.keys(window.dailyStats).forEach(dt => {
-                    if(dt.startsWith(key)) pnl += window.dailyStats[dt];
+                    if(dt.startsWith(key)) pnl += Number(window.dailyStats[dt] || 0);
                 });
                 
                 // Add un-finalized gross PnLs
                 window.trades.forEach(t => {
                     if(t.exitDate && t.exitDate.startsWith(key) && window.dailyStats[t.exitDate] === undefined) {
-                        if(t.pnl) pnl += t.pnl;
+                        if(t.pnl != null) pnl += Number(t.pnl);
                     }
                 });
 
@@ -1227,23 +1227,26 @@
             }
 
             filteredTrades.forEach(t => {
-                s.totalGross += t.pnl;
-                s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + t.pnl;
+                const pnl = Number(t.pnl) || 0;
+                const ev = Number(t.entryValue) || 0;
+                
+                s.totalGross += pnl;
+                s.dailyGross[t.exitDate] = (s.dailyGross[t.exitDate] || 0) + pnl;
                 s.dailyTradeCount[t.exitDate] = (s.dailyTradeCount[t.exitDate] || 0) + 1;
-                s.totalEntryVal += (t.entryValue || 0);
+                s.totalEntryVal += ev;
 
-                if (t.pnl >= 0) { s.wins++; s.grossWin += t.pnl; s.totalHoldWin += t.holdTime; } 
-                else { s.losses++; s.grossLoss += Math.abs(t.pnl); s.totalHoldLoss += t.holdTime; }
+                if (pnl >= 0) { s.wins++; s.grossWin += pnl; s.totalHoldWin += t.holdTime; } 
+                else { s.losses++; s.grossLoss += Math.abs(pnl); s.totalHoldLoss += t.holdTime; }
 
                 // Expiry Tracking
                 if(t.isExpiry) {
                     s.expiryTrades++;
-                    s.expiryPnl += t.pnl;
-                    if(t.pnl < 0) s.expiryLosses++;
+                    s.expiryPnl += pnl;
+                    if(pnl < 0) s.expiryLosses++;
                 }
 
                 // High Capital Loss Tracking (Excluding Algo)
-                if(t.entryValue > 100000 && t.category !== 'Algo' && t.pnl < 0) {
+                if(ev > 100000 && t.category !== 'Algo' && pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
@@ -1253,23 +1256,23 @@
                     const dName = daysArr[dayOfWeek];
                     if(!s.instDayStats[t.symbol]) s.instDayStats[t.symbol] = {};
                     if(!s.instDayStats[t.symbol][dName]) s.instDayStats[t.symbol][dName] = { pnl: 0, trades: 0, losses: 0 };
-                    s.instDayStats[t.symbol][dName].pnl += t.pnl;
+                    s.instDayStats[t.symbol][dName].pnl += pnl;
                     s.instDayStats[t.symbol][dName].trades++;
-                    if(t.pnl < 0) s.instDayStats[t.symbol][dName].losses++;
+                    if(pnl < 0) s.instDayStats[t.symbol][dName].losses++;
                 }
 
                 const dir = t.legs[0]?.direction || 'Long';
-                if(dir === 'Long') { s.longPnl += t.pnl; if(t.pnl>=0){ s.longWins++; s.longGrossWin += t.pnl; } else { s.longLosses++; s.longGrossLoss+=Math.abs(t.pnl); } } 
-                else { s.shortPnl += t.pnl; if(t.pnl>=0){ s.shortWins++; s.shortGrossWin += t.pnl; } else { s.shortLosses++; s.shortGrossLoss+=Math.abs(t.pnl); } }
+                if(dir === 'Long') { s.longPnl += pnl; if(pnl>=0){ s.longWins++; s.longGrossWin += pnl; } else { s.longLosses++; s.longGrossLoss+=Math.abs(pnl); } } 
+                else { s.shortPnl += pnl; if(pnl>=0){ s.shortWins++; s.shortGrossWin += pnl; } else { s.shortLosses++; s.shortGrossLoss+=Math.abs(pnl); } }
 
                 if(!s.byInstrument[t.symbol]) s.byInstrument[t.symbol] = { trades:0, wins:0, pnl:0 };
-                s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
-                if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
+                s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += pnl;
+                if(pnl >= 0) s.byInstrument[t.symbol].wins++;
 
                 if(!s.byTag[t.category]) s.byTag[t.category] = { trades:0, wins:0, pnl:0, holdTime:0 };
-                s.byTag[t.category].trades++; s.byTag[t.category].pnl += t.pnl;
+                s.byTag[t.category].trades++; s.byTag[t.category].pnl += pnl;
                 s.byTag[t.category].holdTime += t.holdTime;
-                if(t.pnl >= 0) s.byTag[t.category].wins++;
+                if(pnl >= 0) s.byTag[t.category].wins++;
 
                 if(t.entryTime) {
                     const [th, tm] = t.entryTime.split(':').map(Number);
@@ -1283,7 +1286,7 @@
                     else if (tMins < 870) tB = 'Early Afternoon (13:30-14:30)';
                     else if (tMins < 930) tB = 'Late Afternoon (14:30-15:30)';
                     else if (tMins < 945) tB = 'Closing (15:30-15:45)';
-                    s.timeStats[tB].trades++; s.timeStats[tB].pnl += t.pnl;
+                    s.timeStats[tB].trades++; s.timeStats[tB].pnl += pnl;
                 }
 
                 const diffDays = Math.floor((new Date(t.exitDate) - new Date(t.entryDate)) / 86400000);
@@ -1292,7 +1295,7 @@
                 else if (diffDays <= 3) dB = '1-3 Days';
                 else if (diffDays <= 7) dB = '4-7 Days';
                 else if (diffDays <= 14) dB = '1-2 Weeks';
-                s.durationStats[dB].trades++; s.durationStats[dB].pnl += t.pnl;
+                s.durationStats[dB].trades++; s.durationStats[dB].pnl += pnl;
             });
 
             // Missing PnL Detection
@@ -1302,12 +1305,13 @@
                 if(d !== todayStr && window.dailyStats[d] === undefined) s.missingPnlDays.push(d);
             });
 
-            Object.keys(s.dailyGross).forEach(d => {
-                s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? window.dailyStats[d] : s.dailyGross[d];
+            const allDays = new Set([...Object.keys(s.dailyGross), ...Object.keys(window.dailyStats)]);
+            allDays.forEach(d => {
+                s.dailyNet[d] = (window.dailyStats[d] !== undefined) ? Number(window.dailyStats[d]) : Number(s.dailyGross[d] || 0);
                 s.totalPnl += s.dailyNet[d];
                 s.uniqueDays.add(d);
                 const month = d.substring(0,7);
-                s.byMonth[month] = (s.byMonth[month] || 0) + s.dailyNet[d];
+                s.byMonth[month] = (Number(s.byMonth[month]) || 0) + s.dailyNet[d];
             });
 
             s.totalTrades = s.wins + s.losses;
@@ -2057,9 +2061,16 @@
             if(window.marketHolidays.includes(dt)) window.marketHolidays = window.marketHolidays.filter(d => d !== dt);
             else window.marketHolidays.push(dt);
             renderHolidayGrid();
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); } catch(e){}
+            
+            if(useLocalStorage) {
+                saveLocal();
+            } else if(currentUser) {
+                try { 
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); 
+                } catch(e){
+                    console.error("Firebase Holiday Save Error:", e);
+                    window.showToast("Failed to save holiday to cloud.", true);
+                }
             }
             if(activeView === 'calendar') window.renderCalendar();
         };
