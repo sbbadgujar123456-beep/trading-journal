@@ -1362,7 +1362,7 @@
                     if(t.pnl < 0) s.expiryLosses++;
                 }
 
-                if(t.entryValue > 100000 && t.category !== 'Algo' && t.pnl < 0) {
+                if(t.entryValue > 41000 && t.category !== 'Algo' && t.pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
@@ -1439,7 +1439,7 @@
             s.winPerc = s.totalTrades > 0 ? (s.wins/s.totalTrades*100) : 0;
             s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
             s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
-            s.roi = (s.totalPnl / 100000) * 100; 
+            s.roi = (s.totalPnl / 41000) * 100; 
             s.cagr = s.roi; 
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
@@ -1457,7 +1457,7 @@
                 const dd = peak - eq;
                 if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
 
-                const peakCap = 100000 + peak;
+                const peakCap = 41000 + peak;
                 const ddPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if(ddPerc > maxDdPerc) maxDdPerc = ddPerc;
 
@@ -1564,7 +1564,7 @@
                 }
             }
 
-            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 100000) * 10)); 
+            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 41000) * 10)); 
             const pts_vol = Math.min(20, (s.avgTradesDay / 5) * 20); 
             const pts_wr = (s.winPerc / 100) * 15;
             const pts_pf = Math.min(15, (s.pf / 3) * 15);
