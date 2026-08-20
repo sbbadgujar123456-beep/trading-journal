@@ -1094,7 +1094,7 @@
                 
                 const dObj = new Date();
                 const dStr = `${String(dObj.getDate()).padStart(2, '0')}-${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][dObj.getMonth()]}-${dObj.getFullYear()}`;
-                a.download = `tradology_backup_${dStr}.json`;
+                a.download = `${dStr}.json`;
                 
                 document.body.appendChild(a);
                 a.click();
