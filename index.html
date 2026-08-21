@@ -133,7 +133,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-white tracking-wider mb-2">TRADOLOGY</h1>
-            <p class="text-xs text-textMuted mb-8 tracking-widest">Where every trade matters</p>
+            <p class="text-xs text-textMuted mb-8 tracking-widest">Empowering your edge</p>
             
             <form id="loginForm" class="w-full space-y-4" onsubmit="event.preventDefault(); attemptLogin();">
                 <div>
@@ -937,8 +937,6 @@
                 
                 try {
                     // Base64 encoding comparison
-                    // Username: Shubham_Master -> U2h1YmhhbV9NYXN0ZXI=
-                    // Password: Shubham_Trader -> U2h1YmhhbV9UcmFkZXI=
                     if (btoa(trimmedUser) === "U2h1YmhhbV9NYXN0ZXI=" && btoa(trimmedPass) === "U2h1YmhhbV9UcmFkZXI=") {
                         errEl.classList.add('hidden');
                         isAuthenticated = true;
