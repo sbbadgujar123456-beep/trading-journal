@@ -135,7 +135,7 @@
             <h1 class="text-2xl font-bold text-white tracking-wider mb-2">TRADOLOGY</h1>
             <p class="text-xs text-textMuted mb-8 tracking-widest">Make Every Trade Count</p>
             
-            <form id="loginForm" class="w-full space-y-4" onsubmit="event.preventDefault(); attemptLogin();">
+            <form id="loginForm" class="w-full space-y-4" onsubmit="event.preventDefault(); window.attemptLogin();">
                 <div>
                     <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-1">Username</label>
                     <div class="relative">
@@ -148,7 +148,7 @@
                     <div class="relative">
                         <i class="ph-bold ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
                         <input type="password" id="loginPass" required class="w-full input-dark rounded-lg p-3 pl-10 pr-10 text-sm focus:border-neonGreen focus:ring-1 focus:ring-neonGreen/30 outline-none transition-all" placeholder="••••••••">
-                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
+                        <button type="button" onclick="window.togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
                             <i id="togglePassIcon" class="ph-bold ph-eye"></i>
                         </button>
                     </div>
@@ -538,7 +538,7 @@
                     </div>
                 </div>
 
-                <!-- ================= VIEW: STRATEGY TAGS ================= -->
+                <!-- ================= VIEW: STRATEGY TAGS / ANALYSIS ================= -->
                 <div id="view-tags" class="view-section space-y-4">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">Strategy Analysis</h2>
@@ -605,8 +605,8 @@
                     </div>
                     <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
                         <div class="overflow-x-auto">
-                            <table id="fullTradesTable" class="w-full text-left border-collapse min-w-[800px]">
-                                <!-- Populated by JS -->
+                            <table class="w-full text-left border-collapse min-w-[800px]">
+                                <tbody id="fullTradesTableBody" class="text-sm"></tbody>
                             </table>
                         </div>
                     </div>
@@ -916,7 +916,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global State
+        // --- GLOBAL STATE ---
         window.trades = [];
         window.dailyStats = {}; 
         window.marketHolidays = []; 
@@ -933,14 +933,13 @@
         let unsubscribeTargets = null;
         let editingTradeId = null;
         let confirmActionCb = null;
-        let isAuthenticated = false; 
+        let isAuthenticated = false;
         
-        // Multi-Select Categories State
         const CATEGORIES = [
             "Normal", "Sensex Algo" ,"Mindfluential", "Nifty Trend Catcher", "Nifty Bull Pulse" ,"Dhan Algo" , "TradeFinder", "Bolt Trade", "Breakout", "Long from Oversold", "Short from Overbought", "Result Play" ,"FOMO", "News", "Liquide", "Zee", "Over Quantity Risk"
         ];
         let selectedCategories = [];
-        let analysisSelectedCats = []; // Used in Strategy Analysis View
+        let analysisSelectedCats = [];
 
         // --- AUTHENTICATION LOGIC ---
         window.attemptLogin = () => {
@@ -957,7 +956,7 @@
                 const trimmedPass = pass.trim();
                 
                 try {
-                    // Base64 encoding comparison
+                    // Base64 decoding comparison to hide plain text credentials
                     if (btoa(trimmedUser) === "U2h1YmhhbV9NYXN0ZXI=" && btoa(trimmedPass) === "U2h1YmhhbV9UcmFkZXI=") {
                         errEl.classList.add('hidden');
                         isAuthenticated = true;
@@ -1031,7 +1030,7 @@
             return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; 
         };
 
-        // --- STREAMING_CHUNK:Configuring Authentication and Data Synchronization ---
+        // --- FIREBASE INIT ---
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
         const userFirebaseConfig = {
             apiKey: "AIzaSyBVcHoZpNNiUcH1z2IllHVCLyZYr8ysNms",
@@ -1041,7 +1040,6 @@
             messagingSenderId: "579735575584",
             appId: "1:579735575584:web:e46a1d0808eb72f76d7045"
         };
-        // Use user config preferentially if defined, fallback to platform injected
         const firebaseConfig = userFirebaseConfig;
 
         let app, auth, db;
@@ -1052,14 +1050,14 @@
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                useLocalStorage = false; // Reset to false on init attempt
+                useLocalStorage = false;
             } catch (e) {
                 console.error("Firebase init failed, forcing Local Storage", e);
                 useLocalStorage = true;
             }
 
             initAuth();
-            window.renderAnalysisCategoryDropdown(); // Initialize strategy analysis dropdown
+            window.renderAnalysisCategoryDropdown(); 
             document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); 
             window.switchView('dashboard');
         }
@@ -1169,7 +1167,6 @@
                 topCountdownEl.classList.remove('text-neonGreen', 'font-bold');
                 topCountdownEl.classList.add('text-gray-500');
             }
-
             topCountdownEl.innerText = cStr;
         }
         setInterval(updateClock, 1000);
@@ -1178,7 +1175,6 @@
         async function initAuth() {
             if(useLocalStorage) { loadLocal(); return; }
             try {
-                // Try anonymous sign in if custom token fails or isn't present
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -1217,17 +1213,13 @@
         function listenToData() {
             if (!currentUser) return;
             try {
-                // Clear any existing local data when connecting to cloud to prevent merging issues initially, 
-                // but only if cloud actually loads. We rely on the snapshot to populate.
-                
                 unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
                     window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     window.renderActiveView();
                     document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
                 }, (e) => { 
-                    console.warn("Fallback to Local Storage due to DB limits or permissions.", e); 
-                    useLocalStorage = true; 
-                    loadLocal(); 
+                    console.error("Firestore Listen Error (Trades). Fallback to Local Storage.", e); 
+                    useLocalStorage = true; loadLocal(); 
                 });
                 
                 unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
@@ -1248,7 +1240,7 @@
                     if(activeView === 'targets') window.renderTargetsView();
                 }, e => console.error("Error loading targets:", e));
             } catch(e) {
-                console.warn("Snapshot attach failed. Using Local.", e);
+                console.error("Snapshot attach failed. Using Local.", e);
                 useLocalStorage = true; loadLocal();
             }
         }
@@ -1339,9 +1331,7 @@
                                 window.showToast("Data imported successfully via Local Storage!");
                             } else if (currentUser) {
                                 try {
-                                    // Use Promise.all for faster, concurrent cloud syncing
                                     const syncPromises = [];
-                                    
                                     syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets }));
                                     syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }));
                                     
@@ -1582,9 +1572,8 @@
                 s.byInstrument[t.symbol].trades++; s.byInstrument[t.symbol].pnl += t.pnl;
                 if(t.pnl >= 0) s.byInstrument[t.symbol].wins++;
 
-                // Handle Array of Categories or single Category String
                 let cats = Array.isArray(t.category) ? t.category : [t.category];
-                if (cats.length === 0) cats = ["Normal"]; // Fallback
+                if (cats.length === 0) cats = ["Normal"]; 
                 
                 cats.forEach(cat => {
                     if(!s.byTag[cat]) s.byTag[cat] = { trades:0, wins:0, pnl:0, holdTime:0 };
@@ -1677,7 +1666,6 @@
             s.dayWinPerc = sortedDays.length > 0 ? (winDays / sortedDays.length)*100 : 0;
             s.avgMonthlyPnl = Object.keys(s.byMonth).length > 0 ? (s.totalPnl / Object.keys(s.byMonth).length) : 0;
             
-            // Calc Avg Win, Loss and R:R
             s.avgWin = s.wins > 0 ? s.grossWin / s.wins : 0;
             s.avgLoss = s.losses > 0 ? s.grossLoss / s.losses : 0;
             s.rrRatio = s.avgLoss > 0 ? (s.avgWin / s.avgLoss) : (s.avgWin > 0 ? 99.9 : 0);
@@ -1759,7 +1747,6 @@
                 // Category Specific Recent Performance Alert (Last 10 Days)
                 const recentDaysToCheck = 10;
                 CATEGORIES.forEach(cat => {
-                    // Find trades for this category
                     const catTrades = filteredTrades.filter(t => {
                         let tCats = Array.isArray(t.category) ? t.category : [t.category];
                         if(tCats.length===0) tCats=["Normal"];
@@ -1767,7 +1754,6 @@
                     }).sort((a, b) => new Date(b.exitDate) - new Date(a.exitDate));
 
                     if(catTrades.length >= 5) {
-                        // Group by day to find the last 10 active days
                         const uniqueActiveDays = [...new Set(catTrades.map(t => t.exitDate))].slice(0, recentDaysToCheck);
                         if(uniqueActiveDays.length >= 5) { 
                             const recentCatTrades = catTrades.filter(t => uniqueActiveDays.includes(t.exitDate));
@@ -1780,15 +1766,14 @@
                             const catPf = gl > 0 ? gw / gl : (gw > 0 ? 99 : 0);
 
                             if(wr < 40 || (gl > 0 && catPf < 0.8)) {
-                                s.improvements.push(`Heads up: The '${cat}' strategy has been underperforming over its last ${uniqueActiveDays.length} active sessions. Consider a quick review.`);
+                                s.improvements.push(`Strategy Alert: '${cat}' hasn't been performing well over its last ${uniqueActiveDays.length} trading days. You might want to review its rules or market conditions.`);
                             } else if (wr > 60 && catPf > 1.5) {
-                                s.highlights.push(`Strong edge: '${cat}' is highly consistent and balanced over its recent ${uniqueActiveDays.length} sessions. Keep it up!`);
+                                s.highlights.push(`Strategy Edge: '${cat}' is highly consistent and well-balanced over its recent ${uniqueActiveDays.length} sessions. Excellent execution!`);
                             }
                         }
                     }
                 });
 
-                // Dedup and limit
                 s.improvements = [...new Set(s.improvements)].slice(0, 4);
                 s.highlights = [...new Set(s.highlights)].slice(0, 4);
                 
@@ -1944,7 +1929,7 @@
             
             if(statusWidget) {
                 statusWidget.classList.remove('hidden');
-                if (st.improvements.length > 0 && (st.improvements[0].includes("losing streak") || st.improvements[0].includes("Revenge trading") || st.improvements[0].includes("underperforming"))) {
+                if (st.improvements.length > 0 && (st.improvements[0].includes("losing streak") || st.improvements[0].includes("Revenge trading") || st.improvements[0].includes("underperforming") || st.improvements[0].includes("Strategy Alert"))) {
                     statusWidget.className = "md:col-span-12 glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-panelLighter transition-colors border-l-4 border-neonRed bg-neonRed/5";
                     statusIcon.className = "w-10 h-10 rounded-full flex items-center justify-center bg-neonRed/20 text-neonRed shrink-0";
                     statusIcon.innerHTML = '<i class="ph-bold ph-warning-circle text-xl"></i>';
@@ -2337,17 +2322,24 @@
             if(el) {
                 if(el.classList.contains('hidden')) { 
                     el.classList.remove('hidden'); 
-                    if(icon) icon.className = "ph-bold ph-caret-up text-gray-500"; 
+                    if(icon) {
+                        icon.classList.remove('ph-caret-down');
+                        icon.classList.add('ph-caret-up');
+                    }
                 } else { 
                     el.classList.add('hidden'); 
-                    if(icon) icon.className = "ph-bold ph-caret-down text-gray-500"; 
+                    if(icon) {
+                        icon.classList.remove('ph-caret-up');
+                        icon.classList.add('ph-caret-down');
+                    }
                 }
             }
         };
 
-        // --- STREAMING_CHUNK:Rendering the Past Trades Logic ---
         window.renderPastTrades = () => {
-            const tableEl = document.getElementById('fullTradesTable'); tableEl.innerHTML = '';
+            const tbody = document.getElementById('fullTradesTableBody'); 
+            if(!tbody) return;
+            tbody.innerHTML = '';
             
             const openCount = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).length;
             const closedCount = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null).length;
@@ -2359,27 +2351,27 @@
 
             if(window.activeTradeTab === 'open') {
                 const openTrades = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate));
-                let html = `<tbody class="text-sm">`;
-                if(openTrades.length === 0) html += `<tr><td colspan="5" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
-                
-                openTrades.forEach(t => {
-                    const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
-                    html += `
-                        <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
-                            <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
-                            <td class="p-4 font-bold text-white">${t.symbol}</td>
-                            <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${catString}</span></td>
-                            <td class="p-4 text-right font-mono font-bold text-gray-400">${fINR(t.entryValue || 0)}</td>
-                            <td class="p-4 text-center">
-                                <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onclick="window.editTrade('${t.id}')" class="bg-blue-500/20 text-blue-400 px-3 py-1 text-xs font-bold rounded hover:bg-blue-500/40 transition-colors">Close</button>
-                                    <button onclick="window.openConfirm('Delete Trade', 'Permanently delete this open position?', 'Delete', () => window.deleteTrade('${t.id}'))" class="bg-red-500/20 text-red-400 px-2 py-1 text-xs font-bold rounded hover:bg-red-500/40 transition-colors"><i class="ph-bold ph-trash"></i></button>
-                                </div>
-                            </td>
-                        </tr>`;
-                });
-                html += `</tbody>`;
-                tableEl.innerHTML = html;
+                if(openTrades.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
+                } else {
+                    openTrades.forEach(t => {
+                        const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
+                                <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
+                                <td class="p-4">--</td>
+                                <td class="p-4 font-bold text-white">${t.symbol}</td>
+                                <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${catString}</span></td>
+                                <td class="p-4 text-right font-mono font-bold text-gray-400">${fINR(t.entryValue || 0)}</td>
+                                <td class="p-4 text-center">
+                                    <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="window.editTrade('${t.id}')" class="bg-blue-500/20 text-blue-400 px-3 py-1 text-xs font-bold rounded hover:bg-blue-500/40 transition-colors">Close</button>
+                                        <button onclick="window.openConfirm('Delete Trade', 'Permanently delete this open position?', 'Delete', () => window.deleteTrade('${t.id}'))" class="bg-red-500/20 text-red-400 px-2 py-1 text-xs font-bold rounded hover:bg-red-500/40 transition-colors"><i class="ph-bold ph-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                    });
+                }
                 return;
             }
 
@@ -2401,16 +2393,14 @@
             });
 
             const monthsArr = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            let fullHtml = '';
 
             Object.keys(tradesByDate).sort((a,b)=>b-a).forEach(year => {
-                fullHtml += `<tbody class="text-sm">`;
-                fullHtml += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
-                fullHtml += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
+                tbody.innerHTML += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
+                tbody.innerHTML += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
                 
                 Object.keys(tradesByDate[year]).sort((a,b)=>b-a).forEach(monthStr => {
                     const monthName = monthsArr[parseInt(monthStr)-1];
-                    fullHtml += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
+                    tbody.innerHTML += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
 
                     Object.keys(tradesByDate[year][monthStr]).sort((a,b)=>new Date(b)-new Date(a)).forEach(dateStr => {
                         const dayPnl = st.dailyNet[dateStr] || 0;
@@ -2421,13 +2411,15 @@
                         const dayTrades = tradesByDate[year][monthStr][dateStr].sort((a,b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
                         
                         const isOpen = last5Days.includes(dateStr);
+                        const iconClass = isOpen ? 'ph-caret-up' : 'ph-caret-down';
+                        const bodyClass = isOpen ? '' : 'hidden';
 
-                        fullHtml += `
+                        tbody.innerHTML += `
                         <tr class="cursor-pointer hover:bg-[#11141c] transition-colors" onclick="window.toggleDayAccordion('${dateStr}')">
                             <td colspan="6" class="p-0 border-none">
                                 <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
                                     <div class="flex items-center gap-3">
-                                        <i id="acc_icon_${dateStr}" class="ph-bold ${isOpen?'ph-caret-up':'ph-caret-down'} text-gray-500"></i>
+                                        <i id="acc_icon_${dateStr}" class="ph-bold ${iconClass} text-gray-500"></i>
                                         <span class="text-xs font-bold text-white">${dayName}, ${dateStr}</span>
                                         <span class="bg-[#1f2433] text-gray-400 px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">${dayTrades.length} Trades</span>
                                     </div>
@@ -2435,9 +2427,8 @@
                                 </div>
                             </td>
                         </tr>`;
-                        fullHtml += `</tbody>`;
                         
-                        fullHtml += `<tbody id="acc_${dateStr}" class="${isOpen?'':'hidden'} transition-all text-sm">`;
+                        let trsHtml = `<tbody id="acc_${dateStr}" class="${bodyClass} transition-all">`;
                         dayTrades.forEach(t => {
                             let retPerc = '';
                             if(t.entryValue && t.entryValue > 0 && t.pnl != null) {
@@ -2445,7 +2436,7 @@
                                 retPerc = `<div class="text-[9px] mt-0.5 font-bold ${p>=0?'text-neonGreen':'text-neonRed'}">${p>=0?'+':''}${p.toFixed(2)}%</div>`;
                             }
                             const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
-                            fullHtml += `
+                            trsHtml += `
                                 <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
                                     <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
                                     <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
@@ -2460,18 +2451,40 @@
                                     </td>
                                 </tr>`;
                         });
-                        fullHtml += `</tbody>`;
-                        fullHtml += `<tbody class="text-sm">`;
+                        trsHtml += `</tbody>`;
+                        tbody.insertAdjacentHTML('beforeend', trsHtml);
                     });
                 });
-                fullHtml += `</tbody>`;
             });
-            if(closedTrades.length === 0) fullHtml = `<tbody class="text-sm"><tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr></tbody>`;
-            
-            tableEl.innerHTML = fullHtml;
+            if(closedTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr>`;
         };
 
-        // --- STREAMING_CHUNK:Implementing the Calendar Rendering ---
+        window.renderCalendar = () => {
+            const grid = document.getElementById('calendarGrid'); 
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            const st = getStats();
+            const totalLabel = document.getElementById('calTotalLabel');
+            if(totalLabel) {
+                totalLabel.innerText = `(${st.totalPnl>=0?'+':''}${fINR(st.totalPnl)})`;
+                totalLabel.className = `text-sm font-mono ${st.totalPnl>=0?'text-neonGreen':'text-neonRed'}`;
+            }
+            
+            const year = new Date().getFullYear();
+            const yearTitle = document.getElementById('calYearTitle');
+            if(yearTitle) yearTitle.innerText = year;
+
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            months.forEach((month, index) => {
+                const daysInMonth = new Date(year, index+1, 0).getDate();
+                const firstDay = new Date(year, index, 1).getDay();
+                const prevMonthDays = new Date(year, index, 0).getDate();
+                
+                let html = `<div class="glass-panel rounded-lg overflow-hidden text-[10px] flex flex-col"><div class="bg-[#1f2433] text-white flex justify-between items-center px-3 py-2 font-bold text-xs border-b border-gray-800"><span>${month}</span><span class="font-mono text-[9px] ${st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]>=0?'text-neonGreen':'text-neonRed'}">${st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]>=0?'+':''}${fINR(st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]||0)}</span></div><div class="grid grid-cols-7 gap-[1px] bg-gray-800 flex-1 border-[1px] border-gray-800">`;
+                
                 html += `<div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">S</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">M</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">T</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">W</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">T</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">F</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">S</div>`;
 
                 for(let i=firstDay-1; i>=0; i--) html += `<div class="bg-[#11141c] text-center py-2 flex items-center justify-center text-gray-700 opacity-50">${prevMonthDays - i}</div>`;
@@ -2481,7 +2494,7 @@
                     const pnl = st.dailyNet[dt];
                     const isToday = dt === todayStr;
                     const isWeekend = new Date(year, index, d).getDay() === 0 || new Date(year, index, d).getDay() === 6;
-                    const isHol = window.marketHolidays.includes(dt);
+                    const isHol = window.marketHolidays && window.marketHolidays.includes(dt);
                     const isMissing = st.missingPnlDays.includes(dt);
                     
                     let cls = "bg-[#11141c] text-white";
@@ -2506,7 +2519,6 @@
             });
         };
 
-        // --- MANAGE HOLIDAYS MODAL ---
         window.openHolidayModal = () => {
             const m = document.getElementById('holidayModal');
             renderHolidayGrid();
@@ -2876,6 +2888,7 @@
             const ht = (xd && xt) ? Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000) : null;
             
             const tid = editingTradeId || Date.now().toString();
+            // Note: category is now an array
             const tradeObj = { entryDate:ed, exitDate:(xd||null), symbol:sym.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:selectedCategories, isExpiry:isExpiry, entryTime:et, exitTime:(xt||null), legs, pnl:calcPnl, holdTime:ht, entryValue: totalVal, timestamp: Date.now() };
 
             if(useLocalStorage) {
@@ -2900,6 +2913,7 @@
             document.getElementById('exitDate').value = t.exitDate || '';
             document.getElementById('tradeSymbol').value = t.symbol;
             
+            // Handle legacy single string category or array
             selectedCategories = Array.isArray(t.category) ? t.category : [t.category];
             window.renderCategoryDropdown();
             
@@ -2980,7 +2994,7 @@
             window.renderActiveView();
         };
 
-        window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); window.switchView('dashboard'); };
+        window.onload = () => { document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); };
 
     </script>
 </body>
