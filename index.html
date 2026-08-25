@@ -1029,6 +1029,8 @@
 
         window.getMiniGauge = function(value, max, color) { 
             return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; 
+        };
+
         // --- STREAMING_CHUNK:Configuring Authentication and Data Synchronization ---
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
         const userFirebaseConfig = {
@@ -1050,6 +1052,7 @@
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                useLocalStorage = false; // Reset to false on init attempt
             } catch (e) {
                 console.error("Firebase init failed, forcing Local Storage", e);
                 useLocalStorage = true;
@@ -1061,10 +1064,7 @@
             window.switchView('dashboard');
         }
 
-        // --- TOAST NOTIFICATIONS ---
-        window.showToast = (msg, isError = false) => {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
+        // --- STREAMING_CHUNK:Implementing Toast Notifications ---
             const bgClass = isError ? 'bg-neonRed/10 border-neonRed/30 text-neonRed shadow-[0_0_15px_rgba(255,59,105,0.2)]' : 'bg-neonGreen/10 border-neonGreen/30 text-neonGreen shadow-[0_0_15px_rgba(0,242,142,0.2)]';
             const icon = isError ? 'ph-warning-circle' : 'ph-check-circle';
             
@@ -1156,28 +1156,20 @@
                 }
 
                 const diffMs = nextOpen - ist;
-                const cD = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                const cH = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const cM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                
-                cStr = 'Market opens in ';
-                if(cD > 0) cStr += `${cD}d `;
-                cStr += `${cH}h ${cM}m`;
-                topCountdownEl.classList.remove('text-neonGreen', 'font-bold');
-                topCountdownEl.classList.add('text-gray-500');
-            }
-
-            topCountdownEl.innerText = cStr;
-        }
-        setInterval(updateClock, 1000);
-
+        // --- STREAMING_CHUNK:Configuring Authentication and Data Synchronization ---
         // --- AUTH & DATA SYNC ---
         async function initAuth() {
             if(useLocalStorage) { loadLocal(); return; }
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
+                // Try anonymous sign in if custom token fails or isn't present
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (authErr) {
+                    console.warn("Auth token failed, falling back to anonymous auth.", authErr);
                     await signInAnonymously(auth);
                 }
             } catch (error) {
@@ -1208,30 +1200,38 @@
         function listenToData() {
             if (!currentUser) return;
             try {
+                // Clear any existing local data when connecting to cloud to prevent merging issues initially, 
+                // but only if cloud actually loads. We rely on the snapshot to populate.
+                
                 unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
                     window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     window.renderActiveView();
-                }, (e) => { console.warn("Fallback to Local Storage due to DB limits"); useLocalStorage = true; loadLocal(); });
+                    document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
+                }, (e) => { 
+                    console.warn("Fallback to Local Storage due to DB limits or permissions.", e); 
+                    useLocalStorage = true; 
+                    loadLocal(); 
+                });
                 
                 unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
                     window.dailyStats = {};
                     snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
                     window.renderActiveView();
-                }, e => {});
+                }, e => console.error("Error loading daily stats:", e));
 
                 unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
                     if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
                     window.renderActiveView();
-                }, e => {});
+                }, e => console.error("Error loading holidays:", e));
 
                 unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                     if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
                     window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
                     if(activeView === 'dashboard') window.updateDashboard();
                     if(activeView === 'targets') window.renderTargetsView();
-                }, e => {});
+                }, e => console.error("Error loading targets:", e));
             } catch(e) {
-                console.warn("Snapshot attach failed. Using Local.");
+                console.warn("Snapshot attach failed. Using Local.", e);
                 useLocalStorage = true; loadLocal();
             }
         }
