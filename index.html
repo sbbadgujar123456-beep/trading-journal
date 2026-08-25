@@ -605,8 +605,8 @@
                     </div>
                     <div class="glass-panel rounded-xl border border-gray-800 overflow-hidden">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse min-w-[800px]">
-                                <tbody id="fullTradesTableBody" class="text-sm"></tbody>
+                            <table id="fullTradesTable" class="w-full text-left border-collapse min-w-[800px]">
+                                <!-- Populated by JS -->
                             </table>
                         </div>
                     </div>
@@ -2335,13 +2335,19 @@
             const el = document.getElementById(`acc_${dateStr}`);
             const icon = document.getElementById(`acc_icon_${dateStr}`);
             if(el) {
-                if(el.classList.contains('hidden')) { el.classList.remove('hidden'); if(icon) icon.className = "ph-bold ph-caret-up"; } 
-                else { el.classList.add('hidden'); if(icon) icon.className = "ph-bold ph-caret-down"; }
+                if(el.classList.contains('hidden')) { 
+                    el.classList.remove('hidden'); 
+                    if(icon) icon.className = "ph-bold ph-caret-up text-gray-500"; 
+                } else { 
+                    el.classList.add('hidden'); 
+                    if(icon) icon.className = "ph-bold ph-caret-down text-gray-500"; 
+                }
             }
         };
 
+        // --- STREAMING_CHUNK:Rendering the Past Trades Logic ---
         window.renderPastTrades = () => {
-            const tbody = document.getElementById('fullTradesTableBody'); tbody.innerHTML = '';
+            const tableEl = document.getElementById('fullTradesTable'); tableEl.innerHTML = '';
             
             const openCount = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).length;
             const closedCount = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null).length;
@@ -2353,11 +2359,12 @@
 
             if(window.activeTradeTab === 'open') {
                 const openTrades = window.trades.filter(t => !t.exitDate || !t.exitTime || t.pnl == null).sort((a,b)=>new Date(b.entryDate)-new Date(a.entryDate));
-                if(openTrades.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
+                let html = `<tbody class="text-sm">`;
+                if(openTrades.length === 0) html += `<tr><td colspan="5" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
                 
                 openTrades.forEach(t => {
                     const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
-                    tbody.innerHTML += `
+                    html += `
                         <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
                             <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
                             <td class="p-4 font-bold text-white">${t.symbol}</td>
@@ -2371,12 +2378,18 @@
                             </td>
                         </tr>`;
                 });
+                html += `</tbody>`;
+                tableEl.innerHTML = html;
                 return;
             }
 
             const st = getStats();
             const tradesByDate = {};
             const closedTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null);
+            
+            // Extract unique active trading days and get the last 5
+            const allClosedTradeDates = [...new Set(closedTrades.map(t => t.exitDate))].sort((a,b) => new Date(b) - new Date(a));
+            const last5Days = allClosedTradeDates.slice(0, 5);
 
             closedTrades.forEach(t => {
                 const year = t.exitDate.substring(0,4);
@@ -2388,16 +2401,16 @@
             });
 
             const monthsArr = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            const todayStr = new Date().toISOString().split('T')[0];
-            const ystStr = new Date(new Date().getTime() - 86400000).toISOString().split('T')[0];
+            let fullHtml = '';
 
             Object.keys(tradesByDate).sort((a,b)=>b-a).forEach(year => {
-                tbody.innerHTML += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
-                tbody.innerHTML += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
+                fullHtml += `<tbody class="text-sm">`;
+                fullHtml += `<tr><td colspan="6" class="p-0 border-none h-6"></td></tr>`;
+                fullHtml += `<tr><td colspan="6" class="p-4 bg-[#151822] text-white rounded-t-xl border-b border-gray-800 shadow-md"><div class="flex items-center gap-2 text-lg font-bold"><i class="ph-fill ph-calendar text-neonGreen"></i> ${year}</div></td></tr>`;
                 
                 Object.keys(tradesByDate[year]).sort((a,b)=>b-a).forEach(monthStr => {
                     const monthName = monthsArr[parseInt(monthStr)-1];
-                    tbody.innerHTML += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
+                    fullHtml += `<tr><td colspan="6" class="px-5 py-2 bg-[#0b0e14] text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-800/50 shadow-inner">${monthName}</td></tr>`;
 
                     Object.keys(tradesByDate[year][monthStr]).sort((a,b)=>new Date(b)-new Date(a)).forEach(dateStr => {
                         const dayPnl = st.dailyNet[dateStr] || 0;
@@ -2407,9 +2420,9 @@
                         const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                         const dayTrades = tradesByDate[year][monthStr][dateStr].sort((a,b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
                         
-                        const isOpen = (dateStr === todayStr || dateStr === ystStr);
+                        const isOpen = last5Days.includes(dateStr);
 
-                        tbody.innerHTML += `
+                        fullHtml += `
                         <tr class="cursor-pointer hover:bg-[#11141c] transition-colors" onclick="window.toggleDayAccordion('${dateStr}')">
                             <td colspan="6" class="p-0 border-none">
                                 <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
@@ -2422,8 +2435,9 @@
                                 </div>
                             </td>
                         </tr>`;
+                        fullHtml += `</tbody>`;
                         
-                        let trsHtml = `<tbody id="acc_${dateStr}" class="${isOpen?'':'hidden'} transition-all">`;
+                        fullHtml += `<tbody id="acc_${dateStr}" class="${isOpen?'':'hidden'} transition-all text-sm">`;
                         dayTrades.forEach(t => {
                             let retPerc = '';
                             if(t.entryValue && t.entryValue > 0 && t.pnl != null) {
@@ -2431,7 +2445,7 @@
                                 retPerc = `<div class="text-[9px] mt-0.5 font-bold ${p>=0?'text-neonGreen':'text-neonRed'}">${p>=0?'+':''}${p.toFixed(2)}%</div>`;
                             }
                             const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
-                            trsHtml += `
+                            fullHtml += `
                                 <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
                                     <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
                                     <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
@@ -2446,32 +2460,18 @@
                                     </td>
                                 </tr>`;
                         });
-                        trsHtml += `</tbody>`;
-                        tbody.insertAdjacentHTML('beforeend', trsHtml);
+                        fullHtml += `</tbody>`;
+                        fullHtml += `<tbody class="text-sm">`;
                     });
                 });
+                fullHtml += `</tbody>`;
             });
-            if(closedTrades.length === 0) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr>`;
+            if(closedTrades.length === 0) fullHtml = `<tbody class="text-sm"><tr><td colspan="6" class="p-8 text-center text-gray-500">No closed trades recorded yet.</td></tr></tbody>`;
+            
+            tableEl.innerHTML = fullHtml;
         };
 
-        window.renderCalendar = () => {
-            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-            const st = getStats();
-            document.getElementById('calTotalLabel').innerText = `(${st.totalPnl>=0?'+':''}${fINR(st.totalPnl)})`;
-            document.getElementById('calTotalLabel').className = `text-sm font-mono ${st.totalPnl>=0?'text-neonGreen':'text-neonRed'}`;
-            
-            const year = new Date().getFullYear();
-            document.getElementById('calYearTitle').innerText = year;
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            months.forEach((month, index) => {
-                const daysInMonth = new Date(year, index+1, 0).getDate();
-                const firstDay = new Date(year, index, 1).getDay();
-                const prevMonthDays = new Date(year, index, 0).getDate();
-                
-                let html = `<div class="glass-panel rounded-lg overflow-hidden text-[10px] flex flex-col"><div class="bg-[#1f2433] text-white flex justify-between items-center px-3 py-2 font-bold text-xs border-b border-gray-800"><span>${month}</span><span class="font-mono text-[9px] ${st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]>=0?'text-neonGreen':'text-neonRed'}">${st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]>=0?'+':''}${fINR(st.byMonth[`${year}-${String(index+1).padStart(2,'0')}`]||0)}</span></div><div class="grid grid-cols-7 gap-[1px] bg-gray-800 flex-1 border-[1px] border-gray-800">`;
-                
+        // --- STREAMING_CHUNK:Implementing the Calendar Rendering ---
                 html += `<div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">S</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">M</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">T</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">W</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">T</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">F</div><div class="bg-[#0b0e14] text-center py-1 text-gray-600 font-bold">S</div>`;
 
                 for(let i=firstDay-1; i>=0; i--) html += `<div class="bg-[#11141c] text-center py-2 flex items-center justify-center text-gray-700 opacity-50">${prevMonthDays - i}</div>`;
