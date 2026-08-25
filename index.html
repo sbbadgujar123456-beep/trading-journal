@@ -1031,16 +1031,18 @@
             return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; 
         };
 
+        // --- STREAMING_CHUNK:Configuring Authentication and Data Synchronization ---
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
         const userFirebaseConfig = {
-            apiKey: "AIzaSyDvNEXINfH9_AXaugpUQSLKcboUc-x7iWs",
-            authDomain: "my-trading-journal-e8a8c.firebaseapp.com",
-            projectId: "my-trading-journal-e8a8c",
-            storageBucket: "my-trading-journal-e8a8c.firebasestorage.app",
-            messagingSenderId: "914137847585",
-            appId: "1:914137847585:web:af19ae8e2b1c0324d9d060"
+            apiKey: "AIzaSyBVcHoZpNNiUcH1z2IllHVCLyZYr8ysNms",
+            authDomain: "tradology-5129d.firebaseapp.com",
+            projectId: "tradology-5129d",
+            storageBucket: "tradology-5129d.firebasestorage.app",
+            messagingSenderId: "579735575584",
+            appId: "1:579735575584:web:e46a1d0808eb72f76d7045"
         };
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
+        // Use user config preferentially if defined, fallback to platform injected
+        const firebaseConfig = userFirebaseConfig;
 
         let app, auth, db;
         let useLocalStorage = false;
@@ -1050,6 +1052,7 @@
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                useLocalStorage = false; // Reset to false on init attempt
             } catch (e) {
                 console.error("Firebase init failed, forcing Local Storage", e);
                 useLocalStorage = true;
@@ -1175,9 +1178,15 @@
         async function initAuth() {
             if(useLocalStorage) { loadLocal(); return; }
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
+                // Try anonymous sign in if custom token fails or isn't present
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (authErr) {
+                    console.warn("Auth token failed, falling back to anonymous auth.", authErr);
                     await signInAnonymously(auth);
                 }
             } catch (error) {
@@ -1189,7 +1198,7 @@
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         currentUser = user;
-                        document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> DB Synced';
+                        document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
                         listenToData();
                     } else {
                         currentUser = null;
@@ -1208,30 +1217,38 @@
         function listenToData() {
             if (!currentUser) return;
             try {
+                // Clear any existing local data when connecting to cloud to prevent merging issues initially, 
+                // but only if cloud actually loads. We rely on the snapshot to populate.
+                
                 unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
                     window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     window.renderActiveView();
-                }, (e) => { console.warn("Fallback to Local Storage due to DB limits"); useLocalStorage = true; loadLocal(); });
+                    document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
+                }, (e) => { 
+                    console.warn("Fallback to Local Storage due to DB limits or permissions.", e); 
+                    useLocalStorage = true; 
+                    loadLocal(); 
+                });
                 
                 unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
                     window.dailyStats = {};
                     snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
                     window.renderActiveView();
-                }, e => {});
+                }, e => console.error("Error loading daily stats:", e));
 
                 unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
                     if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
                     window.renderActiveView();
-                }, e => {});
+                }, e => console.error("Error loading holidays:", e));
 
                 unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
                     if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
                     window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
                     if(activeView === 'dashboard') window.updateDashboard();
                     if(activeView === 'targets') window.renderTargetsView();
-                }, e => {});
+                }, e => console.error("Error loading targets:", e));
             } catch(e) {
-                console.warn("Snapshot attach failed. Using Local.");
+                console.warn("Snapshot attach failed. Using Local.", e);
                 useLocalStorage = true; loadLocal();
             }
         }
@@ -1322,18 +1339,22 @@
                                 window.showToast("Data imported successfully via Local Storage!");
                             } else if (currentUser) {
                                 try {
-                                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets });
-                                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays });
+                                    // Use Promise.all for faster, concurrent cloud syncing
+                                    const syncPromises = [];
+                                    
+                                    syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets }));
+                                    syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }));
                                     
                                     for (const [date, val] of Object.entries(window.dailyStats)) {
-                                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', date), { pnl: val });
+                                        syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', date), { pnl: val }));
                                     }
                                     
                                     for (const t of window.trades) {
-                                        await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', t.id), t);
+                                        syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', t.id), t));
                                     }
                                     
-                                    window.showToast("Data imported successfully to the Cloud!");
+                                    await Promise.all(syncPromises);
+                                    window.showToast("Data restored and successfully synced to Cloud Storage!");
                                 } catch (err) {
                                     console.error("Cloud import error:", err);
                                     window.showToast("Error syncing fully to cloud. Switched to Local Storage.", true);
@@ -2278,19 +2299,19 @@
 
             let html = "";
             html += buildRow("Overall Profit", fC(totalPnl), pC(totalPnl));
-            html += buildRow("No. of Trades", totalTrades);
-            html += buildRow("Average Profit per Trade", fC(avgPnl), pC(avgPnl));
-            html += buildRow("Win %", `${winPerc.toFixed(2)}`, "font-medium text-white");
-            html += buildRow("Loss %", `${lossPerc.toFixed(2)}`, "font-medium text-white");
-            html += buildRow("Average Profit on Winning Trade", fC(avgWin), "text-neonGreen font-mono font-bold");
-            html += buildRow("Average Loss on Losing Trade", fC(-avgLoss), "text-neonRed font-mono font-bold");
-            html += buildRow("Max Profit in Single Trade", fC(maxWin), "text-neonGreen font-mono font-bold");
-            html += buildRow("Max Loss in Single Trade", fC(maxLoss), "text-neonRed font-mono font-bold");
+            html += buildRow("No. of Trades (Periods)", totalTrades);
+            html += buildRow("Average Profit per Period", fC(avgPnl), pC(avgPnl));
+            html += buildRow("Win % (Periods)", `${winPerc.toFixed(2)}`, "font-medium text-white");
+            html += buildRow("Loss % (Periods)", `${lossPerc.toFixed(2)}`, "font-medium text-white");
+            html += buildRow("Average Profit on Winning Periods", fC(avgWin), "text-neonGreen font-mono font-bold");
+            html += buildRow("Average Loss on Losing Periods", fC(-avgLoss), "text-neonRed font-mono font-bold");
+            html += buildRow("Max Profit in Single Period", fC(maxWin), "text-neonGreen font-mono font-bold");
+            html += buildRow("Max Loss in Single Period", fC(maxLoss), "text-neonRed font-mono font-bold");
             html += buildRow("Max Drawdown", fC(-maxDd), "text-neonRed font-mono font-bold");
             html += buildRow("Reward to Risk Ratio", rrRatio.toFixed(2), "font-medium text-white");
             html += buildRow("Expectancy Ratio", expectancyRatio.toFixed(2), expectancyRatio > 0 ? "font-medium text-neonGreen" : "font-medium text-neonRed");
-            html += buildRow("Max Win Streak", maxWinStreak, "font-medium text-white");
-            html += buildRow("Max Losing Streak", maxLossStreak, "font-medium text-white");
+            html += buildRow("Max Win Streak (Periods)", maxWinStreak, "font-medium text-white");
+            html += buildRow("Max Losing Streak (Periods)", maxLossStreak, "font-medium text-white");
 
             tb.innerHTML = html;
         };
