@@ -724,14 +724,14 @@
                             <div>
                                 <label class="block text-[11px] text-textMuted mb-1 font-medium uppercase">Execution Times (IST)</label>
                                 <div class="flex gap-2">
-                                    <div class="flex-1 relative">
+                                    <div class="flex-1 relative transition-all duration-300" id="globalEntryTimeContainer">
                                         <span class="block text-[9px] text-gray-500 mb-0.5">Entry (09:15-15:40)</span>
                                         <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('entryTime')">
                                             <span id="entryTimeDisp" class="text-gray-500">--:--</span> <i class="ph-bold ph-clock text-gray-500"></i>
                                         </div>
                                         <input type="hidden" id="entryTime" required>
                                     </div>
-                                    <div class="flex-1 relative">
+                                    <div class="flex-1 relative transition-all duration-300" id="globalExitTimeContainer">
                                         <span class="block text-[9px] text-gray-500 mb-0.5">Exit (Opt)</span>
                                         <div class="w-full input-dark rounded-lg p-2 text-sm font-mono text-center cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('exitTime')">
                                             <span id="exitTimeDisp" class="text-gray-500">--:--</span> <i class="ph-bold ph-clock text-gray-500"></i>
@@ -747,6 +747,40 @@
                                 <h3 class="text-sm font-semibold text-gray-300">Position Details</h3>
                                 <button type="button" id="addLegBtn" onclick="window.addLeg()" class="hidden text-xs text-neonGreen hover:text-white bg-neonGreen/10 px-3 py-1.5 rounded flex items-center gap-1 transition-colors"><i class="ph-bold ph-plus"></i> Add Leg</button>
                             </div>
+                            
+                            <!-- HEDGE OPTIONS -->
+                            <div id="hedgeSettings" class="hidden flex-col sm:flex-row gap-3 p-3 bg-[#0b0e14] rounded-lg border border-gray-800 shadow-inner flex-wrap">
+                                <span class="text-[10px] text-textMuted uppercase font-bold self-center sm:mr-2">Hedge Options:</span>
+                                <label class="custom-checkbox flex items-center cursor-pointer group">
+                                    <input type="checkbox" id="syncEnTime" class="hidden" checked onchange="window.updateLegVisibility()">
+                                    <div class="w-4 h-4 border border-gray-600 rounded flex items-center justify-center mr-2 group-hover:border-neonGreen transition-colors">
+                                        <i class="ph-bold ph-check text-[10px] text-neonGreen opacity-0 transition-opacity"></i>
+                                    </div>
+                                    <span class="text-xs text-gray-300 group-hover:text-white">Same Entry Time</span>
+                                </label>
+                                <label class="custom-checkbox flex items-center cursor-pointer group">
+                                    <input type="checkbox" id="syncExTime" class="hidden" checked onchange="window.updateLegVisibility()">
+                                    <div class="w-4 h-4 border border-gray-600 rounded flex items-center justify-center mr-2 group-hover:border-neonGreen transition-colors">
+                                        <i class="ph-bold ph-check text-[10px] text-neonGreen opacity-0 transition-opacity"></i>
+                                    </div>
+                                    <span class="text-xs text-gray-300 group-hover:text-white">Same Exit Time</span>
+                                </label>
+                                <label class="custom-checkbox flex items-center cursor-pointer group">
+                                    <input type="checkbox" id="syncQty" class="hidden" onchange="window.updateLegVisibility()">
+                                    <div class="w-4 h-4 border border-gray-600 rounded flex items-center justify-center mr-2 group-hover:border-neonGreen transition-colors">
+                                        <i class="ph-bold ph-check text-[10px] text-neonGreen opacity-0 transition-opacity"></i>
+                                    </div>
+                                    <span class="text-xs text-gray-300 group-hover:text-white">Same Qty</span>
+                                </label>
+                                <label class="custom-checkbox flex items-center cursor-pointer group">
+                                    <input type="checkbox" id="syncExPrice" class="hidden" onchange="window.updateLegVisibility()">
+                                    <div class="w-4 h-4 border border-gray-600 rounded flex items-center justify-center mr-2 group-hover:border-neonGreen transition-colors">
+                                        <i class="ph-bold ph-check text-[10px] text-neonGreen opacity-0 transition-opacity"></i>
+                                    </div>
+                                    <span class="text-xs text-gray-300 group-hover:text-white">Same Exit Price</span>
+                                </label>
+                            </div>
+
                             <div id="legsWrapper" class="space-y-3"></div>
                         </div>
 
@@ -2317,27 +2351,28 @@
         };
 
         window.toggleDayAccordion = (dateStr) => {
-            const el = document.getElementById(`acc_${dateStr}`);
+            const rows = document.querySelectorAll(`.acc-row-${dateStr}`);
             const icon = document.getElementById(`acc_icon_${dateStr}`);
-            if(el) {
-                if(el.classList.contains('hidden')) { 
-                    el.classList.remove('hidden'); 
-                    if(icon) {
-                        icon.classList.remove('ph-caret-down');
-                        icon.classList.add('ph-caret-up');
-                    }
+            let isHidden = false;
+            
+            if(rows.length > 0) {
+                isHidden = rows[0].classList.contains('hidden');
+                rows.forEach(r => r.classList.toggle('hidden'));
+            }
+            
+            if(icon) {
+                if(isHidden) { 
+                    icon.classList.remove('ph-caret-down'); 
+                    icon.classList.add('ph-caret-up'); 
                 } else { 
-                    el.classList.add('hidden'); 
-                    if(icon) {
-                        icon.classList.remove('ph-caret-up');
-                        icon.classList.add('ph-caret-down');
-                    }
+                    icon.classList.remove('ph-caret-up'); 
+                    icon.classList.add('ph-caret-down'); 
                 }
             }
         };
 
         window.renderPastTrades = () => {
-            const tbody = document.getElementById('fullTradesTableBody'); 
+            const tbody = document.getElementById('fullTradesTableBody');
             if(!tbody) return;
             tbody.innerHTML = '';
             
@@ -2411,15 +2446,13 @@
                         const dayTrades = tradesByDate[year][monthStr][dateStr].sort((a,b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
                         
                         const isOpen = last5Days.includes(dateStr);
-                        const iconClass = isOpen ? 'ph-caret-up' : 'ph-caret-down';
-                        const bodyClass = isOpen ? '' : 'hidden';
 
                         tbody.innerHTML += `
                         <tr class="cursor-pointer hover:bg-[#11141c] transition-colors" onclick="window.toggleDayAccordion('${dateStr}')">
                             <td colspan="6" class="p-0 border-none">
                                 <div class="flex justify-between items-center px-4 py-2 bg-[#11141c] border-l-2 ${dayPnl>0?'border-neonGreen':(dayPnl<0?'border-neonRed':'border-gray-500')} ml-2 mt-2 mb-1 rounded-r-md">
                                     <div class="flex items-center gap-3">
-                                        <i id="acc_icon_${dateStr}" class="ph-bold ${iconClass} text-gray-500"></i>
+                                        <i id="acc_icon_${dateStr}" class="ph-bold ${isOpen?'ph-caret-up':'ph-caret-down'} text-gray-500 transition-transform"></i>
                                         <span class="text-xs font-bold text-white">${dayName}, ${dateStr}</span>
                                         <span class="bg-[#1f2433] text-gray-400 px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">${dayTrades.length} Trades</span>
                                     </div>
@@ -2428,7 +2461,7 @@
                             </td>
                         </tr>`;
                         
-                        let trsHtml = `<tbody id="acc_${dateStr}" class="${bodyClass} transition-all">`;
+                        let trsHtml = '';
                         dayTrades.forEach(t => {
                             let retPerc = '';
                             if(t.entryValue && t.entryValue > 0 && t.pnl != null) {
@@ -2437,7 +2470,7 @@
                             }
                             const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
                             trsHtml += `
-                                <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
+                                <tr class="hover:bg-panelLighter border-b border-gray-800/30 group acc-row-${dateStr} ${isOpen?'':'hidden'} transition-all">
                                     <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
                                     <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
                                     <td class="p-4 font-bold text-white">${t.symbol}</td>
@@ -2451,7 +2484,6 @@
                                     </td>
                                 </tr>`;
                         });
-                        trsHtml += `</tbody>`;
                         tbody.insertAdjacentHTML('beforeend', trsHtml);
                     });
                 });
@@ -2767,9 +2799,22 @@
             
             document.getElementById('formErrorAlert').classList.add('hidden');
             document.getElementById('openTradeWarning').classList.add('hidden');
+            document.getElementById('catDropdown').classList.add('hidden');
             
-            document.getElementById('tradeModal').classList.remove('hidden');
-            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
+            document.getElementById('syncEnTime').checked = true;
+            document.getElementById('syncExTime').checked = true;
+            document.getElementById('syncQty').checked = false;
+            document.getElementById('syncExPrice').checked = false;
+            window.updateLegVisibility();
+            
+            editingTradeId = null;
+            
+            const modal = document.getElementById('tradeModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => { 
+                modal.classList.remove('opacity-0'); 
+                document.getElementById('modalContent').classList.remove('scale-95'); 
+            }, 10);
         };
 
         window.closeTradeModal = () => {
@@ -2782,6 +2827,13 @@
                 document.getElementById('formErrorAlert').classList.add('hidden');
                 document.getElementById('openTradeWarning').classList.add('hidden');
                 document.getElementById('catDropdown').classList.add('hidden');
+                
+                // Reset hedge toggles
+                document.getElementById('syncEnTime').checked = true;
+                document.getElementById('syncExTime').checked = true;
+                document.getElementById('syncExPrice').checked = false;
+                window.updateLegVisibility();
+                
                 editingTradeId = null;
             }, 300);
         };
@@ -2798,26 +2850,102 @@
                 w.innerHTML=''; 
                 if(fl) w.appendChild(fl); else w.innerHTML=window.createLegHTML(false); 
             }
+            window.updateLegVisibility();
+        };
+
+        window.updateLegVisibility = () => {
+            const isHedged = document.getElementById('tradeStructure').value === 'Hedged';
+            const syncEn = document.getElementById('syncEnTime').checked;
+            const syncEx = document.getElementById('syncExTime').checked;
+            const syncExPrice = document.getElementById('syncExPrice').checked;
+            const syncQty = document.getElementById('syncQty').checked;
+
+            document.getElementById('hedgeSettings').classList.toggle('hidden', !isHedged);
+            
+            document.getElementById('globalEntryTimeContainer').classList.toggle('hidden', isHedged && !syncEn);
+            document.getElementById('globalExitTimeContainer').classList.toggle('hidden', isHedged && !syncEx);
+
+            const legs = document.querySelectorAll('.leg-row');
+            legs.forEach((leg, idx) => {
+                const enTimeWrap = leg.querySelector('.leg-en-time-wrapper');
+                const exTimeWrap = leg.querySelector('.leg-ex-time-wrapper');
+                const exPriceInput = leg.querySelector('.leg-ex');
+                const qtyInput = leg.querySelector('.leg-qty');
+
+                if (enTimeWrap) enTimeWrap.classList.toggle('hidden', (isHedged && syncEn) || !isHedged);
+                if (exTimeWrap) exTimeWrap.classList.toggle('hidden', (isHedged && syncEx) || !isHedged);
+
+                if (isHedged && syncExPrice && idx > 0) {
+                    exPriceInput.readOnly = true;
+                    exPriceInput.classList.add('opacity-50', 'cursor-not-allowed');
+                    const firstLegEx = legs[0].querySelector('.leg-ex').value;
+                    exPriceInput.value = firstLegEx;
+                } else {
+                    exPriceInput.readOnly = false;
+                    exPriceInput.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                
+                if (isHedged && syncQty && idx > 0) {
+                    qtyInput.readOnly = true;
+                    qtyInput.classList.add('opacity-50', 'cursor-not-allowed');
+                    const firstLegQty = legs[0].querySelector('.leg-qty').value;
+                    qtyInput.value = firstLegQty;
+                } else {
+                    qtyInput.readOnly = false;
+                    qtyInput.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+            window.calcPrev();
         };
 
         window.createLegHTML = (showDel, defaultQty = '') => {
+            const legId = 'leg_' + Math.random().toString(36).substr(2, 9);
             return `<div class="leg-row bg-[#0b0e14] p-3 rounded-xl border border-gray-800 relative group">
-                ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><i class="ph-bold ph-x text-xs"></i></button>`:''}
+                ${showDel?`<button type="button" onclick="this.parentElement.remove(); window.calcPrev(); window.updateLegVisibility();" class="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 shadow z-10"><i class="ph-bold ph-x text-xs"></i></button>`:''}
                 <div class="grid grid-cols-4 gap-3">
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label><select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label><input type="number" min="1" value="${defaultQty}" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label><input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
-                    <div class="col-span-1"><label class="block text-[9px] text-textMuted mb-1 uppercase">Exit <span class="text-gray-600">(Opt)</span></label><input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();"></div>
+                    <div class="col-span-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase">Direction</label>
+                        <select class="leg-dir w-full input-dark rounded py-1 px-1 text-xs"><option value="Long">Buy</option><option value="Short">Sell</option></select>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase">Qty</label>
+                        <input type="number" min="1" value="${defaultQty}" class="leg-qty w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+                    </div>
+                    <div class="col-span-1 flex flex-col gap-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase">Entry</label>
+                        <input type="number" step="0.01" class="leg-en w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+                        <div class="leg-en-time-wrapper hidden mt-1">
+                            <div class="w-full input-dark rounded p-1 text-[10px] cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('en_time_${legId}')">
+                                <span id="en_time_${legId}Disp" class="text-gray-500">--:--</span>
+                                <i class="ph-bold ph-clock text-neonGreen"></i>
+                                <input type="hidden" id="en_time_${legId}" class="leg-en-time">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-1 flex flex-col gap-1">
+                        <label class="block text-[9px] text-textMuted mb-1 uppercase">Exit <span class="text-gray-600">(Opt)</span></label>
+                        <input type="number" step="0.01" class="leg-ex w-full input-dark rounded py-1 px-1 text-xs" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+                        <div class="leg-ex-time-wrapper hidden mt-1">
+                            <div class="w-full input-dark rounded p-1 text-[10px] cursor-pointer hover:border-neonGreen transition-colors flex justify-between items-center" onclick="window.openTimePicker('ex_time_${legId}')">
+                                <span id="ex_time_${legId}Disp" class="text-gray-500">--:--</span>
+                                <i class="ph-bold ph-clock text-gray-500"></i>
+                                <input type="hidden" id="ex_time_${legId}" class="leg-ex-time">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>`;
         };
 
         window.addLeg = () => {
+            // Get quantity from the first leg to auto-fill
             const firstLegQtyInput = document.querySelector('.leg-row .leg-qty');
             const defaultQty = firstLegQtyInput ? firstLegQtyInput.value : '';
             
             document.getElementById('legsWrapper').insertAdjacentHTML('beforeend', window.createLegHTML(true, defaultQty));
+            window.updateLegVisibility();
             
+            // Scroll modal to bottom
             const scrollArea = document.getElementById('modalScrollArea');
             if(scrollArea) setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 10);
         };
@@ -2832,25 +2960,41 @@
                 pnl += (r.querySelector('.leg-dir').value==='Long') ? (ex-en)*q : (en-ex)*q;
             });
             
-            const xd = document.getElementById('exitDate').value;
-            const xt = document.getElementById('exitTime').value;
-            if(!xd || !xt) emptyFields = true;
-
             const pEl = document.getElementById('previewPnl');
             const warnEl = document.getElementById('openTradeWarning');
             
             if(emptyFields || !allExitsEntered) {
                 pEl.innerText = "OPEN TRADE"; pEl.className = `text-xl font-bold font-mono text-blue-400`;
-                warnEl.classList.remove('hidden');
+                if(warnEl) warnEl.classList.remove('hidden');
                 return null;
             } else {
                 pEl.innerText = fINR(pnl); pEl.className = `text-2xl font-bold font-mono ${pnl>0?'text-neonGreen':(pnl<0?'text-neonRed':'text-gray-400')}`;
-                warnEl.classList.add('hidden');
+                if(warnEl) warnEl.classList.add('hidden');
                 return pnl;
             }
         };
 
-        document.getElementById('addTradeForm').addEventListener('input', () => window.calcPrev());
+        document.getElementById('addTradeForm').addEventListener('input', (e) => {
+            const isHedged = document.getElementById('tradeStructure').value === 'Hedged';
+            const syncExPrice = document.getElementById('syncExPrice').checked;
+            const syncQty = document.getElementById('syncQty').checked;
+            
+            if (e.target.classList.contains('leg-ex') && isHedged && syncExPrice) {
+                const legs = document.querySelectorAll('.leg-row');
+                if (legs.length > 0 && e.target === legs[0].querySelector('.leg-ex')) {
+                    const val = e.target.value;
+                    legs.forEach((l, i) => { if(i > 0) l.querySelector('.leg-ex').value = val; });
+                }
+            }
+            if (e.target.classList.contains('leg-qty') && isHedged && syncQty) {
+                const legs = document.querySelectorAll('.leg-row');
+                if (legs.length > 0 && e.target === legs[0].querySelector('.leg-qty')) {
+                    const val = e.target.value;
+                    legs.forEach((l, i) => { if(i > 0) l.querySelector('.leg-qty').value = val; });
+                }
+            }
+            window.calcPrev();
+        });
 
         const showFormError = (msg) => { const err = document.getElementById('formErrorAlert'); document.getElementById('formErrorMsg').innerText = msg; err.classList.remove('hidden'); };
 
@@ -2862,34 +3006,94 @@
 
             if(selectedCategories.length === 0) { showFormError("Please select at least one Strategy Category."); return; }
             
+            const isHedged = document.getElementById('tradeStructure').value === 'Hedged';
+            const syncEn = isHedged ? document.getElementById('syncEnTime').checked : true;
+            const syncEx = isHedged ? document.getElementById('syncExTime').checked : true;
+            const syncExPrice = isHedged ? document.getElementById('syncExPrice').checked : false;
+            const syncQty = isHedged ? document.getElementById('syncQty').checked : false;
+
             const isExpiry = document.getElementById('tradeExpiry').checked;
-            const ed=document.getElementById('entryDate').value, xd=document.getElementById('exitDate').value, et=document.getElementById('entryTime').value, xt=document.getElementById('exitTime').value;
+            const ed = document.getElementById('entryDate').value;
+            const xd = document.getElementById('exitDate').value;
+            const globalEt = document.getElementById('entryTime').value;
+            const globalXt = document.getElementById('exitTime').value;
             
-            if(!ed || !et) { showFormError("Entry Date and Entry Time are required."); return; }
+            if(!ed) { showFormError("Entry Date is required."); return; }
+            if(syncEn && !globalEt) { showFormError("Global Entry Time is required."); return; }
 
             const checkT = t => { if(!t)return false; const [h,m]=t.split(':').map(Number); const min=h*60+m; return min>=555 && min<=940; };
-            if(!checkT(et)) { showFormError("Entry Time must be during Indian market hours (09:15 - 15:40)."); return; }
-            if(xt && !checkT(xt)) { showFormError("Exit Time must be during Indian market hours (09:15 - 15:40)."); return; }
+            if(syncEn && !checkT(globalEt)) { showFormError("Global Entry Time must be during Indian market hours (09:15 - 15:40)."); return; }
+            if(syncEx && globalXt && !checkT(globalXt)) { showFormError("Global Exit Time must be during Indian market hours (09:15 - 15:40)."); return; }
             
-            if(xd && xt && new Date(`${xd}T${xt}`) < new Date(`${ed}T${et}`)) { showFormError("Exit date/time cannot be before Entry date/time."); return; }
-            
-            document.getElementById('formErrorAlert').classList.add('hidden');
-            const btn = document.getElementById('saveTradeBtn'); btn.disabled = true; btn.innerHTML = '<div class="spinner w-4 h-4"></div> Saving...';
+            const legs = []; let totalVal = 0; let missingLegEt = false; let invalidLegTime = false;
+            let earliestEt = syncEn ? globalEt : "23:59";
+            let latestXt = syncEx ? globalXt : "00:00";
 
-            const legs = []; let totalVal = 0;
             document.querySelectorAll('.leg-row').forEach(r => {
-                const q=parseFloat(r.querySelector('.leg-qty').value)||0, en=parseFloat(r.querySelector('.leg-en').value)||0;
+                const q=parseFloat(r.querySelector('.leg-qty').value)||0;
+                const en=parseFloat(r.querySelector('.leg-en').value)||0;
                 const exStr = r.querySelector('.leg-ex').value;
-                legs.push({ direction:r.querySelector('.leg-dir').value, qty:q, entry:en, exit:(exStr ? parseFloat(exStr) : null) });
+                
+                let legEt = globalEt;
+                if (!syncEn) {
+                    legEt = r.querySelector('.leg-en-time').value;
+                    if(!legEt) missingLegEt = true;
+                    else if(!checkT(legEt)) invalidLegTime = true;
+                    if(legEt && legEt < earliestEt) earliestEt = legEt;
+                }
+                
+                let legXt = globalXt;
+                if (!syncEx) {
+                    legXt = r.querySelector('.leg-ex-time').value || null;
+                    if(legXt && !checkT(legXt)) invalidLegTime = true;
+                    if(legXt && legXt > latestXt) latestXt = legXt;
+                } else if (!globalXt) {
+                    legXt = null;
+                }
+                
+                legs.push({ 
+                    direction: r.querySelector('.leg-dir').value, 
+                    qty: q, 
+                    entry: en, 
+                    exit: (exStr ? parseFloat(exStr) : null),
+                    entryTime: legEt,
+                    exitTime: legXt
+                });
                 totalVal += q * en;
             });
             
+            if (!syncEn && missingLegEt) { showFormError("Please enter entry time for all legs."); return; }
+            if (invalidLegTime) { showFormError("Leg times must be during Indian market hours (09:15 - 15:40)."); return; }
+            
+            // Re-validate after finding extremes for independent exit times
+            const finalExitTime = latestXt && latestXt !== "00:00" ? latestXt : null;
+            if(xd && finalExitTime && new Date(`${xd}T${finalExitTime}`) < new Date(`${ed}T${earliestEt}`)) { 
+                showFormError("Exit date/time cannot be before Entry date/time."); return; 
+            }
+            
+            document.getElementById('formErrorAlert').classList.add('hidden');
+            const btn = document.getElementById('saveTradeBtn'); btn.disabled = true; btn.innerHTML = '<div class="spinner w-4 h-4"></div> Saving...';
+            
             const calcPnl = window.calcPrev();
-            const ht = (xd && xt) ? Math.floor((new Date(`${xd}T${xt}`)-new Date(`${ed}T${et}`))/60000) : null;
+            const ht = (xd && finalExitTime) ? Math.floor((new Date(`${xd}T${finalExitTime}`)-new Date(`${ed}T${earliestEt}`))/60000) : null;
             
             const tid = editingTradeId || Date.now().toString();
-            // Note: category is now an array
-            const tradeObj = { entryDate:ed, exitDate:(xd||null), symbol:sym.toUpperCase(), structure:document.getElementById('tradeStructure').value, category:selectedCategories, isExpiry:isExpiry, entryTime:et, exitTime:(xt||null), legs, pnl:calcPnl, holdTime:ht, entryValue: totalVal, timestamp: Date.now() };
+            const tradeObj = { 
+                entryDate: ed, 
+                exitDate: (xd||null), 
+                symbol: sym.toUpperCase(), 
+                structure: document.getElementById('tradeStructure').value, 
+                category: selectedCategories, 
+                isExpiry: isExpiry, 
+                entryTime: earliestEt, 
+                exitTime: finalExitTime, 
+                legs, 
+                pnl: calcPnl, 
+                holdTime: ht, 
+                entryValue: totalVal, 
+                timestamp: Date.now(),
+                hedgeOptions: { syncEnTime: syncEn, syncExTime: syncEx, syncExPrice: syncExPrice, syncQty: syncQty }
+            };
 
             if(useLocalStorage) {
                 if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
@@ -2910,30 +3114,44 @@
             const t = window.trades.find(x => x.id === id); if(!t) return;
             editingTradeId = id;
             document.getElementById('entryDate').value = t.entryDate;
-            document.getElementById('exitDate').value = t.exitDate || '';
-            document.getElementById('tradeSymbol').value = t.symbol;
-            
-            // Handle legacy single string category or array
-            selectedCategories = Array.isArray(t.category) ? t.category : [t.category];
-            window.renderCategoryDropdown();
-            
-            document.getElementById('tradeExpiry').checked = t.isExpiry === true;
-            document.getElementById('expiryLabelText').innerText = t.isExpiry ? 'Yes' : 'No';
-            document.getElementById('expiryLabelText').className = t.isExpiry ? 'text-xs font-bold text-neonGreen' : 'text-xs text-gray-400';
-            
-            document.getElementById('entryTime').value = t.entryTime || ''; document.getElementById('entryTimeDisp').innerText = t.entryTime || "--:--"; document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
+            document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
             document.getElementById('exitTime').value = t.exitTime || ''; document.getElementById('exitTimeDisp').innerText = t.exitTime || "--:--"; document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
             
+            const ho = t.hedgeOptions || { syncEnTime: true, syncExTime: true, syncExPrice: false, syncQty: false };
+            document.getElementById('syncEnTime').checked = ho.syncEnTime;
+            document.getElementById('syncExTime').checked = ho.syncExTime;
+            document.getElementById('syncExPrice').checked = ho.syncExPrice;
+            document.getElementById('syncQty').checked = ho.syncQty || false;
+
             window.setTradeStructure(t.structure);
             const w = document.getElementById('legsWrapper'); w.innerHTML = '';
             t.legs.forEach((leg, i) => {
-                w.insertAdjacentHTML('beforeend', window.createLegHTML(i > 0));
+                const legHtml = window.createLegHTML(i > 0);
+                w.insertAdjacentHTML('beforeend', legHtml);
                 const row = w.lastElementChild;
                 row.querySelector('.leg-dir').value = leg.direction;
                 row.querySelector('.leg-qty').value = leg.qty;
                 row.querySelector('.leg-en').value = leg.entry;
                 row.querySelector('.leg-ex').value = leg.exit !== null ? leg.exit : '';
+                
+                // Set leg specific times if they exist
+                const letInput = row.querySelector('.leg-en-time');
+                if(letInput) {
+                    const lval = leg.entryTime || t.entryTime || '';
+                    letInput.value = lval;
+                    const disp = row.querySelector(`#${letInput.id}Disp`);
+                    if(disp) { disp.innerText = lval || "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
+                }
+                const lxtInput = row.querySelector('.leg-ex-time');
+                if(lxtInput) {
+                    const lval = leg.exitTime || t.exitTime || '';
+                    lxtInput.value = lval;
+                    const disp = row.querySelector(`#${lxtInput.id}Disp`);
+                    if(disp) { disp.innerText = lval || "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
+                }
             });
+
+            window.updateLegVisibility();
 
             document.getElementById('formErrorAlert').classList.add('hidden');
             document.getElementById('tradeModal').classList.remove('hidden'); setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
