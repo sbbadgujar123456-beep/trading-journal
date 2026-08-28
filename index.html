@@ -2960,6 +2960,9 @@
                 pnl += (r.querySelector('.leg-dir').value==='Long') ? (ex-en)*q : (en-ex)*q;
             });
             
+            const xd = document.getElementById('exitDate').value;
+            if(!xd) emptyFields = true;
+            
             const pEl = document.getElementById('previewPnl');
             const warnEl = document.getElementById('openTradeWarning');
             
@@ -3113,9 +3116,25 @@
         window.editTrade = (id) => {
             const t = window.trades.find(x => x.id === id); if(!t) return;
             editingTradeId = id;
-            document.getElementById('entryDate').value = t.entryDate;
+            
+            document.getElementById('entryDate').value = t.entryDate || '';
+            document.getElementById('exitDate').value = t.exitDate || '';
+            document.getElementById('tradeSymbol').value = t.symbol || '';
+            
+            selectedCategories = Array.isArray(t.category) ? t.category : [t.category];
+            window.renderCategoryDropdown();
+            
+            document.getElementById('tradeExpiry').checked = t.isExpiry === true;
+            document.getElementById('expiryLabelText').innerText = t.isExpiry ? 'Yes' : 'No';
+            document.getElementById('expiryLabelText').className = t.isExpiry ? 'text-xs font-bold text-neonGreen' : 'text-xs text-gray-400';
+            
+            document.getElementById('entryTime').value = t.entryTime || ''; 
+            document.getElementById('entryTimeDisp').innerText = t.entryTime || "--:--"; 
             document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
-            document.getElementById('exitTime').value = t.exitTime || ''; document.getElementById('exitTimeDisp').innerText = t.exitTime || "--:--"; document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
+            
+            document.getElementById('exitTime').value = t.exitTime || ''; 
+            document.getElementById('exitTimeDisp').innerText = t.exitTime || "--:--"; 
+            document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
             
             const ho = t.hedgeOptions || { syncEnTime: true, syncExTime: true, syncExPrice: false, syncQty: false };
             document.getElementById('syncEnTime').checked = ho.syncEnTime;
@@ -3126,7 +3145,7 @@
             window.setTradeStructure(t.structure);
             const w = document.getElementById('legsWrapper'); w.innerHTML = '';
             t.legs.forEach((leg, i) => {
-                const legHtml = window.createLegHTML(i > 0);
+                const legHtml = window.createLegHTML(i > 0, leg.qty);
                 w.insertAdjacentHTML('beforeend', legHtml);
                 const row = w.lastElementChild;
                 row.querySelector('.leg-dir').value = leg.direction;
@@ -3154,7 +3173,9 @@
             window.updateLegVisibility();
 
             document.getElementById('formErrorAlert').classList.add('hidden');
-            document.getElementById('tradeModal').classList.remove('hidden'); setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
+            document.getElementById('openTradeWarning').classList.add('hidden');
+            document.getElementById('tradeModal').classList.remove('hidden'); 
+            setTimeout(()=> { document.getElementById('tradeModal').classList.remove('opacity-0'); document.getElementById('modalContent').classList.remove('scale-95'); }, 10);
             window.calcPrev();
         };
 
