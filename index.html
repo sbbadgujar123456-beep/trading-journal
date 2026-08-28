@@ -244,6 +244,10 @@
                         <i class="ph-fill ph-warning-circle text-2xl"></i>
                     </div>
                     
+                    <button onclick="window.toggleTimeFormat()" class="hidden sm:flex bg-[#1f2433] text-gray-400 hover:text-white px-3 py-2 rounded-lg text-xs font-bold items-center gap-1 transition-colors border border-gray-800" title="Toggle 12H/24H Format">
+                        <i class="ph-bold ph-clock"></i> <span id="timeFormatLabel">24H</span>
+                    </button>
+
                     <button onclick="window.openTradeModal()" class="bg-neonGreen text-black font-bold px-4 py-2 md:px-5 rounded-lg flex items-center gap-2 hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,242,142,0.2)]">
                         <i class="ph-bold ph-plus"></i> <span class="hidden sm:inline">Add New</span>
                     </button>
@@ -969,6 +973,36 @@
         let confirmActionCb = null;
         let isAuthenticated = false;
         
+        window.use12HourFormat = localStorage.getItem('tr_timeFormat') === '12h';
+        
+        window.formatDisplayTime = (timeStr) => {
+            if(!timeStr) return "--:--";
+            if(!window.use12HourFormat) return timeStr;
+            let [h, m] = timeStr.split(':').map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            h = h ? h : 12;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+        };
+
+        window.toggleTimeFormat = () => {
+            window.use12HourFormat = !window.use12HourFormat;
+            localStorage.setItem('tr_timeFormat', window.use12HourFormat ? '12h' : '24h');
+            document.getElementById('timeFormatLabel').innerText = window.use12HourFormat ? '12H' : '24H';
+            window.renderActiveView();
+            
+            if(!document.getElementById('tradeModal').classList.contains('hidden')) {
+                const updateDisp = (inputId, dispId) => {
+                    const val = document.getElementById(inputId)?.value;
+                    if(val) document.getElementById(dispId).innerText = window.formatDisplayTime(val);
+                };
+                updateDisp('entryTime', 'entryTimeDisp');
+                updateDisp('exitTime', 'exitTimeDisp');
+                document.querySelectorAll('.leg-en-time').forEach(el => updateDisp(el.id, el.id+'Disp'));
+                document.querySelectorAll('.leg-ex-time').forEach(el => updateDisp(el.id, el.id+'Disp'));
+            }
+        };
+        
         const CATEGORIES = [
             "Normal", "Sensex Algo" ,"Mindfluential", "Nifty Trend Catcher", "Nifty Bull Pulse" ,"Dhan Algo" , "TradeFinder", "Bolt Trade", "Breakout", "Long from Oversold", "Short from Overbought", "Result Play" ,"FOMO", "News", "Liquide", "Zee", "Over Quantity Risk"
         ];
@@ -1042,6 +1076,7 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('timeFormatLabel').innerText = window.use12HourFormat ? '12H' : '24H';
             if (localStorage.getItem('tr_auth') === 'true') {
                 isAuthenticated = true;
                 document.getElementById('loginOverlay').classList.add('hidden-login');
@@ -2390,12 +2425,12 @@
                     tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500">No open positions.</td></tr>`;
                 } else {
                     openTrades.forEach(t => {
-                        const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
-                                <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime || '--'}</div></td>
-                                <td class="p-4">--</td>
-                                <td class="p-4 font-bold text-white">${t.symbol}</td>
+                    const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-panelLighter border-b border-gray-800/30 group">
+                            <td class="p-4"><div class="text-[10px] text-gray-500 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${window.formatDisplayTime(t.entryTime) || '--'}</div></td>
+                            <td class="p-4">--</td>
+                            <td class="p-4 font-bold text-white">${t.symbol}</td>
                                 <td class="p-4"><span class="text-[10px] bg-bgDark border border-gray-700 px-2 py-1 rounded whitespace-nowrap">${catString}</span></td>
                                 <td class="p-4 text-right font-mono font-bold text-gray-400">${fINR(t.entryValue || 0)}</td>
                                 <td class="p-4 text-center">
@@ -2471,8 +2506,8 @@
                             const catString = Array.isArray(t.category) ? t.category.join(', ') : t.category;
                             trsHtml += `
                                 <tr class="hover:bg-panelLighter border-b border-gray-800/30 group acc-row-${dateStr} ${isOpen?'':'hidden'} transition-all">
-                                    <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${t.entryTime}</div></td>
-                                    <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${t.exitTime}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
+                                    <td class="p-4 pl-12"><div class="text-[10px] text-gray-600 line-clamp-1">${t.entryDate}</div><div class="font-medium text-white">${window.formatDisplayTime(t.entryTime)}</div></td>
+                                    <td class="p-4"><div class="text-[10px] text-gray-600 line-clamp-1">${t.exitDate}</div><div class="font-medium text-white">${window.formatDisplayTime(t.exitTime)}</div><div class="text-[9px] text-gray-400 mt-1">${formatHoldTime(t.holdTime)}</div></td>
                                     <td class="p-4 font-bold text-white">${t.symbol}</td>
                                     <td class="p-4"><span class="text-[10px] bg-[#1a1d27] border border-gray-700 px-2 py-1 rounded text-gray-300 line-clamp-1 max-w-[150px] inline-block" title="${catString}">${catString}</span></td>
                                     <td class="p-4 text-right font-mono font-bold ${t.pnl>=0?'text-neonGreen':'text-neonRed'}">${fINR(t.pnl)}${retPerc}</td>
@@ -2600,7 +2635,12 @@
             container.innerHTML = '<div class="time-item pointer-events-none"></div>'; 
             for(let i=start; i<=end; i+=step) {
                 const val = String(i).padStart(2, '0');
-                container.innerHTML += `<div class="time-item" id="${id}_${val}" onclick="window.snapTimeScroller('${id}', '${val}')">${val}</div>`;
+                let displayVal = val;
+                if(id === 'tp_hours' && window.use12HourFormat) {
+                    let h12 = i > 12 ? i - 12 : i;
+                    displayVal = String(h12).padStart(2, '0');
+                }
+                container.innerHTML += `<div class="time-item" id="${id}_${val}" onclick="window.snapTimeScroller('${id}', '${val}')">${displayVal}</div>`;
             }
             container.innerHTML += '<div class="time-item pointer-events-none"></div>'; 
         }
@@ -2634,7 +2674,8 @@
                     const hrEl = document.querySelector('#tp_hours .active');
                     const minEl = document.querySelector('#tp_minutes .active');
                     if(hrEl && minEl) {
-                        const h = parseInt(hrEl.innerText); const m = parseInt(minEl.innerText);
+                        const h = parseInt(hrEl.id.split('_').pop()); 
+                        const m = parseInt(minEl.id.split('_').pop());
                         if(h === 9 && m < 15) window.snapTimeScroller('tp_minutes', '15');
                         if(h === 15 && m > 40) window.snapTimeScroller('tp_minutes', '40');
                     }
@@ -2673,13 +2714,17 @@
             const minEl = document.querySelector('#tp_minutes .active');
             if(!hrEl || !minEl) return;
             
-            let h = parseInt(hrEl.innerText); let m = parseInt(minEl.innerText);
+            const hStr = hrEl.id.split('_').pop();
+            const mStr = minEl.id.split('_').pop();
+            
+            let h = parseInt(hStr); 
+            let m = parseInt(mStr);
             if(h < 9 || (h === 9 && m < 15)) { h = 9; m = 15; }
             if(h > 15 || (h === 15 && m > 40)) { h = 15; m = 40; }
 
             const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
             document.getElementById(tpTarget).value = timeStr;
-            document.getElementById(tpTarget+'Disp').innerText = timeStr;
+            document.getElementById(tpTarget+'Disp').innerText = window.formatDisplayTime(timeStr);
             document.getElementById(tpTarget+'Disp').className = "text-white font-bold";
             
             // Auto fill exit time + 1 min if setting entry time and exit is empty
@@ -2790,7 +2835,7 @@
             }
             
             document.getElementById('entryTime').value = defaultEntryTime; 
-            document.getElementById('entryTimeDisp').innerText = defaultEntryTime || "--:--"; 
+            document.getElementById('entryTimeDisp').innerText = defaultEntryTime ? window.formatDisplayTime(defaultEntryTime) : "--:--"; 
             document.getElementById('entryTimeDisp').className = defaultEntryTime ? "text-white font-bold" : "text-gray-500";
             
             document.getElementById('exitTime').value = ''; 
@@ -3128,13 +3173,8 @@
             document.getElementById('expiryLabelText').innerText = t.isExpiry ? 'Yes' : 'No';
             document.getElementById('expiryLabelText').className = t.isExpiry ? 'text-xs font-bold text-neonGreen' : 'text-xs text-gray-400';
             
-            document.getElementById('entryTime').value = t.entryTime || ''; 
-            document.getElementById('entryTimeDisp').innerText = t.entryTime || "--:--"; 
-            document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
-            
-            document.getElementById('exitTime').value = t.exitTime || ''; 
-            document.getElementById('exitTimeDisp').innerText = t.exitTime || "--:--"; 
-            document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
+            document.getElementById('entryTime').value = t.entryTime || ''; document.getElementById('entryTimeDisp').innerText = t.entryTime ? window.formatDisplayTime(t.entryTime) : "--:--"; document.getElementById('entryTimeDisp').className = t.entryTime ? "text-white font-bold" : "text-gray-500";
+            document.getElementById('exitTime').value = t.exitTime || ''; document.getElementById('exitTimeDisp').innerText = t.exitTime ? window.formatDisplayTime(t.exitTime) : "--:--"; document.getElementById('exitTimeDisp').className = t.exitTime ? "text-white font-bold" : "text-gray-500";
             
             const ho = t.hedgeOptions || { syncEnTime: true, syncExTime: true, syncExPrice: false, syncQty: false };
             document.getElementById('syncEnTime').checked = ho.syncEnTime;
@@ -3159,14 +3199,14 @@
                     const lval = leg.entryTime || t.entryTime || '';
                     letInput.value = lval;
                     const disp = row.querySelector(`#${letInput.id}Disp`);
-                    if(disp) { disp.innerText = lval || "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
+                    if(disp) { disp.innerText = lval ? window.formatDisplayTime(lval) : "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
                 }
                 const lxtInput = row.querySelector('.leg-ex-time');
                 if(lxtInput) {
                     const lval = leg.exitTime || t.exitTime || '';
                     lxtInput.value = lval;
                     const disp = row.querySelector(`#${lxtInput.id}Disp`);
-                    if(disp) { disp.innerText = lval || "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
+                    if(disp) { disp.innerText = lval ? window.formatDisplayTime(lval) : "--:--"; disp.className = lval ? "text-white font-bold" : "text-gray-500"; }
                 }
             });
 
