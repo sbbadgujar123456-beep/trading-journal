@@ -1619,7 +1619,7 @@
                     if(t.pnl < 0) s.expiryLosses++;
                 }
 
-                if(t.entryValue > 41000 && t.category !== 'Algo' && t.pnl < 0) {
+                if(t.entryValue > 52000 && t.category !== 'Algo' && t.pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
@@ -1694,7 +1694,7 @@
             s.winPerc = s.totalTrades > 0 ? (s.wins/s.totalTrades*100) : 0;
             s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
             s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
-            s.roi = (s.totalPnl / 41000) * 100; 
+            s.roi = (s.totalPnl / 52000) * 100; 
             s.cagr = s.roi; 
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
@@ -1712,7 +1712,7 @@
                 const dd = peak - eq;
                 if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
 
-                const peakCap = 41000 + peak;
+                const peakCap = 52000 + peak;
                 const ddPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if(ddPerc > maxDdPerc) maxDdPerc = ddPerc;
 
@@ -1851,7 +1851,7 @@
                 }
             }
 
-            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 41000) * 10)); 
+            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 52000) * 10)); 
             const pts_vol = Math.min(20, (s.avgTradesDay / 5) * 20); 
             const pts_wr = (s.winPerc / 100) * 15;
             const pts_pf = Math.min(15, (s.pf / 3) * 15);
@@ -2311,17 +2311,17 @@
                 const dd = peakEq - currentEq;
                 if (dd > maxDd) maxDd = dd;
 
-                const peakCap = 41000 + peakEq;
+                const peakCap = 52000 + peakEq;
                 const currentDdPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if (currentDdPerc > maxDdPercCalc) maxDdPercCalc = currentDdPerc;
 
                 if (t.pnl > maxWin) {
                     maxWin = t.pnl;
-                    maxWinPerc = (t.pnl / 41000) * 100;
+                    maxWinPerc = (t.pnl / 52000) * 100;
                 }
                 if (t.pnl < maxLoss) {
                     maxLoss = t.pnl;
-                    maxLossPerc = (t.pnl / 41000) * 100;
+                    maxLossPerc = (t.pnl / 52000) * 100;
                 }
 
                 if (t.pnl >= 0) {
@@ -2345,7 +2345,7 @@
             const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
             const rrRatio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? 99 : 0);
             
-            const overallPerc = (totalPnl / 41000) * 100;
+            const overallPerc = (totalPnl / 52000) * 100;
             
             // Expectancy Ratio = (Win Rate * Avg Win) - (Loss Rate * Avg Loss) / Risk(Avg Loss)
             const winRateDec = wins / (totalTrades || 1);
