@@ -2298,25 +2298,30 @@
 
             let totalPnl = 0, wins = 0, losses = 0, grossWin = 0, grossLoss = 0;
             let maxWin = 0, maxLoss = 0;
+            let maxWinPerc = 0, maxLossPerc = 0;
             let peakEq = 0, currentEq = 0, maxDd = 0;
-            let maxDdPerc = 0;
             let currentWinStreak = 0, maxWinStreak = 0;
             let currentLossStreak = 0, maxLossStreak = 0;
+            let totalEntryVal = 0;
 
             relevantTrades.forEach(t => {
                 totalPnl += t.pnl;
                 currentEq += t.pnl;
+                totalEntryVal += (t.entryValue || 0);
                 
                 if (currentEq > peakEq) peakEq = currentEq;
                 const dd = peakEq - currentEq;
                 if (dd > maxDd) maxDd = dd;
 
-                const peakCap = 41000 + peakEq;
-                const currentDdPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
-                if (currentDdPerc > maxDdPerc) maxDdPerc = currentDdPerc;
-
-                if (t.pnl > maxWin) maxWin = t.pnl;
-                if (t.pnl < maxLoss) maxLoss = t.pnl;
+                // Calculate specific percentage based on capital used for the exact max profit/loss trade
+                if (t.pnl > maxWin) {
+                    maxWin = t.pnl;
+                    maxWinPerc = (t.entryValue && t.entryValue > 0) ? (t.pnl / t.entryValue) * 100 : 0;
+                }
+                if (t.pnl < maxLoss) {
+                    maxLoss = t.pnl;
+                    maxLossPerc = (t.entryValue && t.entryValue > 0) ? (t.pnl / t.entryValue) * 100 : 0;
+                }
 
                 if (t.pnl >= 0) {
                     wins++; grossWin += t.pnl;
@@ -2338,6 +2343,11 @@
             const avgLoss = losses > 0 ? grossLoss / losses : 0;
             const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
             const rrRatio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? 99 : 0);
+            const avgCapital = totalTrades > 0 ? (totalEntryVal / totalTrades) : 0;
+            
+            // Aggregate percentages calculated using the average capital deployed per trade
+            const overallPerc = avgCapital > 0 ? (totalPnl / avgCapital) * 100 : 0;
+            const maxDdPercCalc = avgCapital > 0 ? (maxDd / avgCapital) * 100 : 0;
             
             // Expectancy Ratio = (Win Rate * Avg Win) - (Loss Rate * Avg Loss) / Risk(Avg Loss)
             const winRateDec = wins / (totalTrades || 1);
@@ -2355,20 +2365,19 @@
 
             const fC = (val) => fINR(val);
             const pC = (val) => val >= 0 ? "text-neonGreen font-mono font-bold" : "text-neonRed font-mono font-bold";
-            const withPerc = (val, perc) => `${fC(val)} <span class="text-[10px] ml-1 text-gray-500 font-normal tracking-wider">(${perc > 0 ? '+' : ''}${perc.toFixed(2)}%)</span>`;
-            const baseCap = 41000;
+            const withPerc = (val, perc) => `${fC(val)} <span class="text-[10px] ml-1 text-white font-normal tracking-wider">(${perc > 0 ? '+' : ''}${perc.toFixed(2)}%)</span>`;
 
             let html = "";
-            html += buildRow("Overall Profit", withPerc(totalPnl, (totalPnl / baseCap) * 100), pC(totalPnl));
+            html += buildRow("Overall Profit", withPerc(totalPnl, overallPerc), pC(totalPnl));
             html += buildRow("Total Trades", totalTrades);
             html += buildRow("Average Net P&L per Trade", fC(avgPnl), pC(avgPnl));
             html += buildRow("Win Rate (%)", `${winPerc.toFixed(2)}%`, "font-medium text-white");
             html += buildRow("Loss Rate (%)", `${lossPerc.toFixed(2)}%`, "font-medium text-white");
             html += buildRow("Average Winning Trade", fC(avgWin), "text-neonGreen font-mono font-bold");
             html += buildRow("Average Losing Trade", fC(-avgLoss), "text-neonRed font-mono font-bold");
-            html += buildRow("Max Profit (Single Trade)", withPerc(maxWin, (maxWin / baseCap) * 100), "text-neonGreen font-mono font-bold");
-            html += buildRow("Max Loss (Single Trade)", withPerc(maxLoss, (maxLoss / baseCap) * 100), "text-neonRed font-mono font-bold");
-            html += buildRow("Max Drawdown", withPerc(-maxDd, -maxDdPerc), "text-neonRed font-mono font-bold");
+            html += buildRow("Max Profit (Single Trade)", withPerc(maxWin, maxWinPerc), "text-neonGreen font-mono font-bold");
+            html += buildRow("Max Loss (Single Trade)", withPerc(maxLoss, maxLossPerc), "text-neonRed font-mono font-bold");
+            html += buildRow("Max Drawdown", withPerc(-maxDd, -maxDdPercCalc), "text-neonRed font-mono font-bold");
             html += buildRow("Reward to Risk Ratio", rrRatio.toFixed(2), "font-medium text-white");
             html += buildRow("Expectancy Ratio", expectancyRatio.toFixed(2), expectancyRatio > 0 ? "font-medium text-neonGreen" : "font-medium text-neonRed");
             html += buildRow("Max Win Streak (Trades)", maxWinStreak, "font-medium text-white");
