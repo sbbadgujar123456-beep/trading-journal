@@ -2299,6 +2299,7 @@
             let totalPnl = 0, wins = 0, losses = 0, grossWin = 0, grossLoss = 0;
             let maxWin = 0, maxLoss = 0;
             let peakEq = 0, currentEq = 0, maxDd = 0;
+            let maxDdPerc = 0;
             let currentWinStreak = 0, maxWinStreak = 0;
             let currentLossStreak = 0, maxLossStreak = 0;
 
@@ -2309,6 +2310,10 @@
                 if (currentEq > peakEq) peakEq = currentEq;
                 const dd = peakEq - currentEq;
                 if (dd > maxDd) maxDd = dd;
+
+                const peakCap = 41000 + peakEq;
+                const currentDdPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
+                if (currentDdPerc > maxDdPerc) maxDdPerc = currentDdPerc;
 
                 if (t.pnl > maxWin) maxWin = t.pnl;
                 if (t.pnl < maxLoss) maxLoss = t.pnl;
@@ -2344,28 +2349,30 @@
             const buildRow = (label, val, valCls = "font-bold text-white font-mono") => {
                 return `<tr class="hover:bg-[#1a1d27] border-b border-gray-800/50 transition-colors">
                             <td class="p-4 py-3.5 text-xs text-gray-300 font-medium">${label}</td>
-                            <td class="p-4 py-3.5 text-right text-sm ${valCls}">${val}</td>
+                            <td class="p-4 py-3.5 text-right text-sm ${valCls} whitespace-nowrap">${val}</td>
                         </tr>`;
             };
 
             const fC = (val) => fINR(val);
             const pC = (val) => val >= 0 ? "text-neonGreen font-mono font-bold" : "text-neonRed font-mono font-bold";
+            const withPerc = (val, perc) => `${fC(val)} <span class="text-[10px] ml-1 text-gray-500 font-normal tracking-wider">(${perc > 0 ? '+' : ''}${perc.toFixed(2)}%)</span>`;
+            const baseCap = 41000;
 
             let html = "";
-            html += buildRow("Overall Profit", fC(totalPnl), pC(totalPnl));
-            html += buildRow("No. of Trades (Periods)", totalTrades);
-            html += buildRow("Average Profit per Period", fC(avgPnl), pC(avgPnl));
-            html += buildRow("Win % (Periods)", `${winPerc.toFixed(2)}`, "font-medium text-white");
-            html += buildRow("Loss % (Periods)", `${lossPerc.toFixed(2)}`, "font-medium text-white");
-            html += buildRow("Average Profit on Winning Periods", fC(avgWin), "text-neonGreen font-mono font-bold");
-            html += buildRow("Average Loss on Losing Periods", fC(-avgLoss), "text-neonRed font-mono font-bold");
-            html += buildRow("Max Profit in Single Period", fC(maxWin), "text-neonGreen font-mono font-bold");
-            html += buildRow("Max Loss in Single Period", fC(maxLoss), "text-neonRed font-mono font-bold");
-            html += buildRow("Max Drawdown", fC(-maxDd), "text-neonRed font-mono font-bold");
+            html += buildRow("Overall Profit", withPerc(totalPnl, (totalPnl / baseCap) * 100), pC(totalPnl));
+            html += buildRow("Total Trades", totalTrades);
+            html += buildRow("Average Net P&L per Trade", fC(avgPnl), pC(avgPnl));
+            html += buildRow("Win Rate (%)", `${winPerc.toFixed(2)}%`, "font-medium text-white");
+            html += buildRow("Loss Rate (%)", `${lossPerc.toFixed(2)}%`, "font-medium text-white");
+            html += buildRow("Average Winning Trade", fC(avgWin), "text-neonGreen font-mono font-bold");
+            html += buildRow("Average Losing Trade", fC(-avgLoss), "text-neonRed font-mono font-bold");
+            html += buildRow("Max Profit (Single Trade)", withPerc(maxWin, (maxWin / baseCap) * 100), "text-neonGreen font-mono font-bold");
+            html += buildRow("Max Loss (Single Trade)", withPerc(maxLoss, (maxLoss / baseCap) * 100), "text-neonRed font-mono font-bold");
+            html += buildRow("Max Drawdown", withPerc(-maxDd, -maxDdPerc), "text-neonRed font-mono font-bold");
             html += buildRow("Reward to Risk Ratio", rrRatio.toFixed(2), "font-medium text-white");
             html += buildRow("Expectancy Ratio", expectancyRatio.toFixed(2), expectancyRatio > 0 ? "font-medium text-neonGreen" : "font-medium text-neonRed");
-            html += buildRow("Max Win Streak (Periods)", maxWinStreak, "font-medium text-white");
-            html += buildRow("Max Losing Streak (Periods)", maxLossStreak, "font-medium text-white");
+            html += buildRow("Max Win Streak (Trades)", maxWinStreak, "font-medium text-white");
+            html += buildRow("Max Losing Streak (Trades)", maxLossStreak, "font-medium text-white");
 
             tb.innerHTML = html;
         };
