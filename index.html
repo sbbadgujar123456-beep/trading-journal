@@ -208,9 +208,9 @@
             
             <div class="p-4 border-t border-gray-800 bg-bgDark/50">
                 <div class="flex items-center justify-between mb-3">
-                    <div id="authStatus" class="flex items-center gap-2 text-[10px] text-textMuted">
+                    <button id="authStatus" onclick="window.retryCloudSync()" class="flex items-center gap-2 text-[10px] text-textMuted hover:text-white transition-colors text-left" title="Click to retry cloud sync">
                         <div class="spinner w-3 h-3 border-2"></div> Connecting...
-                    </div>
+                    </button>
                     <button onclick="window.logout()" class="text-[10px] text-gray-500 hover:text-white flex items-center gap-1 transition-colors" title="Lock Journal">
                         <i class="ph-bold ph-lock-key"></i> Lock
                     </button>
@@ -253,6 +253,15 @@
                     </button>
                 </div>
             </header>
+
+            <!-- CLOUD SYNC BANNER -->
+            <div id="cloudBanner" class="hidden bg-orange-500/10 border-b border-orange-500/30 px-4 py-2 items-center justify-between gap-3 text-xs shrink-0">
+                <div class="flex items-center gap-2 text-orange-400 min-w-0">
+                    <i class="ph-fill ph-cloud-slash text-lg shrink-0"></i>
+                    <span id="cloudBannerMsg" class="truncate">Cloud sync offline. Data is being saved locally.</span>
+                </div>
+                <button onclick="window.retryCloudSync()" class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-bold px-3 py-1 rounded transition-colors whitespace-nowrap shrink-0">Retry Sync</button>
+            </div>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 custom-scrollbar relative">
                 
@@ -622,6 +631,22 @@
                         <h2 class="text-xl font-bold text-white flex items-center gap-2"><i class="ph-fill ph-gear text-neonGreen"></i> Data Management</h2>
                         <p class="text-xs text-textMuted mt-1">Backup your journal or restore from a previous export.</p>
                     </div>
+
+                    <!-- Cloud Sync Status Card -->
+                    <div class="glass-panel p-5 rounded-xl border border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div id="settingsCloudIcon" class="w-12 h-12 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center shrink-0">
+                                <i class="ph-bold ph-cloud text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-sm" id="settingsCloudTitle">Cloud Sync Status</h3>
+                                <p class="text-xs text-textMuted mt-0.5" id="settingsCloudDesc">Checking connection...</p>
+                            </div>
+                        </div>
+                        <button onclick="window.retryCloudSync()" class="bg-[#1f2433] hover:bg-gray-700 text-white font-bold px-4 py-2 rounded-lg transition-colors border border-gray-700 text-xs whitespace-nowrap">
+                            <i class="ph-bold ph-arrows-clockwise"></i> Reconnect
+                        </button>
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Backup Card -->
@@ -951,7 +976,7 @@
     <!-- FIREBASE AND APP LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- GLOBAL STATE ---
@@ -972,6 +997,13 @@
         let editingTradeId = null;
         let confirmActionCb = null;
         let isAuthenticated = false;
+        
+        // --- CLOUD STATE ---
+        let app = null, auth = null, db = null;
+        let useLocalStorage = false;     // true ONLY when Firebase is unusable
+        let listenersAttached = false;   // Firestore snapshot listeners attached
+        let authInitDone = false;        // guards the onAuthStateChanged observer
+        let signInError = null;          // last auth error (for the settings card)
         
         window.use12HourFormat = localStorage.getItem('tr_timeFormat') === '12h';
         
@@ -1009,7 +1041,98 @@
         let selectedCategories = [];
         let analysisSelectedCats = [];
 
-        // --- AUTHENTICATION LOGIC ---
+        // ============================================================
+        //  FIREBASE CONFIG
+        // ============================================================
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBVcHoZpNNiUcH1z2IllHVCLyZYr8ysNms",
+            authDomain: "tradology-5129d.firebaseapp.com",
+            projectId: "tradology-5129d",
+            storageBucket: "tradology-5129d.firebasestorage.app",
+            messagingSenderId: "579735575584",
+            appId: "1:579735575584:web:e46a1d0808eb72f76d7045"
+        };
+
+        /* ------------------------------------------------------------------
+           OPTIONAL EMAIL/PASSWORD CLOUD ACCOUNT
+           If you create a user in Firebase Console -> Authentication ->
+           Users -> Add user, put the email + password here.
+           Leave BOTH blank to use Anonymous auth (must be enabled in console).
+        ------------------------------------------------------------------ */
+        const CLOUD_AUTH_EMAIL    = "";
+        const CLOUD_AUTH_PASSWORD = "";
+
+        // Firestore data paths (single-user journal)
+        const PATH_TRADES   = ['artifacts', APP_ID, 'public', 'data', 'shubham_trades'];
+        const PATH_DAILY    = ['artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'];
+        const PATH_SETTINGS = ['artifacts', APP_ID, 'public', 'data', 'shubham_settings'];
+        const PATH_TARGETS  = ['artifacts', APP_ID, 'public', 'data', 'shubham_targets'];
+
+        // ============================================================
+        //  CLOUD STATUS UI HELPERS
+        // ============================================================
+        function setCloudStatus(state, msg) {
+            const el = document.getElementById('authStatus');
+            if (el) {
+                if (state === 'connected') {
+                    el.innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
+                } else if (state === 'connecting') {
+                    el.innerHTML = '<div class="spinner w-3 h-3 border-2"></div> Connecting...';
+                } else {
+                    el.innerHTML = `<i class="ph-fill ph-warning-circle text-neonRed"></i> ${msg || 'Offline'}`;
+                }
+            }
+
+            // Settings page card
+            const icon  = document.getElementById('settingsCloudIcon');
+            const title = document.getElementById('settingsCloudTitle');
+            const desc  = document.getElementById('settingsCloudDesc');
+            if (icon && title && desc) {
+                if (state === 'connected') {
+                    icon.className = 'w-12 h-12 rounded-full bg-neonGreen/10 text-neonGreen flex items-center justify-center shrink-0';
+                    icon.innerHTML = '<i class="ph-bold ph-cloud-check text-2xl"></i>';
+                    title.innerText = 'Cloud Sync Active';
+                    title.className = 'font-bold text-neonGreen text-sm';
+                    desc.innerText = currentUser
+                        ? `Connected to Firebase Firestore. UID: ${currentUser.uid.substring(0,10)}…`
+                        : 'Connected to Firebase Firestore.';
+                } else if (state === 'connecting') {
+                    icon.className = 'w-12 h-12 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center shrink-0';
+                    icon.innerHTML = '<div class="spinner w-5 h-5 border-2"></div>';
+                    title.innerText = 'Connecting to Firebase…';
+                    title.className = 'font-bold text-white text-sm';
+                    desc.innerText = 'Establishing secure connection.';
+                } else {
+                    icon.className = 'w-12 h-12 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0';
+                    icon.innerHTML = '<i class="ph-bold ph-cloud-slash text-2xl"></i>';
+                    title.innerText = 'Cloud Sync Offline';
+                    title.className = 'font-bold text-orange-400 text-sm';
+                    desc.innerText = msg || 'Data is being saved to this browser only.';
+                }
+            }
+        }
+
+        window.showCloudBanner = (msg) => {
+            const b = document.getElementById('cloudBanner');
+            const m = document.getElementById('cloudBannerMsg');
+            if (!b || !m) return;
+            m.innerText = msg;
+            b.classList.remove('hidden');
+            b.classList.add('flex');
+        };
+
+        window.hideCloudBanner = () => {
+            const b = document.getElementById('cloudBanner');
+            if (!b) return;
+            b.classList.add('hidden');
+            b.classList.remove('flex');
+        };
+
+        // ============================================================
+        //  AUTHENTICATION LOGIC (app gate)
+        // ============================================================
         window.attemptLogin = () => {
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
@@ -1024,7 +1147,7 @@
                 const trimmedPass = pass.trim();
                 
                 try {
-                    // Base64 decoding comparison to hide plain text credentials
+                    // Base64 encoded comparison (Shubham_Master / Shubham_Trader)
                     if (btoa(trimmedUser) === "U2h1YmhhbV9NYXN0ZXI=" && btoa(trimmedPass) === "U2h1YmhhbV9UcmFkZXI=") {
                         errEl.classList.add('hidden');
                         isAuthenticated = true;
@@ -1046,18 +1169,22 @@
             }, 800); 
         };
 
-        window.logout = () => {
+        window.logout = async () => {
             isAuthenticated = false;
             localStorage.removeItem('tr_auth');
+
+            // Detach cloud listeners + sign out of Firebase
+            detachListeners();
+            try { if (auth) await signOut(auth); } catch (e) { /* ignore */ }
+            currentUser = null;
+            listenersAttached = false;
+            authInitDone = false;
+
             document.getElementById('appContent').style.display = 'none';
             document.getElementById('loginOverlay').classList.remove('hidden-login');
             document.getElementById('loginUser').value = '';
             document.getElementById('loginPass').value = '';
-            
-            if(unsubscribeTrades) unsubscribeTrades();
-            if(unsubscribeDailyStats) unsubscribeDailyStats();
-            if(unsubscribeHolidays) unsubscribeHolidays();
-            if(unsubscribeTargets) unsubscribeTargets();
+            window.hideCloudBanner();
         };
 
         window.togglePassword = () => {
@@ -1087,7 +1214,6 @@
             }
         });
 
-
         window.createChart = function(ctxId, config) {
             if (charts[ctxId]) charts[ctxId].destroy();
             const ctx = document.getElementById(ctxId); if(!ctx) return;
@@ -1099,37 +1225,223 @@
             return { type: 'doughnut', data: { datasets: [{ data: [value, Math.max(0, max-value)], backgroundColor: [color, '#1f2433'], borderWidth: 0 }] }, options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, maintainAspectRatio: false } }; 
         };
 
-        // --- FIREBASE INIT ---
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading_journal';
-        const userFirebaseConfig = {
-            apiKey: "AIzaSyBVcHoZpNNiUcH1z2IllHVCLyZYr8ysNms",
-            authDomain: "tradology-5129d.firebaseapp.com",
-            projectId: "tradology-5129d",
-            storageBucket: "tradology-5129d.firebasestorage.app",
-            messagingSenderId: "579735575584",
-            appId: "1:579735575584:web:e46a1d0808eb72f76d7045"
-        };
-        const firebaseConfig = userFirebaseConfig;
-
-        let app, auth, db;
-        let useLocalStorage = false;
-
+        // ============================================================
+        //  APP BOOTSTRAP
+        // ============================================================
         function initApp() {
+            // Build UI first so auth callbacks have targets
+            window.renderAnalysisCategoryDropdown();
+            document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false);
+            window.switchView('dashboard');
+
             try {
-                app = initializeApp(firebaseConfig);
+                app  = initializeApp(firebaseConfig);
                 auth = getAuth(app);
-                db = getFirestore(app);
+                db   = getFirestore(app);
                 useLocalStorage = false;
             } catch (e) {
-                console.error("Firebase init failed, forcing Local Storage", e);
+                console.error("Firebase initialization failed:", e);
                 useLocalStorage = true;
+                setCloudStatus('error', 'Local Only');
+                window.showCloudBanner('Firebase failed to initialize. Using local storage.');
+                loadLocal();
+                return;
             }
 
             initAuth();
-            window.renderAnalysisCategoryDropdown(); 
-            document.getElementById('legsWrapper').innerHTML = window.createLegHTML(false); 
-            window.switchView('dashboard');
         }
+
+        // ============================================================
+        //  AUTH FLOW  (the part that used to silently drop to local)
+        // ============================================================
+        async function initAuth() {
+            setCloudStatus('connecting');
+
+            // Observe future sign-in / sign-out events. The initial callback is
+            // ignored until our explicit sign-in attempt has finished.
+            onAuthStateChanged(auth, (user) => {
+                if (!authInitDone) return;
+                if (user) {
+                    onCloudUser(user);
+                } else if (currentUser) {
+                    // Was signed in, now signed out
+                    currentUser = null;
+                    detachListeners();
+                    setCloudStatus('error', 'Signed out');
+                    window.showCloudBanner('Signed out of Firebase. Click Retry Sync to reconnect.');
+                }
+            });
+
+            try {
+                let user;
+                if (auth.currentUser) {
+                    // Persisted session from a previous page load
+                    user = auth.currentUser;
+                } else if (CLOUD_AUTH_EMAIL && CLOUD_AUTH_PASSWORD) {
+                    const cred = await signInWithEmailAndPassword(auth, CLOUD_AUTH_EMAIL, CLOUD_AUTH_PASSWORD);
+                    user = cred.user;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    user = cred.user;
+                }
+                authInitDone = true;
+                signInError = null;
+                onCloudUser(user);
+            } catch (err) {
+                authInitDone = true;
+                handleAuthFailure(err);
+            }
+        }
+
+        function onCloudUser(user) {
+            if (currentUser && currentUser.uid === user.uid && listenersAttached) return;
+
+            currentUser = user;
+            useLocalStorage = false;     // <-- cloud is now usable
+            signInError = null;
+            console.log('[Tradology] Firebase auth OK. UID:', user.uid, '| Anonymous:', user.isAnonymous);
+
+            setCloudStatus('connected');
+            window.hideCloudBanner();
+            attachListeners();
+        }
+
+        function handleAuthFailure(err) {
+            const code = err && err.code ? err.code : '';
+            console.error('[Tradology] Firebase sign-in failed:', code, err && err.message);
+
+            // Firebase auth failed -> fall back to local storage so app stays usable
+            useLocalStorage = true;
+            signInError = err;
+            loadLocal();
+            setCloudStatus('error', 'Cloud Offline');
+
+            let hint = '';
+            if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
+                hint = 'Anonymous sign-in is disabled. Enable it: Firebase Console → Authentication → Sign-in method → Anonymous → Enable.';
+            } else if (code === 'auth/configuration-not-found') {
+                hint = 'Firebase Authentication is not set up. Open Firebase Console → Authentication → Get Started.';
+            } else if (code === 'auth/network-request-failed') {
+                hint = 'Network error. Check your internet connection and retry.';
+            } else if (code === 'auth/invalid-api-key') {
+                hint = 'Invalid Firebase API key. Check your firebaseConfig.';
+            } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+                hint = 'Wrong email/password for the cloud account. Fix CLOUD_AUTH_EMAIL / CLOUD_AUTH_PASSWORD.';
+            } else {
+                hint = (err && err.message) ? err.message : 'Unknown authentication error.';
+            }
+
+            window.showCloudBanner(hint);
+            window.showToast('Cloud sync offline — saving locally', true);
+        }
+
+        window.retryCloudSync = async () => {
+            if (!auth) {
+                // Firebase never initialized — try a full re-init
+                initApp();
+                return;
+            }
+            if (currentUser && listenersAttached) {
+                window.showToast('Cloud is already connected.');
+                return;
+            }
+
+            setCloudStatus('connecting');
+            window.hideCloudBanner();
+            detachListeners();
+            listenersAttached = false;
+            authInitDone = false;
+            useLocalStorage = false;
+
+            await initAuth();
+            if (currentUser) window.showToast('Reconnected to Firebase Cloud.');
+        };
+
+        // ============================================================
+        //  FIRESTORE LISTENERS
+        // ============================================================
+        function attachListeners() {
+            if (listenersAttached || !currentUser || !db) return;
+            listenersAttached = true;
+
+            try {
+                unsubscribeTrades = onSnapshot(collection(db, ...PATH_TRADES), (snap) => {
+                    window.trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.renderActiveView();
+                    setCloudStatus('connected');
+                }, (e) => handleListenerError('trades', e));
+
+                unsubscribeDailyStats = onSnapshot(collection(db, ...PATH_DAILY), (snap) => {
+                    window.dailyStats = {};
+                    snap.docs.forEach(d => { window.dailyStats[d.id] = d.data().pnl; });
+                    window.renderActiveView();
+                }, (e) => handleListenerError('daily stats', e));
+
+                unsubscribeHolidays = onSnapshot(doc(db, ...PATH_SETTINGS, 'config'), (docSnap) => {
+                    window.marketHolidays = docSnap.exists() ? (docSnap.data().holidays || []) : [];
+                    window.renderActiveView();
+                }, (e) => handleListenerError('holidays', e));
+
+                unsubscribeTargets = onSnapshot(doc(db, ...PATH_TARGETS, 'all'), (docSnap) => {
+                    window.monthlyTargets = docSnap.exists() ? (docSnap.data().targets || {}) : {};
+                    window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
+                    if (activeView === 'dashboard') window.updateDashboard();
+                    if (activeView === 'targets') window.renderTargetsView();
+                }, (e) => handleListenerError('targets', e));
+
+            } catch (e) {
+                handleListenerError('setup', e);
+            }
+        }
+
+        function detachListeners() {
+            listenersAttached = false;
+            if (unsubscribeTrades)     { try { unsubscribeTrades(); }     catch(e){} unsubscribeTrades = null; }
+            if (unsubscribeDailyStats) { try { unsubscribeDailyStats(); } catch(e){} unsubscribeDailyStats = null; }
+            if (unsubscribeHolidays)   { try { unsubscribeHolidays(); }   catch(e){} unsubscribeHolidays = null; }
+            if (unsubscribeTargets)    { try { unsubscribeTargets(); }    catch(e){} unsubscribeTargets = null; }
+        }
+
+        function handleListenerError(what, e) {
+            const code = e && e.code ? e.code : '';
+            console.error(`[Tradology] Firestore listener error (${what}):`, code, e && e.message);
+
+            if (code === 'permission-denied') {
+                detachListeners();
+                useLocalStorage = true;
+                setCloudStatus('error', 'Rules blocked');
+                window.showCloudBanner(
+                    'Firestore security rules blocked access. In Firebase Console → Firestore → Rules, allow authenticated reads/writes, e.g. ' +
+                    'match /artifacts/{appId}/public/data/{document} { allow read, write: if request.auth != null; }'
+                );
+                window.showToast('Firestore permission denied', true);
+                loadLocal();
+            } else if (code === 'unavailable' || code === 'failed-precondition') {
+                setCloudStatus('error', 'Reconnecting…');
+                window.showCloudBanner('Lost connection to Firestore. Retrying automatically…');
+            }
+        }
+
+        // ============================================================
+        //  LOCAL STORAGE FALLBACK
+        // ============================================================
+        function loadLocal() {
+            window.trades = JSON.parse(localStorage.getItem('tr_trades') || '[]');
+            window.dailyStats = JSON.parse(localStorage.getItem('tr_daily') || '{}');
+            window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
+            window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets') || '{}');
+            window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
+            window.renderActiveView();
+        }
+
+        function saveLocal() {
+            localStorage.setItem('tr_trades', JSON.stringify(window.trades));
+            localStorage.setItem('tr_daily', JSON.stringify(window.dailyStats));
+            localStorage.setItem('tr_holidays', JSON.stringify(window.marketHolidays));
+            localStorage.setItem('tr_targets', JSON.stringify(window.monthlyTargets));
+        }
+
+        const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
 
         // --- TOAST NOTIFICATIONS ---
         window.showToast = (msg, isError = false) => {
@@ -1240,99 +1552,6 @@
         }
         setInterval(updateClock, 1000);
 
-        // --- AUTH & DATA SYNC ---
-        async function initAuth() {
-            if(useLocalStorage) { loadLocal(); return; }
-            try {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token && typeof __firebase_config !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (authErr) {
-                    console.warn("Auth token failed, falling back to anonymous auth.", authErr);
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.warn("Silent Firebase Auth fail, using Local Storage.", error);
-                useLocalStorage = true; loadLocal();
-            }
-        
-            if(!useLocalStorage) {
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        currentUser = user;
-                        document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
-                        listenToData();
-                    } else {
-                        currentUser = null;
-                        document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-warning-circle text-neonRed"></i> Disconnected';
-                        if(unsubscribeTrades) unsubscribeTrades();
-                        if(unsubscribeDailyStats) unsubscribeDailyStats();
-                        if(unsubscribeHolidays) unsubscribeHolidays();
-                        if(unsubscribeTargets) unsubscribeTargets();
-                        window.trades = []; window.dailyStats = {}; window.marketHolidays = []; window.monthlyTargets = {};
-                        window.renderActiveView();
-                    }
-                });
-            }
-        }
-
-        function listenToData() {
-            if (!currentUser) return;
-            try {
-                unsubscribeTrades = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades'), (snap) => {
-                    window.trades = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    window.renderActiveView();
-                    document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-cloud-check text-neonGreen"></i> Cloud Synced';
-                }, (e) => { 
-                    console.error("Firestore Listen Error (Trades). Fallback to Local Storage.", e); 
-                    useLocalStorage = true; loadLocal(); 
-                });
-                
-                unsubscribeDailyStats = onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats'), (snap) => {
-                    window.dailyStats = {};
-                    snap.docs.forEach(doc => { window.dailyStats[doc.id] = doc.data().pnl; });
-                    window.renderActiveView();
-                }, e => console.error("Error loading daily stats:", e));
-
-                unsubscribeHolidays = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), (docSnap) => {
-                    if(docSnap.exists()) window.marketHolidays = docSnap.data().holidays || [];
-                    window.renderActiveView();
-                }, e => console.error("Error loading holidays:", e));
-
-                unsubscribeTargets = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), (docSnap) => {
-                    if(docSnap.exists()) window.monthlyTargets = docSnap.data().targets || {};
-                    window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
-                    if(activeView === 'dashboard') window.updateDashboard();
-                    if(activeView === 'targets') window.renderTargetsView();
-                }, e => console.error("Error loading targets:", e));
-            } catch(e) {
-                console.error("Snapshot attach failed. Using Local.", e);
-                useLocalStorage = true; loadLocal();
-            }
-        }
-
-        function loadLocal() {
-            document.getElementById('authStatus').innerHTML = '<i class="ph-fill ph-device-mobile text-gray-400"></i> Local Storage';
-            window.trades = JSON.parse(localStorage.getItem('tr_trades') || '[]');
-            window.dailyStats = JSON.parse(localStorage.getItem('tr_daily') || '{}');
-            window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
-            window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets') || '{}');
-            window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
-            window.renderActiveView();
-        }
-
-        function saveLocal() {
-            localStorage.setItem('tr_trades', JSON.stringify(window.trades));
-            localStorage.setItem('tr_daily', JSON.stringify(window.dailyStats));
-            localStorage.setItem('tr_holidays', JSON.stringify(window.marketHolidays));
-            localStorage.setItem('tr_targets', JSON.stringify(window.monthlyTargets));
-        }
-
-        const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
-
         // --- BACKUP AND IMPORT ENGINE ---
         window.exportData = () => {
             try {
@@ -1394,30 +1613,29 @@
                             window.monthlyTargets = importedData.monthlyTargets || {};
                             window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
 
-                            if (useLocalStorage) {
+                            if (useLocalStorage || !currentUser) {
                                 saveLocal();
                                 window.renderActiveView();
-                                window.showToast("Data imported successfully via Local Storage!");
-                            } else if (currentUser) {
+                                window.showToast("Data imported to Local Storage!");
+                            } else {
                                 try {
                                     const syncPromises = [];
-                                    syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets }));
-                                    syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }));
+                                    syncPromises.push(setDoc(doc(db, ...PATH_TARGETS, 'all'), { targets: window.monthlyTargets }));
+                                    syncPromises.push(setDoc(doc(db, ...PATH_SETTINGS, 'config'), { holidays: window.marketHolidays }));
                                     
                                     for (const [date, val] of Object.entries(window.dailyStats)) {
-                                        syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', date), { pnl: val }));
+                                        syncPromises.push(setDoc(doc(db, ...PATH_DAILY, date), { pnl: val }));
                                     }
                                     
                                     for (const t of window.trades) {
-                                        syncPromises.push(setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', t.id), t));
+                                        syncPromises.push(setDoc(doc(db, ...PATH_TRADES, t.id), t));
                                     }
                                     
                                     await Promise.all(syncPromises);
-                                    window.showToast("Data restored and successfully synced to Cloud Storage!");
+                                    window.showToast("Data restored and synced to Firebase!");
                                 } catch (err) {
                                     console.error("Cloud import error:", err);
-                                    window.showToast("Error syncing fully to cloud. Switched to Local Storage.", true);
-                                    useLocalStorage = true;
+                                    window.showToast("Cloud import failed. Saved locally instead.", true);
                                     saveLocal();
                                 }
                             }
@@ -1535,9 +1753,11 @@
             window.closeTargetModal();
             window.renderTargetsView();
             
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_targets', 'all'), { targets: window.monthlyTargets }); } catch(e){}
+            if(useLocalStorage || !currentUser) {
+                saveLocal();
+            } else {
+                try { await setDoc(doc(db, ...PATH_TARGETS, 'all'), { targets: window.monthlyTargets }); }
+                catch(e) { console.error("Target save failed:", e); window.showToast("Failed to save target to cloud.", true); saveLocal(); }
             }
             if(activeView === 'dashboard') window.updateDashboard();
         };
@@ -2632,9 +2852,11 @@
             if(window.marketHolidays.includes(dt)) window.marketHolidays = window.marketHolidays.filter(d => d !== dt);
             else window.marketHolidays.push(dt);
             renderHolidayGrid();
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
-                try { await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_settings', 'config'), { holidays: window.marketHolidays }); } catch(e){}
+            if(useLocalStorage || !currentUser) {
+                saveLocal();
+            } else {
+                try { await setDoc(doc(db, ...PATH_SETTINGS, 'config'), { holidays: window.marketHolidays }); }
+                catch(e) { console.error("Holiday save failed:", e); saveLocal(); }
             }
             if(activeView === 'calendar') window.renderCalendar();
         };
@@ -3061,8 +3283,8 @@
         const showFormError = (msg) => { const err = document.getElementById('formErrorAlert'); document.getElementById('formErrorMsg').innerText = msg; err.classList.remove('hidden'); };
 
         window.saveTrade = async () => {
-            if(!useLocalStorage && !currentUser) { showFormError("Must be connected to Database to save."); return; }
-            
+            const cloudOk = (!useLocalStorage && !!currentUser && !!db);
+
             const sym = document.getElementById('tradeSymbol').value.trim();
             if(!sym) { showFormError("Symbol cannot be empty."); return; }
 
@@ -3157,17 +3379,30 @@
                 hedgeOptions: { syncEnTime: syncEn, syncExTime: syncEx, syncExPrice: syncExPrice, syncQty: syncQty }
             };
 
-            if(useLocalStorage) {
+            if(!cloudOk) {
+                // Offline / local mode
                 if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
                 else window.trades.push({id:tid, ...tradeObj});
-                saveLocal(); window.closeTradeModal(); window.renderActiveView();
+                saveLocal();
+                window.closeTradeModal();
+                window.renderActiveView();
                 window.showToast("Trade saved locally.");
             } else {
                 try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', tid), tradeObj);
+                    await setDoc(doc(db, ...PATH_TRADES, tid), tradeObj);
                     window.closeTradeModal();
                     window.showToast("Trade saved to Cloud.");
-                } catch (e) { console.error("Save Error:", e); showFormError("Error saving trade to cloud database."); }
+                } catch (e) {
+                    console.error("Save Error:", e);
+                    // Offline fallback so the user never loses the trade
+                    if(editingTradeId) window.trades = window.trades.map(x => x.id === tid ? {id:tid, ...tradeObj} : x);
+                    else window.trades.push({id:tid, ...tradeObj});
+                    saveLocal();
+                    window.closeTradeModal();
+                    window.renderActiveView();
+                    window.showToast("Cloud save failed — saved locally.", true);
+                    window.showCloudBanner('Could not reach Firestore. Trades are being saved to this browser. Click Retry Sync.');
+                }
             }
             btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Trade';
         };
@@ -3234,12 +3469,19 @@
         };
 
         window.deleteTrade = async (id) => {
-            if(useLocalStorage) { window.trades = window.trades.filter(x => x.id !== id); saveLocal(); window.renderActiveView(); window.showToast("Trade deleted."); return; }
-            if(!currentUser) return;
+            if(useLocalStorage || !currentUser || !db) {
+                window.trades = window.trades.filter(x => x.id !== id);
+                saveLocal(); window.renderActiveView(); window.showToast("Trade deleted."); return;
+            }
             try { 
-                await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_trades', id)); 
+                await deleteDoc(doc(db, ...PATH_TRADES, id)); 
                 window.showToast("Trade deleted.");
-            } catch(e) { console.error("Delete error:", e); }
+            } catch(e) {
+                console.error("Delete error:", e);
+                window.trades = window.trades.filter(x => x.id !== id);
+                saveLocal(); window.renderActiveView();
+                window.showToast("Cloud delete failed — removed locally.", true);
+            }
         };
 
         // --- DAILY PNL EDIT MODAL ---
@@ -3278,11 +3520,16 @@
             window.closeDayModal();
             window.showToast(`Daily P&L saved for ${dt}`);
             
-            if(useLocalStorage) saveLocal();
-            else if(currentUser) {
+            if(useLocalStorage || !currentUser || !db) {
+                saveLocal();
+            } else {
                 try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'shubham_daily_stats', dt), { pnl: val });
-                } catch(e) { console.error("Error saving daily PNL", e); }
+                    await setDoc(doc(db, ...PATH_DAILY, dt), { pnl: val });
+                } catch(e) {
+                    console.error("Error saving daily PNL", e);
+                    saveLocal();
+                    window.showToast("Cloud save failed — stored locally.", true);
+                }
             }
             window.renderActiveView();
         };
