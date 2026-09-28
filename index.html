@@ -328,8 +328,8 @@
                                 </div>
                                 <h3 class="text-xl md:text-2xl font-bold font-mono text-white truncate" id="d_netPnl">₹0.00</h3>
                                 <div class="flex justify-between mt-2">
-                                    <p class="text-[9px] text-textMuted flex items-center"><span id="d_roi">0.00%</span> ROI <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">Return on Investment. Calculated assuming a standard ₹1 Lakh base capital.</span></span></p>
-                                    <p class="text-[9px] text-textMuted flex items-center"><span id="d_cagr">0.00%</span> CAGR <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">Compound Annual Growth Rate. Shows smoothed annualized returns.</span></span></p>
+                                    <p class="text-[9px] text-textMuted flex items-center"><span id="d_roi">0.00%</span> ROI <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text" id="d_roiTip">Return on Investment. Calculated on your configured base capital.</span></span></p>
+                                    <p class="text-[9px] text-textMuted flex items-center"><span id="d_cagr">0.00%</span> CAGR <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">Compound Annual Growth Rate. Shows smoothed annualized returns based on your base capital.</span></span></p>
                                 </div>
                             </div>
 
@@ -629,7 +629,7 @@
                 <div id="view-settings" class="view-section space-y-6">
                     <div class="mb-4">
                         <h2 class="text-xl font-bold text-white flex items-center gap-2"><i class="ph-fill ph-gear text-neonGreen"></i> Data Management</h2>
-                        <p class="text-xs text-textMuted mt-1">Backup your journal or restore from a previous export.</p>
+                        <p class="text-xs text-textMuted mt-1">Backup your journal, set your base capital, or restore from a previous export.</p>
                     </div>
 
                     <!-- Cloud Sync Status Card -->
@@ -647,6 +647,41 @@
                             <i class="ph-bold ph-arrows-clockwise"></i> Reconnect
                         </button>
                     </div>
+
+                    <!-- ===== BASE CAPITAL SETTINGS ===== -->
+                    <div class="glass-panel p-6 rounded-xl border border-gray-800">
+                        <div class="flex items-start gap-4 mb-5">
+                            <div class="w-12 h-12 rounded-full bg-gold/10 text-gold flex items-center justify-center shrink-0">
+                                <i class="ph-bold ph-coins text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-white text-sm">Base Capital</h3>
+                                <p class="text-xs text-textMuted mt-0.5">Every percentage metric — ROI, CAGR, Max Drawdown %, Max Win/Loss %, Expectancy % and League points — is calculated using this amount. Change it to match your real trading account.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-1">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                                <input type="number" id="settingsBaseCapital" min="1" step="1000" placeholder="52000"
+                                       class="w-full input-dark rounded-lg p-3 pl-9 text-base font-mono font-bold"
+                                       onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+                            </div>
+                            <button onclick="window.saveBaseCapital()" class="bg-neonGreen text-black font-bold px-6 py-3 rounded-lg text-xs hover:brightness-110 transition-colors whitespace-nowrap flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-check"></i> Save Capital
+                            </button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <span class="text-[10px] text-textMuted uppercase tracking-wider self-center mr-1">Quick set:</span>
+                            <button onclick="window.quickSetCapital(25000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹25K</button>
+                            <button onclick="window.quickSetCapital(50000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹50K</button>
+                            <button onclick="window.quickSetCapital(100000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹1L</button>
+                            <button onclick="window.quickSetCapital(200000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹2L</button>
+                            <button onclick="window.quickSetCapital(500000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹5L</button>
+                            <button onclick="window.quickSetCapital(1000000)" class="text-[10px] font-bold bg-[#1f2433] hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded border border-gray-700 transition-colors">₹10L</button>
+                        </div>
+                    </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Backup Card -->
@@ -655,7 +690,7 @@
                                 <i class="ph-bold ph-download-simple text-3xl"></i>
                             </div>
                             <h3 class="font-bold text-white mb-2 text-lg">Backup Data</h3>
-                            <p class="text-xs text-textMuted mb-6 flex-1">Download a complete backup of your trades, daily P&L, targets, and market holidays in JSON format. Keep this file safe.</p>
+                            <p class="text-xs text-textMuted mb-6 flex-1">Download a complete backup of your trades, daily P&L, targets, base capital and market holidays in JSON format. Keep this file safe.</p>
                             <button onclick="window.exportData()" class="w-full bg-[#1f2433] hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors border border-gray-700 flex items-center justify-center gap-2">
                                 <i class="ph-bold ph-file-arrow-down"></i> Download JSON Backup
                             </button>
@@ -673,6 +708,22 @@
                                 <i class="ph-bold ph-file-arrow-up"></i> Upload Backup File
                             </button>
                         </div>
+                    </div>
+
+                    <!-- ===== DANGER ZONE ===== -->
+                    <div class="glass-panel p-6 rounded-xl border border-neonRed/30 bg-neonRed/[0.03]">
+                        <div class="flex items-start gap-4 mb-5">
+                            <div class="w-12 h-12 rounded-full bg-neonRed/10 text-neonRed flex items-center justify-center shrink-0">
+                                <i class="ph-bold ph-warning-octagon text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-neonRed text-sm uppercase tracking-wider">Danger Zone</h3>
+                                <p class="text-xs text-textMuted mt-0.5">Permanently erase <b class="text-white">every trade log</b> and <b class="text-white">every daily Net P&amp;L entry</b> saved on the calendar. Your market holidays, monthly targets and base capital will be kept. This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <button onclick="window.openEraseModal()" class="w-full sm:w-auto bg-neonRed/15 hover:bg-neonRed/25 text-neonRed font-bold px-6 py-3 rounded-lg transition-colors border border-neonRed/40 flex items-center justify-center gap-2 text-xs">
+                            <i class="ph-bold ph-trash"></i> Erase All Trade Data
+                        </button>
                     </div>
                 </div>
 
@@ -971,13 +1022,38 @@
             </div>
         </div>
 
+        <!-- ERASE ALL DATA MODAL -->
+        <div id="eraseModal" class="fixed inset-0 modal-overlay z-[75] flex items-center justify-center hidden opacity-0 transition-opacity duration-200 px-4" onclick="if(event.target === this) window.closeEraseModal()">
+            <div class="bg-[#11141c] rounded-xl border border-neonRed/40 shadow-2xl flex flex-col transform scale-95 transition-transform duration-200 w-full max-w-md p-6" id="eraseContent">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="ph-fill ph-warning-octagon text-3xl text-neonRed shrink-0"></i>
+                    <h3 class="font-bold text-white text-lg">Erase All Trade Data</h3>
+                </div>
+                <p class="text-xs text-gray-400 mb-4 leading-relaxed">
+                    This will permanently delete <b class="text-white">every trade log</b> and <b class="text-white">every daily Net P&amp;L entry</b> from the calendar — both locally and from the cloud.
+                    Market holidays, monthly targets and your base capital will be kept.
+                </p>
+                <div class="bg-neonRed/10 border border-neonRed/30 rounded-lg p-3 mb-4">
+                    <p class="text-[11px] text-neonRed font-bold" id="eraseCounts">--</p>
+                </div>
+                <label class="block text-[10px] text-textMuted uppercase tracking-wider mb-2">Type <span class="text-neonRed font-bold">DELETE</span> to confirm</label>
+                <input type="text" id="eraseConfirmInput" autocomplete="off" placeholder="DELETE"
+                       oninput="document.getElementById('eraseConfirmBtn').disabled = (this.value.trim().toUpperCase() !== 'DELETE');"
+                       class="w-full input-dark rounded-lg p-3 text-sm font-mono uppercase tracking-[0.3em] text-center mb-5">
+                <div class="flex gap-3 justify-end">
+                    <button onclick="window.closeEraseModal()" class="px-5 py-2 rounded-lg bg-gray-800 text-white text-xs font-bold hover:bg-gray-700 transition-colors">Cancel</button>
+                    <button id="eraseConfirmBtn" onclick="window.executeEraseAll()" disabled class="px-5 py-2 rounded-lg bg-neonRed text-white text-xs font-bold hover:brightness-110 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Erase Everything</button>
+                </div>
+            </div>
+        </div>
+
     </div> <!-- End of App Content -->
 
     <!-- FIREBASE AND APP LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- GLOBAL STATE ---
         window.trades = [];
@@ -986,6 +1062,7 @@
         window.monthlyTargets = {};
         window.monthlyTargetVal = 0;
         window.activeTradeTab = 'closed';
+        window.baseCapital = 52000;          // <-- user-configurable base capital
         
         let activeView = 'dashboard';
         let charts = {}; 
@@ -1006,6 +1083,12 @@
         let signInError = null;          // last auth error (for the settings card)
         
         window.use12HourFormat = localStorage.getItem('tr_timeFormat') === '12h';
+
+        // Restore base capital cache from local storage (cloud value overrides it later)
+        (function initBaseCapital() {
+            const cached = parseFloat(localStorage.getItem('tr_baseCapital'));
+            if (!isNaN(cached) && cached > 0) window.baseCapital = cached;
+        })();
         
         window.formatDisplayTime = (timeStr) => {
             if(!timeStr) return "--:--";
@@ -1378,9 +1461,15 @@
                 }, (e) => handleListenerError('daily stats', e));
 
                 unsubscribeHolidays = onSnapshot(doc(db, ...PATH_SETTINGS, 'config'), (docSnap) => {
-                    window.marketHolidays = docSnap.exists() ? (docSnap.data().holidays || []) : [];
+                    const data = docSnap.exists() ? docSnap.data() : {};
+                    window.marketHolidays = data.holidays || [];
+                    const bc = parseFloat(data.baseCapital);
+                    if (!isNaN(bc) && bc > 0) {
+                        window.baseCapital = bc;
+                        localStorage.setItem('tr_baseCapital', String(bc));
+                    }
                     window.renderActiveView();
-                }, (e) => handleListenerError('holidays', e));
+                }, (e) => handleListenerError('settings', e));
 
                 unsubscribeTargets = onSnapshot(doc(db, ...PATH_TARGETS, 'all'), (docSnap) => {
                     window.monthlyTargets = docSnap.exists() ? (docSnap.data().targets || {}) : {};
@@ -1431,6 +1520,8 @@
             window.marketHolidays = JSON.parse(localStorage.getItem('tr_holidays') || '[]');
             window.monthlyTargets = JSON.parse(localStorage.getItem('tr_targets') || '{}');
             window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
+            const cachedCap = parseFloat(localStorage.getItem('tr_baseCapital'));
+            if (!isNaN(cachedCap) && cachedCap > 0) window.baseCapital = cachedCap;
             window.renderActiveView();
         }
 
@@ -1439,6 +1530,7 @@
             localStorage.setItem('tr_daily', JSON.stringify(window.dailyStats));
             localStorage.setItem('tr_holidays', JSON.stringify(window.marketHolidays));
             localStorage.setItem('tr_targets', JSON.stringify(window.monthlyTargets));
+            localStorage.setItem('tr_baseCapital', String(window.baseCapital));
         }
 
         const getCurrentMonthKey = () => new Date().toISOString().substring(0,7);
@@ -1552,12 +1644,123 @@
         }
         setInterval(updateClock, 1000);
 
+        // ============================================================
+        //  BASE CAPITAL SETTINGS
+        // ============================================================
+        window.updateSettingsView = () => {
+            const el = document.getElementById('settingsBaseCapital');
+            if (el && document.activeElement !== el) el.value = window.baseCapital;
+        };
+
+        window.quickSetCapital = (val) => {
+            const el = document.getElementById('settingsBaseCapital');
+            if (el) el.value = val;
+            window.saveBaseCapital();
+        };
+
+        window.saveBaseCapital = async () => {
+            const el = document.getElementById('settingsBaseCapital');
+            if (!el) return;
+            const val = parseFloat(el.value);
+            if (!val || !isFinite(val) || val <= 0) {
+                window.showToast('Enter a valid base capital amount.', true);
+                return;
+            }
+            window.baseCapital = val;
+            localStorage.setItem('tr_baseCapital', String(val));
+            window.showToast(`Base capital set to ${fINR(val)}`);
+
+            if (!useLocalStorage && currentUser && db) {
+                try {
+                    await setDoc(doc(db, ...PATH_SETTINGS, 'config'),
+                        { holidays: window.marketHolidays, baseCapital: val }, { merge: true });
+                } catch (e) {
+                    console.error('Base capital cloud save failed:', e);
+                    window.showToast('Saved locally — cloud sync failed.', true);
+                }
+            }
+            window.renderActiveView();
+        };
+
+        // ============================================================
+        //  ERASE ALL TRADE DATA
+        // ============================================================
+        async function deleteAllDocsInCollection(pathArr) {
+            const snap = await getDocs(collection(db, ...pathArr));
+            const refs = snap.docs.map(d => d.ref);
+            for (let i = 0; i < refs.length; i += 400) {
+                const batch = writeBatch(db);
+                refs.slice(i, i + 400).forEach(r => batch.delete(r));
+                await batch.commit();
+            }
+            return refs.length;
+        }
+
+        window.openEraseModal = () => {
+            const tradeCount = window.trades.length;
+            const dayCount = Object.keys(window.dailyStats).length;
+            document.getElementById('eraseCounts').innerText =
+                `${tradeCount} trade log(s) and ${dayCount} daily Net P&L entr${dayCount === 1 ? 'y' : 'ies'} will be permanently deleted.`;
+            document.getElementById('eraseConfirmInput').value = '';
+            document.getElementById('eraseConfirmBtn').disabled = true;
+            document.getElementById('eraseConfirmBtn').innerText = 'Erase Everything';
+
+            const m = document.getElementById('eraseModal');
+            m.classList.remove('hidden');
+            setTimeout(() => {
+                m.classList.remove('opacity-0');
+                document.getElementById('eraseContent').classList.remove('scale-95');
+                document.getElementById('eraseConfirmInput').focus();
+            }, 10);
+        };
+
+        window.closeEraseModal = () => {
+            const m = document.getElementById('eraseModal');
+            m.classList.add('opacity-0');
+            document.getElementById('eraseContent').classList.add('scale-95');
+            setTimeout(() => m.classList.add('hidden'), 200);
+        };
+
+        window.executeEraseAll = async () => {
+            if (document.getElementById('eraseConfirmInput').value.trim().toUpperCase() !== 'DELETE') return;
+
+            const btn = document.getElementById('eraseConfirmBtn');
+            btn.disabled = true;
+            btn.innerText = 'Erasing...';
+
+            // 1) Local wipe (trades + daily net P&L only — holidays / targets / capital kept)
+            window.trades = [];
+            window.dailyStats = {};
+            localStorage.setItem('tr_trades', '[]');
+            localStorage.setItem('tr_daily', '{}');
+
+            // 2) Cloud wipe
+            const cloudOk = (!useLocalStorage && !!currentUser && !!db);
+            if (cloudOk) {
+                try {
+                    await deleteAllDocsInCollection(PATH_TRADES);
+                    await deleteAllDocsInCollection(PATH_DAILY);
+                    window.showToast('All trade data erased from cloud.');
+                } catch (e) {
+                    console.error('Erase failed:', e);
+                    window.showToast('Cloud erase failed — local data cleared.', true);
+                    window.showCloudBanner('Could not erase cloud data. Check your connection and click Retry Sync.');
+                }
+            } else {
+                window.showToast('All trade data erased locally.');
+            }
+
+            window.closeEraseModal();
+            window.renderActiveView();
+        };
+
         // --- BACKUP AND IMPORT ENGINE ---
         window.exportData = () => {
             try {
                 const backupData = {
-                    version: 1,
+                    version: 2,
                     timestamp: new Date().toISOString(),
+                    baseCapital: window.baseCapital,
                     trades: window.trades,
                     dailyStats: window.dailyStats,
                     marketHolidays: window.marketHolidays,
@@ -1602,7 +1805,7 @@
 
                     window.openConfirm(
                         'Import Data', 
-                        'This will overwrite ALL your current data (Trades, Daily P&L, Targets, Holidays). This action cannot be undone. Proceed?', 
+                        'This will overwrite ALL your current data (Trades, Daily P&L, Targets, Holidays, Base Capital). This action cannot be undone. Proceed?', 
                         'Yes, Overwrite & Import', 
                         async () => {
                             window.showToast("Importing data... Please wait.");
@@ -1613,6 +1816,12 @@
                             window.monthlyTargets = importedData.monthlyTargets || {};
                             window.monthlyTargetVal = window.monthlyTargets[getCurrentMonthKey()] || 0;
 
+                            const importedCap = parseFloat(importedData.baseCapital);
+                            if (!isNaN(importedCap) && importedCap > 0) {
+                                window.baseCapital = importedCap;
+                                localStorage.setItem('tr_baseCapital', String(importedCap));
+                            }
+
                             if (useLocalStorage || !currentUser) {
                                 saveLocal();
                                 window.renderActiveView();
@@ -1621,7 +1830,8 @@
                                 try {
                                     const syncPromises = [];
                                     syncPromises.push(setDoc(doc(db, ...PATH_TARGETS, 'all'), { targets: window.monthlyTargets }));
-                                    syncPromises.push(setDoc(doc(db, ...PATH_SETTINGS, 'config'), { holidays: window.marketHolidays }));
+                                    syncPromises.push(setDoc(doc(db, ...PATH_SETTINGS, 'config'),
+                                        { holidays: window.marketHolidays, baseCapital: window.baseCapital }, { merge: true }));
                                     
                                     for (const [date, val] of Object.entries(window.dailyStats)) {
                                         syncPromises.push(setDoc(doc(db, ...PATH_DAILY, date), { pnl: val }));
@@ -1839,7 +2049,8 @@
                     if(t.pnl < 0) s.expiryLosses++;
                 }
 
-                if(t.entryValue > 52000 && t.category !== 'Algo' && t.pnl < 0) {
+                // "High capital at risk" = entry value exceeds the configured base capital
+                if(t.entryValue > (window.baseCapital || 52000) && t.category !== 'Algo' && t.pnl < 0) {
                     s.highCapLossTrades++;
                 }
 
@@ -1914,7 +2125,10 @@
             s.winPerc = s.totalTrades > 0 ? (s.wins/s.totalTrades*100) : 0;
             s.pf = s.grossLoss > 0 ? (s.grossWin/s.grossLoss) : (s.grossWin > 0 ? 99.9 : 0);
             s.avgTradesDay = s.uniqueDays.size > 0 ? (s.totalTrades / s.uniqueDays.size) : 0;
-            s.roi = (s.totalPnl / 52000) * 100; 
+
+            // ---- BASE CAPITAL DRIVEN METRICS ----
+            s.baseCapital = Math.max(1, parseFloat(window.baseCapital) || 52000);
+            s.roi = (s.totalPnl / s.baseCapital) * 100; 
             s.cagr = s.roi; 
 
             let winDays=0, lossDays=0, beDays=0, maxDayProfit=0, maxDayLoss=0, cWs=0, cLs=0;
@@ -1932,7 +2146,7 @@
                 const dd = peak - eq;
                 if(dd > s.maxDrawdownAmt) s.maxDrawdownAmt = dd;
 
-                const peakCap = 52000 + peak;
+                const peakCap = s.baseCapital + peak;
                 const ddPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if(ddPerc > maxDdPerc) maxDdPerc = ddPerc;
 
@@ -1949,6 +2163,18 @@
             s.maxDrawdownPerc = maxDdPerc;
             const stdDev = sortedDays.length > 1 ? Math.sqrt(varianceSum / (sortedDays.length - 1)) : 0;
             s.sharpeRatio = stdDev > 0 ? (s.avgDailyPnl / stdDev) * Math.sqrt(252) : (s.avgDailyPnl > 0 ? 9.99 : 0);
+
+            // ---- CAGR (properly annualised on the actual date range) ----
+            if (sortedDays.length >= 2) {
+                const firstMs = new Date(sortedDays[0] + 'T00:00:00').getTime();
+                const lastMs  = new Date(sortedDays[sortedDays.length - 1] + 'T00:00:00').getTime();
+                const yearsElapsed = (lastMs - firstMs) / (365.25 * 24 * 60 * 60 * 1000);
+                const endCap = s.baseCapital + s.totalPnl;
+                if (yearsElapsed >= 0.08 && endCap > 0) {   // ~1 month minimum for a meaningful CAGR
+                    const c = (Math.pow(endCap / s.baseCapital, 1 / yearsElapsed) - 1) * 100;
+                    if (isFinite(c)) s.cagr = c;
+                }
+            }
 
             s.winDays = winDays; s.lossDays = lossDays; s.beDays = beDays;
             s.maxDayProfit = maxDayProfit; s.maxDayLoss = maxDayLoss;
@@ -2071,7 +2297,8 @@
                 }
             }
 
-            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / 52000) * 10)); 
+            // League points — PnL component is ROI-based so it adapts to your base capital
+            const pts_pnl = Math.min(10, Math.max(0, (s.totalPnl / s.baseCapital) * 10)); 
             const pts_vol = Math.min(20, (s.avgTradesDay / 5) * 20); 
             const pts_wr = (s.winPerc / 100) * 15;
             const pts_pf = Math.min(15, (s.pf / 3) * 15);
@@ -2149,6 +2376,7 @@
             else if (activeView === 'targets') window.renderTargetsView();
             else if (activeView === 'instruments') window.renderInstrumentsTable();
             else if (activeView === 'tags') window.renderTagsTable();
+            else if (activeView === 'settings') window.updateSettingsView();
         };
 
         window.switchView = (viewId) => {
@@ -2264,6 +2492,9 @@
             document.getElementById('d_roi').innerText = `${st.roi >= 0 ? '+' : ''}${st.roi.toFixed(2)}%`; document.getElementById('d_roi').className = st.roi >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
             document.getElementById('d_cagr').innerText = `${st.cagr >= 0 ? '+' : ''}${st.cagr.toFixed(2)}%`; document.getElementById('d_cagr').className = st.cagr >= 0 ? 'text-neonGreen font-mono font-bold' : 'text-neonRed font-mono font-bold';
 
+            const roiTip = document.getElementById('d_roiTip');
+            if (roiTip) roiTip.innerText = `Return on Investment — calculated on your base capital of ${fINR(st.baseCapital)}. Change it in Settings → Base Capital.`;
+
             document.getElementById('d_avgDailyPnl').innerText = fINR(st.avgDailyPnl); document.getElementById('d_avgDailyPnl').className = `text-2xl font-bold font-mono ${st.avgDailyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_avgMonthlyPnl').innerText = fINR(st.avgMonthlyPnl); document.getElementById('d_avgMonthlyPnl').className = `text-2xl font-bold font-mono ${st.avgMonthlyPnl >= 0 ? 'text-neonGreen' : 'text-neonRed'}`;
             document.getElementById('d_totalTrades').innerText = st.totalTrades;
@@ -2378,7 +2609,7 @@
                 buildStatCell('Largest Loss Day', 'text-white', fINR(st.maxDayLoss)) +
                 buildStatCell('Average Monthly P&L', (st.avgMonthlyPnl>=0?'text-white':'text-neonRed'), fINR(st.avgMonthlyPnl)) +
                 buildStatCell('Max Drawdown (Amt) <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">The biggest drop in your balance from its highest peak.</span></span>', 'text-white', fINR(st.maxDrawdownAmt)) +
-                buildStatCell('Max Drawdown (%)', 'text-white', `${st.maxDrawdownPerc.toFixed(2)}%`) +
+                buildStatCell('Max Drawdown (%) <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">Drawdown expressed as a percentage of your base capital.</span></span>', 'text-white', `${st.maxDrawdownPerc.toFixed(2)}%`) +
                 buildStatCell('Win Rate (%)', 'text-white', `${st.winPerc.toFixed(2)}%`) +
                 buildStatCell('Day Win Rate (%)', 'text-white', `${st.dayWinPerc.toFixed(0)}%`) +
                 buildStatCell('Profit Factor <span class="info-tooltip"><i class="ph-bold ph-info"></i><span class="tooltip-text">Gross Profit / Gross Loss. >1 means profitable.</span></span>', 'text-white', st.pf.toFixed(2)) +
@@ -2503,6 +2734,8 @@
             if(!tb) return;
             tb.innerHTML = '';
 
+            const baseCap = Math.max(1, parseFloat(window.baseCapital) || 52000);
+
             // Filter trades based on selected categories
             let relevantTrades = window.trades.filter(t => t.exitDate && t.exitTime && t.pnl != null);
             if (analysisSelectedCats.length > 0) {
@@ -2531,17 +2764,17 @@
                 const dd = peakEq - currentEq;
                 if (dd > maxDd) maxDd = dd;
 
-                const peakCap = 52000 + peakEq;
+                const peakCap = baseCap + peakEq;
                 const currentDdPerc = peakCap > 0 ? (dd / peakCap) * 100 : 0;
                 if (currentDdPerc > maxDdPercCalc) maxDdPercCalc = currentDdPerc;
 
                 if (t.pnl > maxWin) {
                     maxWin = t.pnl;
-                    maxWinPerc = (t.pnl / 52000) * 100;
+                    maxWinPerc = (t.pnl / baseCap) * 100;
                 }
                 if (t.pnl < maxLoss) {
                     maxLoss = t.pnl;
-                    maxLossPerc = (t.pnl / 52000) * 100;
+                    maxLossPerc = (t.pnl / baseCap) * 100;
                 }
 
                 if (t.pnl >= 0) {
@@ -2565,7 +2798,7 @@
             const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
             const rrRatio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? 99 : 0);
             
-            const overallPerc = (totalPnl / 52000) * 100;
+            const overallPerc = (totalPnl / baseCap) * 100;
             
             // Expectancy Ratio = (Win Rate * Avg Win) - (Loss Rate * Avg Loss) / Risk(Avg Loss)
             const winRateDec = wins / (totalTrades || 1);
@@ -2855,7 +3088,11 @@
             if(useLocalStorage || !currentUser) {
                 saveLocal();
             } else {
-                try { await setDoc(doc(db, ...PATH_SETTINGS, 'config'), { holidays: window.marketHolidays }); }
+                try {
+                    // merge:true so we never wipe the saved base capital
+                    await setDoc(doc(db, ...PATH_SETTINGS, 'config'),
+                        { holidays: window.marketHolidays, baseCapital: window.baseCapital }, { merge: true });
+                }
                 catch(e) { console.error("Holiday save failed:", e); saveLocal(); }
             }
             if(activeView === 'calendar') window.renderCalendar();
